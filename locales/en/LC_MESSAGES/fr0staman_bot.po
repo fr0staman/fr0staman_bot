@@ -1,0 +1,751 @@
+# English translations for .
+# Copyright (C) 2022 ORGANIZATION
+# This file is distributed under the same license as the  project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: fr0staman_bot\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2022-09-11 22:37+0300\n"
+"PO-Revision-Date: 2022-09-11 22:49+0300\n"
+"Last-Translator: \n"
+"Language-Team: en\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.9.1\n"
+"X-Generator: Poedit 3.1.1\n"
+
+#: modules/admin/callbacks.py:16
+msgid ""
+"Thank you!\n"
+"You receive +100 kg forever 🎂"
+msgstr ""
+"Thank you!\n"
+"You receive +100 kg forever 🎂"
+
+#: modules/admin/callbacks.py:18 modules/admin/callbacks.py:31
+#: modules/hryak/handlers.py:165 modules/hryak/handlers.py:188
+#: modules/hryak/handlers.py:205 modules/hryak/handlers.py:272
+#: modules/inline_mode/callbacks.py:52 modules/inline_mode/callbacks.py:155
+msgid "😭 There is no pig in your barn!"
+msgstr "😭 There is no pig in your barn!"
+
+#: modules/admin/callbacks.py:20 modules/admin/callbacks.py:33
+msgid "🐽 First of all - subscribe to the channel!"
+msgstr "🐽 First of all - subscribe to the channel!"
+
+#: modules/admin/callbacks.py:29
+msgid ""
+"Thank you!\n"
+"You receive +500kg today 🎂"
+msgstr ""
+"Thank you!\n"
+"You receive +500kg today 🎂"
+
+#: modules/admin/handlers.py:14
+msgid ""
+"<b>Thank you!</b>\n"
+"\n"
+"Your gift :)"
+msgstr ""
+"<b>Thank you!</b>\n"
+"\n"
+"Your gift :)"
+
+#: modules/admin/handlers.py:22 modules/base/handlers.py:65
+msgid ""
+"Hello!\n"
+"This bot does nothing useful.\n"
+"\n"
+"I'm serious.\n"
+"\n"
+"List of commands: - /help\n"
+"Questions, suggestions - @fr0staman.\n"
+"\n"
+"I will be glad :)\n"
+"News - @fr0staman_channel"
+msgstr ""
+"Hello!\n"
+"This bot does nothing useful.\n"
+"\n"
+"I'm serious.\n"
+"\n"
+"List of commands: - /help\n"
+"Questions, suggestions - @fr0staman.\n"
+"\n"
+"I will be glad :)\n"
+"News - @fr0staman_channel"
+
+#: modules/admin/handlers.py:32
+msgid ""
+"<b>Important!</b>\n"
+"\n"
+"Who subscribed on <a href=\"https://t.me/fr0staman_channel\">channel</a> - "
+"receives +500 kg to his hang pig <b>forever</b>!\n"
+msgstr ""
+"<b>Important!</b>\n"
+"\n"
+"Who subscribed on <a href=\"https://t.me/fr0staman_channel\">channel</a> - "
+"receives +500 kg to his hang pig <b>forever</b>!\n"
+
+#: modules/admin/handlers.py:52
+msgid ""
+"Hru, {mention}!\n"
+"Welcome to the {chat_title}!\n"
+"\n"
+"Start chat game  — /grow\n"
+"Help for the bot — /help\n"
+"\n"
+"Bot news — @fr0staman_channel"
+msgstr ""
+"Hru, {mention}!\n"
+"Welcome to the {chat_title}!\n"
+"\n"
+"Start chat game  — /grow\n"
+"Help for the bot — /help\n"
+"\n"
+"Bot news — @fr0staman_channel"
+
+#: modules/admin/handlers.py:74
+msgid ""
+"Why are you doing this...\n"
+"\n"
+"{chat_title} lost {mention}."
+msgstr ""
+"Why are you doing this...\n"
+"\n"
+"{chat_title} lost {mention}."
+
+#: modules/admin/handlers.py:82
+msgid "Co-co-co, fucking cock voice chat, co-co-co!"
+msgstr "Co-co-co, fucking cock voice chat, co-co-co!"
+
+#: modules/base/handlers.py:18
+msgid "Does not have information."
+msgstr "Does not have information."
+
+#: modules/base/handlers.py:28
+msgid "Greetings disabled successfully!"
+msgstr "Greetings disabled successfully!"
+
+#: modules/base/handlers.py:31
+msgid "Greetings enabled successfully!"
+msgstr "Greetings enabled successfully!"
+
+#: modules/base/handlers.py:33
+msgid "This option exist, but give me a correct parameter!"
+msgstr "This option exist, but give me a correct parameter!"
+
+#: modules/base/handlers.py:38
+msgid ""
+"Successfully changed!\n"
+"Now, visible pigs in the top starts with {setting} kg."
+msgstr ""
+"Successfully changed!\n"
+"Now, visible pigs in the top starts with {setting} kg."
+
+#: modules/base/handlers.py:40
+msgid ""
+"You entered incorrect parameter.\n"
+"Only a number."
+msgstr ""
+"You entered incorrect parameter.\n"
+"Only a number."
+
+#: modules/base/handlers.py:42
+msgid "That function not exist."
+msgstr "That function not exist."
+
+#: modules/base/handlers.py:44
+msgid ""
+"EPYC.\n"
+"Just EPYC."
+msgstr ""
+"EPYC.\n"
+"Just EPYC."
+
+#: modules/base/handlers.py:47
+msgid ""
+"I am Valera turururu,\n"
+"I am Valera turururu,\n"
+"I am Valera turururu\n"
+"\n"
+"And you're not a admin."
+msgstr ""
+"I am Valera turururu,\n"
+"I am Valera turururu,\n"
+"I am Valera turururu\n"
+"\n"
+"And you're not a admin."
+
+#: modules/base/handlers.py:50
+msgid "techincal chocolaps"
+msgstr "techincal chocolaps"
+
+#: modules/base/handlers.py:58
+msgid ""
+"You are subscribed on <a href=\"https://t.me/fr0staman_channel\">channel</a>!"
+"You are supposed to <b>+100</b> kg <b>forever</b>."
+msgstr ""
+"You are subscribed on <a href=\"https://t.me/fr0staman_channel\">channel</a>!"
+"You are supposed to <b>+100</b> kg <b>forever</b>."
+
+#: modules/base/handlers.py:63
+msgid ""
+"Subscribe on <a href=\"https://t.me/fr0staman_channel\">channel</a>!\n"
+"Do not waste opportunity to get <b>+100</b> kg forever."
+msgstr ""
+"Subscribe on <a href=\"https://t.me/fr0staman_channel\">channel</a>!\n"
+"Do not waste opportunity to get <b>+100</b> kg forever."
+
+#: modules/base/handlers.py:75
+msgid ""
+"Help for the bot:\n"
+"https://telegra.ph/Pomoshch--fr0staman-bot-09-30"
+msgstr ""
+"Help for the bot:\n"
+"https://telegra.ph/Pomoshch--fr0staman-bot-09-30"
+
+#: modules/debug/handlers.py:11
+msgid "Your name: {first_name}"
+msgstr "Your name: {first_name}"
+
+#: modules/debug/handlers.py:27
+msgid "your beauty"
+msgstr "your beauty"
+
+#: modules/debug/handlers.py:29
+msgid "Give me a user_id as a argument :)"
+msgstr "Give me a user_id as a argument :)"
+
+#: modules/debug/handlers.py:49
+msgid "Pooping sobaka, crawling gusaka <b>{user}</b>"
+msgstr "Pooping dog, crawling goose <b>{user}</b>"
+
+#: modules/hryak/handlers.py:80
+msgid "gained"
+msgstr "gained"
+
+#: modules/hryak/handlers.py:83 modules/hryak/handlers.py:105
+msgid "lost"
+msgstr "lost"
+
+#: modules/hryak/handlers.py:94
+msgid ""
+"Welcome to the game, {mention}!\n"
+"Keep using /grow command, to grow your own pig :)"
+msgstr ""
+"Welcome to the game, {mention}!\n"
+"Keep using /grow command, to grow your own pig :)"
+
+#: modules/hryak/handlers.py:110 modules/hryak/handlers.py:193
+msgid "unnamed pig"
+msgstr "unnamed pig"
+
+#: modules/hryak/handlers.py:113
+msgid ""
+"{mention}, your {name} {action} on {value} kg fat!\n"
+"\n"
+"Weight of your pig: {current} kg."
+msgstr ""
+"{mention}, your 🐽 {name} {action} on {value} kg fat!\n"
+"\n"
+"Weight of your pig: {current} kg."
+
+#: modules/hryak/handlers.py:124
+msgid "{minutes} minute"
+msgid_plural "{minutes} minutes"
+msgstr[0] "{minutes} minute"
+msgstr[1] "{minutes} minutes"
+
+#: modules/hryak/handlers.py:127
+msgid "Next feeding in {to_minutes}."
+msgstr "Next feeding in {to_minutes}."
+
+#: modules/hryak/handlers.py:129
+msgid "{hours} hour"
+msgid_plural "{hours} hours"
+msgstr[0] "{hours} hour"
+msgstr[1] "{hours} hours"
+
+#: modules/hryak/handlers.py:130
+msgid "Next feeding in {to_hours} and {to_minutes}."
+msgstr "Next feeding in {to_hours} and {to_minutes}."
+
+#: modules/hryak/handlers.py:134
+msgid ""
+"You already fed pig today!\n"
+"{next_feed}"
+msgstr ""
+"You already fed pig today!\n"
+"{next_feed}"
+
+#: modules/hryak/handlers.py:147 modules/hryak/handlers.py:255
+msgid "The tag does not fit more than 64 letters!"
+msgstr "The tag does not fit more than 64 letters!"
+
+#: modules/hryak/handlers.py:158 modules/hryak/handlers.py:265
+msgid ""
+"New name of your 🐷: \n"
+" {new_name}"
+msgstr ""
+"New name of your 🐷: \n"
+" {new_name}"
+
+#: modules/hryak/handlers.py:170
+msgid ""
+"Your chat pig doesnt have a name!\n"
+"To name your pig, just call /name pig_name, anything :)"
+msgstr ""
+"Your chat pig doesnt have a name!\n"
+"To name your pig, just call /name pig_name, anything :)"
+
+#: modules/hryak/handlers.py:174 modules/hryak/handlers.py:281
+msgid ""
+"Name of your pig: \n"
+" {name}\n"
+"\n"
+"Change name - /name pig_name."
+msgstr ""
+"Name of your pig: \n"
+" {name}\n"
+"\n"
+"Change name - /name pig_name."
+
+#: modules/hryak/handlers.py:196
+msgid ""
+"Your 🐷 {name}\n"
+"Has weight {current}"
+msgstr ""
+"Your 🐷 {name}\n"
+"Has weight {current} kg"
+
+#: modules/hryak/handlers.py:206
+msgid ""
+"🐷 Top 50 schweinehryaks 🐷\n"
+"\n"
+msgstr ""
+"🐷 Top 50 schweinehryaks 🐷\n"
+"\n"
+
+#: modules/hryak/handlers.py:228
+msgid ""
+"🐷 Top 10 pig beasts 🐷\n"
+"\n"
+msgstr ""
+"🐷 Top 10 pig beasts 🐷\n"
+"\n"
+
+#: modules/hryak/handlers.py:247
+msgid "Game \"Grow The Pig\" - only for chats!"
+msgstr "Game \"Grow The Pig\" - only for chats!"
+
+#: modules/hryak/handlers.py:277
+msgid ""
+"Your chat pig has no name!\n"
+"To name your pig, then /name his_name, just for fun :)"
+msgstr ""
+"Your chat pig has no name!\n"
+"To name your pig, then /name his_name, just for fun :)"
+
+#: modules/hryak/handlers.py:287
+msgid ""
+"Game \"Grow The Pig\"\n"
+"\n"
+"Commands:\n"
+"/grow - once a day feed your pig\n"
+"/name - name your piggy\n"
+"/my   - weigh and listen\n"
+"/top  - top of the fattest pigs in your barn "
+msgstr ""
+"Game \"Grow The Pig\"\n"
+"\n"
+"Commands:\n"
+"/grow - once a day feed your pig\n"
+"/name - name your piggy\n"
+"/my   - weigh and listen\n"
+"/top  - top of the fattest pigs in your barn  "
+
+#: modules/inline_mode/callbacks.py:24
+msgid "😭 There is no chat pig in your barn!"
+msgstr "😭 There is no chat pig in your barn!"
+
+#: modules/inline_mode/callbacks.py:29
+msgid "Deploying schweinelocators..."
+msgstr "Deploying schweinelocators..."
+
+#: modules/inline_mode/callbacks.py:34
+msgid "Hoof marks founded..."
+msgstr "Hoof marks founded..."
+
+#: modules/inline_mode/callbacks.py:39
+msgid "SCHWEINELOCATORS INSANELY SCREAMING!!"
+msgstr "SCHWEINELOCATORS INSANELY SCREAMING!!"
+
+#: modules/inline_mode/callbacks.py:44
+msgid ""
+"🐷 <b>ATTENTION!</b> 🐷\n"
+"\n"
+"<b>Pig of the day</b> is announced {mention}!"
+msgstr ""
+"🐷 <b>ATTENTION!</b> 🐷\n"
+"\n"
+"<b>Pig of the day</b> is announced {mention}!"
+
+#: modules/inline_mode/callbacks.py:56
+msgid ""
+"Position of the schweinelocators told us - <b>pig of the day</b> is {name}!"
+msgstr ""
+"Position of the schweinelocators told us - <b>pig of the day</b> is {name}!"
+
+#: modules/inline_mode/callbacks.py:66
+msgid "✨ Name changed successfully!"
+msgstr "✨ Name changed successfully!"
+
+#: modules/inline_mode/callbacks.py:68
+msgid ""
+"🐷 Your pig is now called:\n"
+" {new_name} "
+msgstr ""
+"🐷 Your pig is now called:\n"
+" {new_name} "
+
+#: modules/inline_mode/callbacks.py:73 modules/inline_mode/callbacks.py:104
+#: modules/inline_mode/callbacks.py:149 modules/inline_mode/callbacks.py:151
+msgid "🤕 This button is not for you!"
+msgstr "🤕 This button is not for you!"
+
+#: modules/inline_mode/callbacks.py:101
+msgid "😎 You are in the rating of your chat!"
+msgstr "😎 You are in the rating of your chat!"
+
+#: modules/inline_mode/callbacks.py:195
+msgid ""
+"🎊 Winner is {winner_name}! 🎊\n"
+"\n"
+"He receives {diff} kg, but {looser_name} - loses fat, and its all...\n"
+"\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+"Arena for a best:\n"
+"@fr0staman_chat"
+msgstr ""
+"🎊 Winner is {winner_name}! 🎊\n"
+"\n"
+"He receives {diff} kg, but {looser_name} - loses fat, and its all...\n"
+"\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+"Arena for a best:\n"
+"@fr0staman_chat"
+
+#: modules/inline_mode/callbacks.py:212
+msgid ""
+"🎉 Victory for {winner_name}! 🎉\n"
+"\n"
+"He adds to himself mass {diff} kg, but {looser_name} minus...\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+"\n"
+"Run to the @fr0staman_chat"
+msgstr ""
+"🎉 Victory for {winner_name}! 🎉\n"
+"\n"
+"He adds to himself mass {diff} kg, but {looser_name} minus...\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+"\n"
+"Run to the @fr0staman_chat"
+
+#: modules/inline_mode/callbacks.py:229
+msgid ""
+"🍖 <b><i>CRITICAL DAMAGE!</i></b> 🍖\n"
+"\n"
+"{winner_name} melts +{diff} kg of fat, but {looser_name} - fuse it on "
+"@fr0staman_chat\n"
+"\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+msgstr ""
+"🍖 <b><i>CRITICAL DAMAGE!</i></b> 🍖\n"
+"\n"
+"{winner_name} melts +{diff} kg of fat, but {looser_name} - fuse it on "
+"@fr0staman_chat\n"
+"\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+
+#: modules/inline_mode/callbacks.py:247
+msgid ""
+"⚡ <b><i>CRITICAL DAMAGE! УРОН!</i></b> ⚡\n"
+"\n"
+"{winner_name} eats to him mass +{diff} kg, but {looser_name}...\n"
+"So pity.\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+"Go to @fr0staman_chat!\n"
+msgstr ""
+"⚡ <b><i>CRITICAL DAMAGE!</i></b> ⚡\n"
+"\n"
+"{winner_name} eats to him mass +{diff} kg, but {looser_name}...\n"
+"So pity.\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+"Go to @fr0staman_chat!\n"
+
+#: modules/inline_mode/callbacks.py:264
+msgid ""
+"🔥 <b><i>KNOCKOUT!</i></b> 🔥\n"
+"\n"
+"{winner_name} knocking and gets +{diff} kg!\n"
+"{looser_name} looses his meat.\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+"Arena for the best:\n"
+"@fr0staman_chat"
+msgstr ""
+"🔥 <b><i>KNOCKOUT!</i></b> 🔥\n"
+"\n"
+"{winner_name} knocking and gets +{diff} kg!\n"
+"{looser_name} looses his meat.\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+"Arena for the best:\n"
+"@fr0staman_chat"
+
+#: modules/inline_mode/callbacks.py:283
+msgid ""
+"🥩 <b><i>KNOCKOUT!</i></b> 🥩\n"
+"\n"
+"{winner_name} knocking and receives +{diff} kg!\n"
+"{looser_name} looses his meat.\n"
+"\n"
+"Current weight {winner_name} — {winner_weight}!\n"
+"Current weight {looser_name} — {looser_weight}...\n"
+"Arena for the best:\n"
+"@fr0staman_chat"
+msgstr ""
+"🥩 <b><i>KNOCKOUT!</i></b> 🥩\n"
+"\n"
+"{winner_name} knocking and receives +{diff} kg!\n"
+"{looser_name} looses his meat.\n"
+"\n"
+"Current weight {winner_name} — {winner_weight} kg!\n"
+"Current weight {looser_name} — {looser_weight} kg...\n"
+"Arena for the best:\n"
+"@fr0staman_chat"
+
+#: modules/inline_mode/callbacks.py:304
+msgid ""
+"🍽 <b>DRAW!</b> 🍽\n"
+"\n"
+"Because piggies {draw1_name} and {draw2_name} fought veeery worthy, then both "
+"get {diff} kg."
+msgstr ""
+"🍽 <b>DRAW!</b> 🍽\n"
+"\n"
+"Because piggies {draw1_name} and {draw2_name} fought veeery worthy, then both "
+"get {diff} kg."
+
+#: modules/inline_mode/inline_query.py:34
+msgid "Not enough battles..."
+msgstr "Not enough battles..."
+
+#: modules/inline_mode/inline_query.py:39
+msgid "Weight of your piggy {weight} kg {emoji}"
+msgstr "Weight of your piggy {weight} kg {emoji}"
+
+#: modules/inline_mode/inline_query.py:43
+msgid ""
+"\n"
+"\n"
+"This user supported bot developing.\n"
+"Thanks!"
+msgstr ""
+"\n"
+"\n"
+"This user supported bot developing.\n"
+"Thanks!"
+
+#: modules/inline_mode/inline_query.py:58
+msgid "⚔ Duel of boars ⚔"
+msgstr "⚔ Duel of boars ⚔"
+
+#: modules/inline_mode/inline_query.py:59
+msgid "@fr0staman_chat for fattest"
+msgstr "@fr0staman_chat for fattest"
+
+#: modules/inline_mode/inline_query.py:65
+msgid ""
+"🛡 Boar {name} challenge to a duel! 🛡\n"
+"Win percentage: {winrate}\n"
+"Preliminary weighing: {weight} kg"
+msgstr ""
+"🛡 Boar {name} challenge to a duel! 🛡\n"
+"Win percentage: {winrate}\n"
+"Preliminary weighing: {weight} kg"
+
+#: modules/inline_mode/inline_query.py:78
+msgid "Best of the best!"
+msgstr "Best of the best!"
+
+#: modules/inline_mode/inline_query.py:90
+msgid "🐖 find out your pig mass"
+msgstr "🐖 find out your pig mass"
+
+#: modules/inline_mode/inline_query.py:91
+msgid "Weight: {weight} kg"
+msgstr "Weight: {weight} kg"
+
+#: modules/inline_mode/inline_query.py:107
+msgid "Error!"
+msgstr "Error!"
+
+#: modules/inline_mode/inline_query.py:108
+msgid "This bug has already been reported."
+msgstr "This bug has already been reported."
+
+#: modules/inline_mode/inline_query.py:113
+msgid ""
+"An error has occurred :(\n"
+"\n"
+"Bug report has already been sent!"
+msgstr ""
+"An error has occurred :(\n"
+"\n"
+"Bug report has already been sent!"
+
+#: modules/inline_mode/inline_query.py:172
+msgid "💥 find out overclocking of your processor 💥"
+msgstr "💥 find out overclocking of your processor 💥"
+
+#: modules/inline_mode/inline_query.py:177
+msgid "Overclocking of your processor {cpu_clock} GHz {cpu_emoji}"
+msgstr "Overclocking of your processor {cpu_clock} GHz {cpu_emoji}"
+
+#: modules/inline_mode/inline_query.py:183
+msgid "🐏 find out overclocking of your RAM 🐏"
+msgstr "🐏 find out overclocking of your RAM 🐏"
+
+#: modules/inline_mode/inline_query.py:188
+msgid "Overclocking of your RAM {ram_clock} Mhz {ram_emoji}"
+msgstr "Overclocking of your RAM {ram_clock} Mhz {ram_emoji}"
+
+#: modules/inline_mode/inline_query.py:194
+msgid "🎢 find out hashrate of your GPU 🎢"
+msgstr "🎢 find out hashrate of your GPU 🎢"
+
+#: modules/inline_mode/inline_query.py:199
+msgid "Hashrate of your videocard {gpu_hashrate} MH/s {gpu_emoji}"
+msgstr "Hashrate of your videocard {gpu_hashrate} MH/s {gpu_emoji}"
+
+#: modules/inline_mode/inline_query.py:215
+msgid "Keep going!"
+msgstr "Keep going!"
+
+#: modules/inline_mode/inline_query.py:216
+msgid "Press space and type future name of your boar!"
+msgstr "Press space and type future name of your boar!"
+
+#: modules/inline_mode/inline_query.py:221
+msgid ""
+"Name of your boar: {name}\n"
+"\n"
+"If you want change name of your pig, just type:\n"
+"\n"
+"@fr0staman_bot name *pig_name*"
+msgstr ""
+"Name of your boar: {name}\n"
+"\n"
+"If you want change name of your pig, just type:\n"
+"\n"
+"@fr0staman_bot name *pig_name*"
+
+#: modules/inline_mode/inline_query.py:242
+msgid "{future_name}"
+msgstr "{future_name}"
+
+#: modules/inline_mode/inline_query.py:243
+msgid "click to set a name"
+msgstr "click to set a name"
+
+#: modules/inline_mode/inline_query.py:249
+msgid ""
+"Todays name of your pig: {past_name}\n"
+"Future name of your boar: {future_name}\n"
+"\n"
+"Just click the button!"
+msgstr ""
+"Todays name of your pig: {past_name}\n"
+"Future name of your boar: {future_name}\n"
+"\n"
+"Just click the button!"
+
+#: modules/inline_mode/inline_query.py:268
+msgid "Pig of the day!"
+msgstr "Pig of the day! "
+
+#: modules/inline_mode/inline_query.py:269
+msgid "who is the hryak of your chat?"
+msgstr "who is the piggy of your chat?"
+
+#: modules/inline_mode/inline_query.py:274
+msgid "Click the button to catch the hryak of your chat..."
+msgstr "Click the button to catch the hryak of your chat..."
+
+#: modules/inline_mode/inline_query.py:288
+msgid "hruk of the death №{number}"
+msgstr "hruk of the death №{number}"
+
+#: modules/media/callbacks.py:34
+msgid "tikay s sela - it's not your button"
+msgstr "tikay s sela - it's not your button"
+
+#: modules/media/handlers.py:26
+msgid ""
+"Thank you!\n"
+"I will be sure to let you, when your brilliant grunt will be accepted!"
+msgstr ""
+"Thank you!\n"
+"I will be sure to let you, when your brilliant grunt will be accepted!"
+
+#: modules/text/handlers.py:29
+msgid ""
+"<b>Important!</b>\n"
+"\n"
+"Special thanks to you, for a destiny in life of this bot!\n"
+"Just take your gift :)\n"
+msgstr ""
+"<b>Important!</b>\n"
+"\n"
+"Special thanks to you, for a destiny in life of this bot!\n"
+"Just take your gift :)\n"
+
+#: modules/text/handlers.py:44
+msgid "интересно, а у хряков есть свой Слава Марлов, токо вместо басов хрюканья?"
+msgstr "interesting, pigs have his own JayZ but instead of bass grunts? "
+
+#: modules/text/handlers.py:61
+msgid "Write your text as argument!"
+msgstr "Write your text as argument!"
+
+#: modules/text/handlers.py:66
+msgid "you are pidor"
+msgstr "you are pidor"
+
+#: modules/text/handlers.py:86
+msgid "pidaras"
+msgstr "pidaras"
+
+#~ msgid "Message №{msg_id} has deleted for a chat defense."
+#~ msgstr "Message №{msg_id} has deleted for a chat defense."
+
+#~ msgid "Has no information."
+#~ msgstr "Has no information."
+
+#~ msgid "A curva mat your bula!"
+#~ msgstr "A curva mat your bula!"
