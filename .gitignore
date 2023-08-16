@@ -1,5 +1,2 @@
-venv
-.idea
+/target
 .env
-.env.local
-.env.staged

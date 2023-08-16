@@ -1,0 +1,18 @@
+edition = "2021"
+version = "Two"
+
+comment_width = 100
+max_width = 80
+
+error_on_line_overflow = true
+format_code_in_doc_comments = true
+format_macro_bodies = true
+format_macro_matchers = true
+format_strings = true
+imports_granularity = "Crate"
+match_block_trailing_comma = true
+newline_style = "Unix"
+reorder_impl_items = true
+use_field_init_shorthand = true
+use_small_heuristics = "Max"
+wrap_comments = true
