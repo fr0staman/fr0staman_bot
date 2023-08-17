@@ -132,7 +132,7 @@ async fn setup_listener(
 
     let addr = ([127, 0, 0, 1], port).into();
     let host = &BOT_CONFIG.webhook_url;
-    let url = format!("{host}/webhookBot").parse().unwrap();
+    let url = host.join("/webhookBot").expect("Invalid WEBHOOK_URL");
 
     webhooks::axum(bot.clone(), webhooks::Options::new(addr, url))
         .await
