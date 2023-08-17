@@ -252,7 +252,7 @@ async fn handle_error(bot: MyBot, q: InlineQuery, ltag: LocaleTag, err: Error) {
     let error_message =
         vec![InlineQueryResult::Article(handle_error_info(ltag))];
     let _ = bot.answer_inline_query(q.id, error_message).cache_time(0).await;
-    log::error!("Error in inline handler: {:?}", err);
+    log::error!("Error in inline handler: {:?} by user [{}]", err, q.from.id);
     if let Error::Database(diesel::result::Error::DatabaseError(_, err_info)) =
         err
     {

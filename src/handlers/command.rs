@@ -29,6 +29,9 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     let ltag = tag(get_tag_opt(m.from()));
 
+    let temp_m = m.clone();
+    let user_id = m.from().map_or(0, |u| u.id.0);
+
     let function = match cmd.clone() {
         MyCommands::Start => command_start(bot, m, ltag).boxed(),
         MyCommands::Help => command_help(bot, m, ltag).boxed(),
@@ -47,9 +50,20 @@ pub async fn filter_commands(
     let response = function.await;
 
     if let Err(err) = response {
-        log::error!("Error {:?} in command: {:?}", err, cmd);
+        log::error!(
+            "Error {:?} command /{:?} by user [{}] in chat [{}]",
+            err,
+            cmd,
+            user_id,
+            temp_m.chat.id,
+        );
     } else {
-        log::info!("Handled command /{:?}: ", cmd);
+        log::info!(
+            "Handled command /{:?}: by user [{}] in chat [{}]",
+            cmd,
+            temp_m.chat.id,
+            user_id
+        );
     }
 
     Ok(())
