@@ -38,6 +38,7 @@ use tokio::{
 
 static DUEL_LOCKS: Lazy<Arc<DashMap<u64, Mutex<Vec<u64>>>>> =
     Lazy::new(|| Arc::new(DashMap::new()));
+static DUEL_LIST: Lazy<Mutex<Vec<u64>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);
 
@@ -80,8 +81,8 @@ fn _inner_filter(
     data: ParsedCallbackData<'_>,
 ) -> BoxFuture<'_, MyResult<()>> {
     let Ok(matched_enum) = Actions::from_str(data.0) else {
-            return callback_empty(bot, q, ltag).boxed();
-        };
+        return callback_empty(bot, q, ltag).boxed();
+    };
 
     match matched_enum {
         Actions::GiveName => {
@@ -109,14 +110,24 @@ async fn _handle_error(
     ltag: LocaleTag,
     err: crate::Error,
 ) -> MyResult<()> {
+    let Some(inline_message_id) = q.inline_message_id.clone() else { return Ok(()) };
+
     log::error!("Error in callback: {:?}", err);
 
     tokio::spawn(async move {
-        let locks = DUEL_LOCKS.clone();
-        if let Some(value) = locks.get(&q.from.id.0) {
-            let mut user_threads = value.lock().await;
-            user_threads.clear();
-            log::warn!("Cleaned threads for user [{}]", &q.from.id)
+        {
+            let locks = DUEL_LOCKS.clone();
+            if let Some(value) = locks.get(&q.from.id.0) {
+                let mut user_threads = value.lock().await;
+                user_threads.clear();
+                log::warn!("Cleaned threads for user [{}]", &q.from.id)
+            };
+        };
+        {
+            let thread_identifier = get_hash(&inline_message_id);
+
+            let mut going_duels = DUEL_LIST.lock().await;
+            going_duels.retain(|&x| x != thread_identifier);
         };
     });
     callback_empty(bot, q, ltag).await?;
@@ -379,6 +390,17 @@ async fn callback_start_duel(
     let locks = DUEL_LOCKS.clone();
 
     {
+        let mut going_duels = DUEL_LIST.lock().await;
+
+        if going_duels.contains(&thread_identifier) {
+            log::warn!("Pending duel here!");
+            return Ok(());
+        } else {
+            going_duels.push(thread_identifier);
+        };
+    }
+
+    {
         if let Some(user_threads) = locks.get(&key) {
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
@@ -442,7 +464,12 @@ async fn callback_start_duel(
     bot.edit_message_text_inline(inline_message_id, text)
         .disable_web_page_preview(true)
         .await?;
-    new_item.retain(|&x| x == thread_identifier);
+    {
+        new_item.retain(|&x| x != thread_identifier);
+
+        let mut going_duels = DUEL_LIST.lock().await;
+        going_duels.retain(|&x| x != thread_identifier);
+    }
 
     Ok(())
 }
