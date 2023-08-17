@@ -48,7 +48,7 @@
   "GameOnlyForChats": "Game \"Grow The Pig\" only for chats!",
   "GamePigGrowActionResponse": "<b>{mention}</b>, your 🐽 <b>{name}</b> <b>{action}</b> on <b>{value}</b> kg fat!\n\nWeight of your pig: {current} kg.",
   "GamePigStats": "Your 🐷 <b>{name}</b>\nHas weight <b>{current}</b> kg",
-  "GameStartGreeting": "<b>Welcome to the game, {mention}</b>!\nKeep using /grow command, to grow your <b>own</b> pig :)",
+  "GameStartGreeting": "<b>Welcome to the game, {mention}</b>!\n\nKeep using /grow command, to grow your <b>own</b> pig :)",
   "GiftThanksIsYour": "<b>Thank you!</b>\n\nYour gift :)",
   "GiftThanksReceive100": "Thank you!\nYou receive +100 kg forever 🎂",
   "GiftThanksReceive500": "Thank you!\nYou receive +500kg today 🎂",
