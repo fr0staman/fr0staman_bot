@@ -138,7 +138,9 @@ async fn callback_give_hand_pig_name(
     if let Some(id) = q.inline_message_id {
         let text =
             lng("HandPigNameNowIs", ltag).args(&[("new_name", new_name)]);
-        bot.edit_message_text_inline(id, text).await?;
+        bot.edit_message_text_inline(id, text)
+            .disable_web_page_preview(true)
+            .await?;
     };
     Ok(())
 }
@@ -295,6 +297,7 @@ async fn top10_chat(
             q.from.id,
             to.as_ref(),
         ))
+        .disable_web_page_preview(true)
         .await?;
     Ok(())
 }
@@ -323,6 +326,7 @@ async fn top10_global(
             q.from.id,
             to.as_ref(),
         ))
+        .disable_web_page_preview(true)
         .await?;
     Ok(())
 }
@@ -350,6 +354,7 @@ async fn top10_win(
             q.from.id,
             to.as_ref(),
         ))
+        .disable_web_page_preview(true)
         .await?;
     Ok(())
 }
@@ -408,7 +413,9 @@ async fn callback_start_duel(
         ("secnd_weight", bold(&(second.weight).to_string())),
     ]);
 
-    bot.edit_message_text_inline(&inline_message_id, text).await?;
+    bot.edit_message_text_inline(&inline_message_id, text)
+        .disable_web_page_preview(true)
+        .await?;
     bot.answer_callback_query(q.id).await?;
 
     sleep(Duration::from_secs(3)).await;
@@ -432,7 +439,9 @@ async fn callback_start_duel(
     DB.hand_pig.update_hrundel_duel(winner_id, damage, true).await?;
     DB.hand_pig.update_hrundel_duel(looser_id, damage, looser_is_win).await?;
 
-    bot.edit_message_text_inline(inline_message_id, text).await?;
+    bot.edit_message_text_inline(inline_message_id, text)
+        .disable_web_page_preview(true)
+        .await?;
     new_item.retain(|&x| x == thread_identifier);
 
     Ok(())
@@ -456,8 +465,8 @@ async fn callback_change_top(
         DB.other.add_chat(m.chat.id.0, cur_datetime).await?;
         let chat_info = DB.other.get_chat(m.chat.id.0).await?;
         let Some(chat_info) = chat_info else {
-                return Ok(());
-            };
+            return Ok(());
+        };
         chat_info
     };
 
@@ -480,7 +489,11 @@ async fn callback_change_top(
 
     let is_end = pig_count < (TOP_LIMIT * offset);
     let markup = keyboards::keyboard_top50(ltag, offset, from.id, is_end);
-    bot.edit_message_text(m.chat.id, m.id, text).reply_markup(markup).await?;
+    bot.edit_message_text(m.chat.id, m.id, text)
+        .disable_web_page_preview(true)
+        .reply_markup(markup)
+        .await?;
+
     Ok(())
 }
 
@@ -542,8 +555,8 @@ async fn _start_duel_get_2_hrundels(
         };
 
     let Some(second) = DB.hand_pig.get_hrundel(ids.1.0).await? else {
-            return Ok(None);
-        };
+        return Ok(None);
+    };
 
     let today = get_date();
 
@@ -590,6 +603,9 @@ async fn callback_empty(
 ) -> MyResult<()> {
     let text = lng("ErrorUndefCallbackResponse", ltag);
     bot.answer_callback_query(q.id).text(text).await?;
+    let user_id = q.from.id;
+    log::error!("Empty callback from user [{}]", user_id);
+
     Ok(())
 }
 
