@@ -1,7 +1,7 @@
-//use crate::traits::{
-//    MaybeMessageSetter, MaybePhotoSetter, MaybeStickerSetter, MaybeVoiceSetter,
-//};
-use crate::{MyBot, MyResult};
+use crate::{
+    MaybeMessageSetter, MaybePhotoSetter, MaybeStickerSetter, MaybeVoiceSetter,
+    MyBot, MyResult,
+};
 use teloxide::types::Message;
 use teloxide::{prelude::*, types::InputFile, utils::html::italic};
 
@@ -58,28 +58,28 @@ async fn _maybe_send_message(
         Actions::Text(text) => {
             bot.send_message(m.chat.id, text)
                 .reply_to_message_id(m.id)
-                //.maybe_thread_id(&m)
+                .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message: chat [{}]", m.chat.id);
         },
         Actions::RSticker(file_id) => {
             bot.send_sticker(m.chat.id, InputFile::file_id(file_id))
                 .reply_to_message_id(m.reply_to_message().unwrap().id.0)
-                //.maybe_thread_id(&m)
+                .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with sticker: chat [{}]", m.chat.id);
         },
         Actions::RVoice(file_id) => {
             bot.send_voice(m.chat.id, InputFile::file_id(file_id))
                 .reply_to_message_id(m.reply_to_message().unwrap().id)
-                //.maybe_thread_id(&m)
+                .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with voice: chat [{}]", m.chat.id);
         },
         Actions::Photo(file_id) => {
             bot.send_photo(m.chat.id, InputFile::file_id(file_id))
                 .reply_to_message_id(m.id)
-                //.maybe_thread_id(&m)
+                .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with image: chat [{}]", m.chat.id);
         },
