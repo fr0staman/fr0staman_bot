@@ -1,32 +1,25 @@
 use strum::{AsRefStr, Display, EnumString};
 use teloxide::macros::BotCommands;
 
+// Descriptions of BotCommands — check locales /<command>_desc
 #[derive(BotCommands, Clone, Debug)]
 #[command(rename_rule = "lowercase")]
 pub enum MyCommands {
     /// System
-    // Handle in private and chats
     Start,
-    // Help due to lang
     Help,
-    // Check with or reply
+
     Pidor,
 
     Print(String),
     P(String),
 
     /// Game commands
-    // Grow and add pig
     Grow,
-    // Change pig name
     Name(String),
-    // My pig
     My,
-    // Top-10/50 users
     Top,
-    // About game, list of commands
     Game,
-    // Test message with lang
     Lang,
 }
 
@@ -124,4 +117,12 @@ pub enum Image {
     OCGPU,
     #[strum(serialize = "9_error_200x200.jpg")]
     Error,
+}
+
+#[derive(AsRefStr, EnumString, Display)]
+#[strum(serialize_all = "snake_case")]
+pub enum PigGrowthStatus {
+    Lost,
+    Maintained,
+    Gained,
 }

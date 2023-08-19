@@ -180,7 +180,7 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
     }
 
     let cur_datetime = get_datetime();
-    let current_date = cur_datetime.date();
+    let cur_date = cur_datetime.date();
     let mention = user_mention(
         i64::try_from(from.id.0).unwrap_or_default(),
         &from.first_name,
@@ -197,28 +197,29 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
             return Ok(());
         };
 
-        let truncated_f_name = truncate(&from.first_name, 64);
+        let truncated_f_name = truncate(&from.first_name, 64).0;
         DB.chat_pig
             .create_chat_pig(
                 from.id.0,
                 chat_info.id,
-                truncated_f_name.0,
-                current_date,
+                truncated_f_name,
+                cur_date,
             )
             .await?;
-        let new_pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
-        if let Some(maybe_pig) = new_pig {
+        let maybe_new_pig =
+            DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+        if let Some(new_pig) = maybe_new_pig {
             skip_date_check = true;
             let text =
                 lng("GameStartGreeting", ltag).args(&[("mention", &mention)]);
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
-            maybe_pig
+            new_pig
         } else {
             return Ok(());
         }
     };
 
-    if (!skip_date_check) && (pig.date == current_date) {
+    if (!skip_date_check) && (pig.date == cur_date) {
         let (hours, minutes, seconds) = get_timediff(cur_datetime);
 
         let h_rule = plural(hours);
@@ -254,20 +255,15 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
     let (offset, status) = calculate_chat_pig_grow(pig.mass);
     let current = pig.mass + offset;
 
-    DB.chat_pig
-        .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, current_date)
-        .await?;
-    let lang_key = match status {
-        -1 => "lost",
-        _ => "gained",
-    };
+    //DB.chat_pig
+    //    .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
+    //    .await?;
 
-    let action = lng(&format!("GameGrowResult_{}", lang_key), ltag);
+    let grow_status_key = format!("GamePigGrowMessage_{}", status.as_ref());
 
-    let text = lng("GamePigGrowActionResponse", ltag).args(&[
+    let text = lng(&grow_status_key, ltag).args(&[
         ("name", pig.name),
-        ("action", action),
-        ("value", offset.to_string()),
+        ("value", offset.abs().to_string()),
         ("current", current.to_string()),
         ("mention", mention),
     ]);

@@ -2,6 +2,8 @@
 use chrono::Datelike;
 use rand::Rng;
 
+use crate::enums::PigGrowthStatus;
+
 use super::date::{get_datetime, get_fixed_timestamp};
 
 const STRANGE_DELIMITER: f64 = 5527.0;
@@ -53,10 +55,9 @@ pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: u64) -> f32 {
     ((hryak_size as u64 + user_id).rem_euclid(12800)) as f32 / 100.0
 }
 
-pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, i32) {
+pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {
     let mut chance = rand::thread_rng().gen_range(-2..=20);
-    // TODO: enum
-    let mut grow = 1;
+    let mut status = PigGrowthStatus::Gained;
 
     #[allow(clippy::comparison_chain)]
     if chance < 0 {
@@ -66,12 +67,12 @@ pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, i32) {
             return calculate_chat_pig_grow(current_kg);
         }
         chance = rand::thread_rng().gen_range(-min..0);
-        grow = -1;
+        status = PigGrowthStatus::Lost;
     } else if chance == 0 {
-        grow = 0;
+        status = PigGrowthStatus::Maintained;
     }
 
-    (chance, grow)
+    (chance, status)
 }
 
 pub fn get_pig_emoji<'a>(hryak_size: i32) -> &'a str {

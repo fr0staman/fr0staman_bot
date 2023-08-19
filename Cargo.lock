@@ -813,7 +813,7 @@ dependencies = [
 
 [[package]]
 name = "fr0staman_bot"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "async-recursion",
  "chrono",
