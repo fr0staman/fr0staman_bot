@@ -19,13 +19,13 @@ use tokio::time::{sleep, Duration};
 
 pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(new_chat_members) = m.new_chat_members() else {
-            log::error!("No chat member in new chat members, wtf?");
-            return Ok(());
-        };
+        log::error!("No chat member in new chat members, wtf?");
+        return Ok(());
+    };
 
     let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
-            return Ok(());
-        };
+        return Ok(());
+    };
 
     if settings.settings == 1 {
         log::info!("New chat member in chat [{}], but silent", m.chat.id);
@@ -60,9 +60,9 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(member) = m.left_chat_member() else {
-            log::error!("No left chat member in left chat members, wtf?");
-            return Ok(());
-        };
+        log::error!("No left chat member in left chat members, wtf?");
+        return Ok(());
+    };
 
     let ltag = tag(get_tag(member));
 
@@ -72,8 +72,8 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
     }
 
     let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
-            return Ok(());
-        };
+        return Ok(());
+    };
 
     if settings.settings == 1 {
         log::info!("Left chat member in chat [{}], but silent", m.chat.id);
@@ -119,8 +119,8 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
     let ltag = tag(get_tag_opt(m.from()));
 
     let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
-            return Ok(());
-        };
+        return Ok(());
+    };
 
     if settings.settings == 1 {
         log::info!("Video chat reaction in chat [{}], but silent", m.chat.id);
@@ -166,12 +166,11 @@ pub async fn handle_chat_migration(_bot: MyBot, m: Message) -> MyResult<()> {
     let from = m.migrate_from_chat_id().unwrap();
     let to = m.migrate_to_chat_id().unwrap();
 
-    // This is waaaay bad legacy, in future maybe it will changed.
     DB.other.update_chat_id(from.0, to.0).await?;
-    DB.chat_pig.update_game_chat_id(from.0, to.0).await?;
 
     Ok(())
 }
+
 async fn _get_or_insert_chat(chat_id: ChatId) -> MyResult<Option<Groups>> {
     let settings = DB.other.get_chat(chat_id.0).await?;
     match settings {

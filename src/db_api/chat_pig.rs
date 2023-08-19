@@ -176,20 +176,4 @@ impl ChatPig {
 
         Ok(results)
     }
-
-    pub async fn update_game_chat_id(
-        &self,
-        from_id: i64,
-        to_id: i64,
-    ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
-
-        diesel::update(groups)
-            .filter(chat_id.eq(from_id))
-            .set(chat_id.eq(to_id))
-            .execute(&mut self.pool.get().await?)
-            .await?;
-
-        Ok(())
-    }
 }

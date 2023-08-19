@@ -210,13 +210,13 @@ async fn inline_hruks(
         DB.other.get_50_inline_voices().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
-                bot.answer_inline_query(
-                    q.id,
-                    vec![InlineQueryResult::Article(handle_error_parse(ltag))],
-                )
-                .await?;
-                return Ok(());
-            };
+            bot.answer_inline_query(
+                q.id,
+                vec![InlineQueryResult::Article(handle_error_parse(ltag))],
+            )
+            .await?;
+            return Ok(());
+        };
 
         let voice = DB.other.get_inline_voice_by_id(id).await?;
         voice.into_iter().collect()
@@ -267,8 +267,7 @@ async fn handle_good(q: InlineQuery) {
 
 async fn _get_biggest_chat_pig_mass(id_user: UserId) -> MyResult<i32> {
     let biggest = DB.chat_pig.get_biggest_chat_pig(id_user.0).await?;
-    let biggest_mass =
-        if let Some(biggest) = biggest { biggest.mass } else { 0 };
+    let biggest_mass = biggest.map_or(0, |b| b.mass);
 
     Ok(biggest_mass)
 }
@@ -277,13 +276,13 @@ async fn _get_for_top10_info(
     ltag: LocaleTag,
     chat_type: &str,
 ) -> MyResult<String> {
-    let top10_chat_info = DB.hand_pig.get_top10_global(get_date()).await?;
+    let cur_date = get_date();
+    let top10_chat_info = DB.hand_pig.get_top10_global(cur_date).await?;
 
-    let text = if let Some(top10_info) = top10_chat_info {
-        generate_top10_text(ltag, top10_info, chat_type)
-    } else {
-        lng("HandPigNoInBarn", ltag)
-    };
+    let text = top10_chat_info.map_or_else(
+        || lng("HandPigNoInBarn", ltag),
+        |v| generate_top10_text(ltag, v, chat_type),
+    );
 
     Ok(text)
 }
@@ -419,6 +418,7 @@ fn day_pig_info(ltag: LocaleTag, id_user: UserId) -> InlineQueryResultArticle {
     let caption = lng("InlineDayPigCaption", ltag);
     let message = lng("InlineDayPigMessage", ltag);
     let desc = lng("InlineDayPigDesc", ltag);
+
     InlineQueryResultArticle::new(
         "5",
         caption,

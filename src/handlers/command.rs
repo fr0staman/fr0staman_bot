@@ -1,3 +1,8 @@
+use futures::FutureExt;
+use teloxide::prelude::*;
+use teloxide::types::ChatKind;
+use teloxide::utils::html::{italic, user_mention};
+
 use crate::config::BOT_CONFIG;
 use crate::db::DB;
 use crate::enums::MyCommands;
@@ -9,18 +14,7 @@ use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, plural, truncate};
 use crate::{MyBot, MyResult, DEFAULT_LANG_TAG};
 
-use futures::FutureExt;
-use teloxide::prelude::*;
-use teloxide::types::ChatKind;
-use teloxide::utils::html::{italic, user_mention};
-
 use super::callback::generate_chat_top50_text;
-
-const HELP_LINK: [&str; 3] = [
-    "https://telegra.ph/Help--fr0staman-bot-en-08-05",
-    "https://telegra.ph/Help--fr0staman-bot-ru-08-05",
-    "https://telegra.ph/Help--fr0staman-bot-uk-08-05",
-];
 
 pub async fn filter_commands(
     bot: MyBot,
@@ -101,9 +95,11 @@ async fn command_start(
             .maybe_thread_id(&m)
             .reply_markup(keyboard_startgroup(ltag, url))
             .await?;
-    } else {
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        return Ok(());
     }
+
+    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+
     Ok(())
 }
 
@@ -357,8 +353,8 @@ async fn command_top(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
         DB.other.add_chat(m.chat.id.0, cur_datetime).await?;
         let chat_settings = DB.other.get_chat(m.chat.id.0).await?;
         let Some(chat_settings) = chat_settings else {
-                return Ok(());
-            };
+            return Ok(());
+        };
         chat_settings
     };
 

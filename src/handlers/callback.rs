@@ -234,14 +234,14 @@ async fn callback_add_inline_chat(
         return Ok(());
     }
 
+    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+
     _check_or_insert_user_or_chat(q.from.id.0, &q.chat_instance).await?;
 
     let text = lng("ChatAddedToRating", ltag);
     bot.answer_callback_query(q.id).text(text).await?;
+    bot.edit_message_reply_markup_inline(im_id).await?;
 
-    if let Some(id) = q.inline_message_id {
-        bot.edit_message_reply_markup_inline(id).await?;
-    };
     Ok(())
 }
 
@@ -296,18 +296,14 @@ async fn top10_chat(
     let top10_chat_info =
         DB.hand_pig.get_top10_chat(&q.chat_instance, get_date()).await?;
 
-    let text = if let Some(top10_info) = top10_chat_info {
-        generate_top10_text(ltag, top10_info, chat_type.as_ref())
-    } else {
-        lng("GameNoChatPigs", ltag)
-    };
+    let text = top10_chat_info.map_or_else(
+        || lng("GameNoChatPigs", ltag),
+        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+    );
 
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
     bot.edit_message_text_inline(im_id, text)
-        .reply_markup(keyboards::keyboard_in_top10(
-            ltag,
-            q.from.id,
-            to.as_ref(),
-        ))
+        .reply_markup(markup)
         .disable_web_page_preview(true)
         .await?;
     Ok(())
@@ -325,18 +321,15 @@ async fn top10_global(
     let cur_date = get_date();
     let top10_chat_info = DB.hand_pig.get_top10_global(cur_date).await?;
 
-    let text = if let Some(top10_info) = top10_chat_info {
-        generate_top10_text(ltag, top10_info, chat_type.as_ref())
-    } else {
-        lng("GameNoChatPigs", ltag)
-    };
+    let text = top10_chat_info.map_or_else(
+        || lng("GameNoChatPigs", ltag),
+        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+    );
+
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
 
     bot.edit_message_text_inline(im_id, text)
-        .reply_markup(keyboards::keyboard_in_top10(
-            ltag,
-            q.from.id,
-            to.as_ref(),
-        ))
+        .reply_markup(markup)
         .disable_web_page_preview(true)
         .await?;
     Ok(())
@@ -353,18 +346,14 @@ async fn top10_win(
 
     let top10_chat_info = DB.hand_pig.get_top10_win().await?;
 
-    let text = if let Some(top10_info) = top10_chat_info {
-        generate_top10_text(ltag, top10_info, chat_type.as_ref())
-    } else {
-        lng("GameNoChatPigs", ltag)
-    };
+    let text = top10_chat_info.map_or_else(
+        || lng("GameNoChatPigs", ltag),
+        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+    );
 
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
     bot.edit_message_text_inline(im_id, text)
-        .reply_markup(keyboards::keyboard_in_top10(
-            ltag,
-            q.from.id,
-            to.as_ref(),
-        ))
+        .reply_markup(markup)
         .disable_web_page_preview(true)
         .await?;
     Ok(())
@@ -677,12 +666,7 @@ async fn callback_allow_voice(
     DB.other.add_voice(user_id.0, probably_url).await?;
 
     let voices = DB.other.get_voice(user_id.0).await?;
-    let number = if let Some(voices) = voices.last() {
-        voices.id
-    } else {
-        log::error!("Voices of user [{}] is empty!", user_id);
-        0
-    };
+    let number = voices.last().map_or(0, |v| v.id);
 
     let text = lng("VoiceAcceptedCongrats", ltag).args(&[("number", number)]);
     bot.send_message(user_id, text).maybe_thread_id(&m).await?;
@@ -729,8 +713,7 @@ async fn callback_disallow_voice(
 
 async fn _get_biggest_chat_pig_mass(id_user: u64) -> MyResult<i32> {
     let biggest = DB.chat_pig.get_biggest_chat_pig(id_user).await?;
-    let biggest_mass =
-        if let Some(biggest) = biggest { biggest.mass } else { 0 };
+    let biggest_mass = biggest.map_or(0, |b| b.mass);
 
     Ok(biggest_mass)
 }
@@ -785,13 +768,14 @@ pub fn generate_top10_text(
     for (index, item) in top10_info.iter().enumerate() {
         let value = if is_win { item.win as i32 } else { item.weight };
 
-        let line =
-            lng(&format!("InlineTop10Line_{}", chat_type), ltag).args(&[
-                ("number", (index + 1).to_string()),
-                ("flag", get_flag(&item.lang).to_string()),
-                ("name", helpers::escape(&item.name)),
-                ("value", value.to_string()),
-            ]);
+        let key = format!("InlineTop10Line_{}", chat_type);
+
+        let line = lng(&key, ltag).args(&[
+            ("number", (index + 1).to_string()),
+            ("flag", get_flag(&item.lang).to_string()),
+            ("name", helpers::escape(&item.name)),
+            ("value", value.to_string()),
+        ]);
 
         result += &("\n".to_owned() + &line);
     }
