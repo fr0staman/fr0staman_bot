@@ -255,9 +255,9 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
     let (offset, status) = calculate_chat_pig_grow(pig.mass);
     let current = pig.mass + offset;
 
-    //DB.chat_pig
-    //    .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
-    //    .await?;
+    DB.chat_pig
+        .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
+        .await?;
 
     let grow_status_key = format!("GamePigGrowMessage_{}", status.as_ref());
 
