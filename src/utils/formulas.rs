@@ -60,12 +60,12 @@ pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, i32) {
 
     #[allow(clippy::comparison_chain)]
     if chance < 0 {
-        let min = if current_kg < 20 { current_kg - 1 } else { -20 };
+        let min = if current_kg < 20 { current_kg - 1 } else { 20 };
         if min < 1 {
             // Try another.
             return calculate_chat_pig_grow(current_kg);
         }
-        chance = rand::thread_rng().gen_range(min..0);
+        chance = rand::thread_rng().gen_range(-min..0);
         grow = -1;
     } else if chance == 0 {
         grow = 0;
