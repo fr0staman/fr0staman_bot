@@ -67,6 +67,7 @@
   "HandPigNameNowIs": "🐷 Your pig is now called:\n <i>{new_name}</i>",
   "HandPigNoInBarn": "😭 There is no pig in your barn!",
   "HandPigWeightMessage": "Weight of your piggy <b>{weight}</b> kg {emoji}{append}",
+  "HelpLink": "https://telegra.ph/Help--fr0staman-bot-en-08-05",
   "HelpMessage": "Help for the bot:\n{link}",
   "I18nTestMessage": "Pooping dog, crawling goose <b>{user}</b>",
   "IncorrectParamNeedNumber": "You entered incorrect parameter.\nOnly a number.",

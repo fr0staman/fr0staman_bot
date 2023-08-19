@@ -67,6 +67,7 @@
   "HandPigNameNowIs": "🐷 Ваша свинья теперь называется:\n <i>{new_name}</i>",
   "HandPigNoInBarn": "😭 В вашем хлеву нет хряков!😭",
   "HandPigWeightMessage": "Масса вашего хряка <b>{weight}</b> кг {emoji}{append}",
+  "HelpLink": "https://telegra.ph/Help--fr0staman-bot-ru-08-05",
   "HelpMessage": "Помощь по боту:\n{link}",
   "I18nTestMessage": "Срал пёс, пердел гусь <b>{user}</b>",
   "IncorrectParamNeedNumber": "Вы ввели некорректный аргумент\nМожно ввести только номер.",

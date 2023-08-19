@@ -108,7 +108,8 @@ async fn command_start(
 }
 
 async fn command_help(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
-    let text = lng("HelpMessage", ltag).args(&[("link", HELP_LINK[ltag])]);
+    let link = lng("HelpLink", ltag);
+    let text = lng("HelpMessage", ltag).args(&[("link", link)]);
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
     Ok(())
 }
