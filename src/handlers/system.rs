@@ -163,10 +163,9 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
 }
 
 pub async fn handle_chat_migration(_bot: MyBot, m: Message) -> MyResult<()> {
-    let from = m.migrate_from_chat_id().unwrap();
     let to = m.migrate_to_chat_id().unwrap();
 
-    DB.other.update_chat_id(from.0, to.0).await?;
+    DB.other.update_chat_id(m.chat.id.0, to.0).await?;
 
     Ok(())
 }

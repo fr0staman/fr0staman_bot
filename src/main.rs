@@ -79,8 +79,10 @@ async fn run() {
                         .endpoint(system::handle_left_member),
                 )
                 .branch(
-                    dptree::filter(|m: Message| m.chat_migration().is_some())
-                        .endpoint(system::handle_chat_migration),
+                    dptree::filter(|m: Message| {
+                        m.migrate_to_chat_id().is_some()
+                    })
+                    .endpoint(system::handle_chat_migration),
                 )
                 .branch(
                     dptree::filter(|m: Message| {
