@@ -15,14 +15,15 @@ use teloxide::{
 };
 
 use crate::db::DB;
-use crate::enums::{Commands, Image, Keywords};
-use crate::keyboards;
+use crate::enums::{Image, InlineCommands, InlineKeywords};
 use crate::lang::{get_tag, lng, tag, InnerLang, LocaleTag};
-use crate::models::{InlineUser, InlineVoice, NewInlineUser};
+use crate::models::{InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
 use crate::utils::date::get_date;
+use crate::utils::flag::Flags;
 use crate::utils::helpers::{get_photostock, truncate};
 use crate::utils::{formulas, helpers};
+use crate::{keyboards, INLINE_QUERY_LIMIT};
 use crate::{Error, MyResult, BOT_PARSE_MODE, DEFAULT_LANG_TAG};
 
 use super::callback::generate_top10_text;
@@ -40,21 +41,29 @@ pub async fn filter_inline_commands(
     let split_command = text.split_once(' ');
 
     let function = match split_command {
-        Some((action, payload)) => match Commands::from_str(action) {
+        Some((action, payload)) => match InlineCommands::from_str(action) {
             Ok(cmd) => match cmd {
-                Commands::Name => {
+                InlineCommands::Name => {
                     inline_rename_hrundel(bot, q, ltag, payload).boxed()
                 },
-                Commands::Hru => inline_hruks(bot, q, ltag, payload).boxed(),
+                InlineCommands::Hru => {
+                    inline_hruks(bot, q, ltag, payload).boxed()
+                },
+                InlineCommands::Flag => {
+                    inline_flag(bot, q, ltag, payload).boxed()
+                },
             },
             Err(_) => inline_hrundel(bot, q, ltag).boxed(),
         },
-        None => match Keywords::from_str(&q.query) {
+        None => match InlineKeywords::from_str(&q.query) {
             Ok(kwd) => match kwd {
-                Keywords::Name => inline_name_hrundel(bot, q, ltag).boxed(),
-                Keywords::DayPig => inline_day_pig(bot, q, ltag).boxed(),
-                Keywords::OC => inline_oc_stats(bot, q, ltag).boxed(),
-                Keywords::Hru => inline_hruks(bot, q, ltag, "").boxed(),
+                InlineKeywords::Name => {
+                    inline_name_hrundel(bot, q, ltag).boxed()
+                },
+                InlineKeywords::DayPig => inline_day_pig(bot, q, ltag).boxed(),
+                InlineKeywords::OC => inline_oc_stats(bot, q, ltag).boxed(),
+                InlineKeywords::Hru => inline_hruks(bot, q, ltag, "").boxed(),
+                InlineKeywords::Flag => inline_flag(bot, q, ltag, "").boxed(),
             },
             Err(_) => inline_hrundel(bot, q, ltag).boxed(),
         },
@@ -100,12 +109,14 @@ async fn _get_hryak(
 
         let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
         let truncated_f_name = truncate(&q.from.first_name, 64);
+        let lang = q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
         let hrundel = NewInlineUser {
             user_id: q.from.id.0,
             f_name: truncated_f_name.0,
             weight: size,
             date: cur_date,
-            lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
+            lang,
+            flag: lang,
             name: truncated_f_name.0,
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
@@ -116,9 +127,21 @@ async fn _get_hryak(
 
     if info.date != cur_date {
         // Pig exist, but not "today", just recreate that!
+        let size = formulas::calculate_hryak_size(q.from.id.0);
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
         let add = biggest_mass + helpers::mass_addition_on_status(info.status);
-        DB.hand_pig.update_hrundel(&q.from, info, add).await?;
+
+        let truncated_f_name = truncate(&q.from.first_name, 64).0;
+
+        let update_data = UpdateInlineUser {
+            id: info.id,
+            f_name: truncated_f_name,
+            weight: size + add,
+            lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
+            date: cur_date,
+        };
+
+        DB.hand_pig.update_hrundel(update_data).await?;
         return _get_hryak(q, ltag).await;
     }
 
@@ -253,6 +276,85 @@ async fn inline_hruks(
 
     let query = bot.answer_inline_query(&q.id, results).cache_time(30);
 
+    if end_index != voices.len() {
+        let next_offset = (number_from_offset + 1).to_string();
+        query.next_offset(next_offset).await?;
+    } else {
+        query.await?;
+    };
+    Ok(())
+}
+
+async fn inline_flag(
+    bot: MyBot,
+    q: InlineQuery,
+    ltag: LocaleTag,
+    payload: &str,
+) -> MyResult<()> {
+    let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        return Ok(())
+    };
+
+    let old_flag = Flags::from_code(&user.flag).unwrap_or(Flags::Us);
+    let mut results = Vec::with_capacity(64);
+
+    if q.offset.is_empty() {
+        let start_info =
+            InlineQueryResult::Article(flag_info(ltag, old_flag.to_emoji()));
+
+        results.push(start_info);
+    }
+
+    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
+
+    let searched_flags: Vec<_> = if payload.is_empty() {
+        Flags::FLAGS.to_vec()
+    } else {
+        Flags::FLAGS
+            .into_iter()
+            .filter(|i| {
+                if i.to_code().contains(payload)
+                    || i.to_emoji().contains(payload)
+                {
+                    return true;
+                }
+                false
+            })
+            .collect()
+    };
+
+    let (start_index, end_index) = {
+        const ON_PAGE: usize = INLINE_QUERY_LIMIT - 1;
+        let start_index = ON_PAGE * number_from_offset;
+        let probably_end_index = start_index + ON_PAGE;
+
+        (start_index, probably_end_index.min(searched_flags.len()))
+    };
+
+    let selected_flags = &searched_flags[start_index..end_index];
+    if selected_flags.is_empty() {
+        let empty_info = flag_empty_info(ltag);
+        results.push(InlineQueryResult::Article(empty_info));
+    } else {
+        for (idx, new_flag) in selected_flags.iter().enumerate() {
+            let number = idx + start_index;
+
+            let info =
+                flag_change_info(ltag, q.from.id, old_flag, *new_flag, number);
+            results.push(InlineQueryResult::Article(info));
+        }
+    }
+
+    let new_offset = number_from_offset + 1;
+    let query = bot.answer_inline_query(q.id, results).cache_time(0);
+
+    if end_index != searched_flags.len() {
+        query.next_offset(new_offset.to_string()).await?;
+    } else {
+        query.await?;
+    }
     Ok(())
 }
 
@@ -437,6 +539,68 @@ fn day_pig_info(ltag: LocaleTag, id_user: UserId) -> InlineQueryResultArticle {
     .description(desc)
     .thumb_url(get_photostock(Image::DayPig))
     .reply_markup(keyboards::keyboard_day_pig(ltag, id_user))
+}
+
+fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
+    let caption = lng("HandPigFlagGoCaption", ltag).args(&[("flag", flag)]);
+    let desc = lng("HandPigFlagGoDesc", ltag);
+    let message = lng("HandPigFlagGoMessage", ltag).args(&[("flag", flag)]);
+
+    InlineQueryResultArticle::new(
+        "40004",
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+}
+
+fn flag_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
+    let caption = lng("HandPigNoFlagChangeCaption", ltag);
+    let desc = lng("HandPigNoFlagChangeDesc", ltag);
+    let message = lng("HandPigNoFlagChangeMessage", ltag);
+
+    InlineQueryResultArticle::new(
+        "40005",
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+}
+
+fn flag_change_info(
+    ltag: LocaleTag,
+    id_user: UserId,
+    old_flag: Flags,
+    new_flag: Flags,
+    idx: usize,
+) -> InlineQueryResultArticle {
+    let old_flag_emoji = old_flag.to_emoji();
+    let new_flag_emoji = new_flag.to_emoji();
+    let new_flag_code = new_flag.to_code();
+
+    let caption =
+        lng("HandPigFlagChangeCaption", ltag).args(&[("flag", new_flag_emoji)]);
+    let desc =
+        lng("HandPigFlagChangeDesc", ltag).args(&[("code", new_flag_code)]);
+
+    let message = lng("HandPigFlagChangeMessage", ltag)
+        .args(&[("old_flag", old_flag_emoji), ("new_flag", new_flag_emoji)]);
+
+    let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
+
+    InlineQueryResultArticle::new(
+        idx.to_string(),
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+    .reply_markup(markup)
 }
 
 fn cpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {

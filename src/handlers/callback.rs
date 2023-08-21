@@ -3,10 +3,7 @@ use futures::{future::BoxFuture, FutureExt};
 use once_cell::sync::Lazy;
 use rand::Rng;
 use teloxide::{
-    payloads::{
-        AnswerCallbackQuerySetters, EditMessageCaptionSetters,
-        EditMessageTextInlineSetters, EditMessageTextSetters,
-    },
+    prelude::*,
     requests::Requester,
     types::{CallbackQuery, UserId},
     utils::html::{bold, user_mention},
@@ -22,7 +19,7 @@ use crate::{
     traits::MaybeMessageSetter,
     utils::{
         date::{get_date, get_datetime},
-        flag::get_flag,
+        flag::Flags,
         formulas,
         helpers::{self, get_hash},
     },
@@ -101,6 +98,7 @@ fn _inner_filter(
         Actions::DisallowVoice => {
             callback_disallow_voice(bot, q, ltag, data).boxed()
         },
+        Actions::ChangeFlag => callback_change_flag(bot, q, ltag, data).boxed(),
     }
 }
 
@@ -711,6 +709,31 @@ async fn callback_disallow_voice(
     Ok(())
 }
 
+async fn callback_change_flag(
+    bot: MyBot,
+    q: CallbackQuery,
+    ltag: LocaleTag,
+    data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    if data.1 != q.from.id {
+        callback_access_denied(bot, q, ltag).await?;
+        return Ok(());
+    }
+
+    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let probably_flag = Flags::from_code(data.2).unwrap_or(Flags::Us);
+
+    DB.hand_pig
+        .update_hrundel_flag(q.from.id.0, probably_flag.to_code())
+        .await?;
+
+    let text = lng("HandPigFlagChangeResponse", ltag)
+        .args(&[("flag", probably_flag.to_emoji())]);
+    bot.edit_message_text_inline(im_id, &text).await?;
+    bot.answer_callback_query(q.id).text(text).await?;
+    Ok(())
+}
+
 async fn _get_biggest_chat_pig_mass(id_user: u64) -> MyResult<i32> {
     let biggest = DB.chat_pig.get_biggest_chat_pig(id_user).await?;
     let biggest_mass = biggest.map_or(0, |b| b.mass);
@@ -770,9 +793,12 @@ pub fn generate_top10_text(
 
         let key = format!("InlineTop10Line_{}", chat_type);
 
+        let code = Flags::from_code(&item.flag).unwrap_or(Flags::Us);
+        let flag = code.to_emoji();
+
         let line = lng(&key, ltag).args(&[
             ("number", (index + 1).to_string()),
-            ("flag", get_flag(&item.lang).to_string()),
+            ("flag", flag.to_string()),
             ("name", helpers::escape(&item.name)),
             ("value", value.to_string()),
         ]);

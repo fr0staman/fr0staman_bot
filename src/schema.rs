@@ -62,6 +62,8 @@ diesel::table! {
         #[max_length = 64]
         name -> Varchar,
         gifted -> Bool,
+        #[max_length = 17]
+        flag -> Varchar,
     }
 }
 

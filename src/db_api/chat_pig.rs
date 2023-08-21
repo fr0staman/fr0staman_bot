@@ -2,10 +2,7 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use crate::db::MyPool;
-use crate::models::Game;
-use crate::schema::game::dsl::*;
-use crate::{MyResult, TOP_LIMIT};
+use crate::{db::MyPool, models::Game, MyResult, TOP_LIMIT};
 
 #[derive(Clone)]
 pub struct ChatPig {
@@ -22,7 +19,9 @@ impl ChatPig {
         id_user: u64,
         id_chat: i64,
     ) -> MyResult<Option<Game>> {
+        use crate::schema::game::dsl::*;
         use crate::schema::groups;
+
         let results = game
             .filter(user_id.eq(&id_user))
             .filter(groups::chat_id.eq(&id_chat))
@@ -39,6 +38,8 @@ impl ChatPig {
         &self,
         id_user: u64,
     ) -> MyResult<Option<Vec<Game>>> {
+        use crate::schema::game::dsl::*;
+
         let results: Vec<Game> = game
             .filter(user_id.eq(&id_user))
             .select(Game::as_select())
@@ -55,6 +56,8 @@ impl ChatPig {
         &self,
         id_user: u64,
     ) -> MyResult<Option<Game>> {
+        use crate::schema::game::dsl::*;
+
         let results: Option<Game> = game
             .filter(user_id.eq(&id_user))
             .order(mass.desc())
@@ -73,6 +76,7 @@ impl ChatPig {
         id_chat: i64,
         new_name: String,
     ) -> MyResult<()> {
+        use crate::schema::game::dsl::*;
         use crate::schema::groups;
 
         diesel::update(game)
@@ -98,6 +102,7 @@ impl ChatPig {
         other_mass: i32,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
+        use crate::schema::game::dsl::*;
         use crate::schema::groups;
 
         diesel::update(game)
@@ -123,6 +128,8 @@ impl ChatPig {
         cur_name: &str,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
+        use crate::schema::game::dsl::*;
+
         diesel::insert_into(game)
             .values((
                 user_id.eq(id_user),
@@ -143,6 +150,7 @@ impl ChatPig {
         min: i32,
         offset_multiplier: i64,
     ) -> MyResult<Vec<Game>> {
+        use crate::schema::game::dsl::*;
         use crate::schema::groups;
 
         let results = game
@@ -164,6 +172,7 @@ impl ChatPig {
         id_chat: i64,
         min: i32,
     ) -> MyResult<i64> {
+        use crate::schema::game::dsl::*;
         use crate::schema::groups;
 
         let results = game

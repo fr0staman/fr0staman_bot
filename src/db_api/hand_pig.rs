@@ -2,14 +2,14 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use teloxide::types::User;
-
-use crate::db::MyPool;
-use crate::models::{HryakDay, InlineUsersGroup, NewInlineUser};
-use crate::models::{InlineGroup, InlineUser};
-use crate::utils::date::get_date;
-use crate::utils::formulas::calculate_hryak_size;
-use crate::{MyResult, DEFAULT_LANG_TAG};
+use crate::{
+    db::MyPool,
+    models::{
+        HryakDay, InlineGroup, InlineUser, InlineUsersGroup, NewInlineUser,
+        UpdateInlineUser,
+    },
+    MyResult,
+};
 
 #[derive(Clone)]
 pub struct HandPig {
@@ -79,38 +79,38 @@ impl HandPig {
         Ok(())
     }
 
-    pub async fn update_hrundel(
+    pub async fn update_hrundel_flag(
         &self,
-        user: &User,
-        current: InlineUser,
-        additional: i32,
-    ) -> MyResult<Option<InlineUser>> {
+        id_user: u64,
+        new_flag: &str,
+    ) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
 
-        let size = calculate_hryak_size(user.id.0);
+        diesel::update(inline_users.filter(user_id.eq(id_user)))
+            .set(flag.eq(new_flag))
+            .execute(&mut self.pool.get().await?)
+            .await?;
 
-        let hrundel = NewInlineUser {
-            user_id: user.id.0,
-            f_name: &user.first_name,
-            // SET SIZE PLEASE.
-            weight: size + additional,
-            date: get_date(),
-            lang: user.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-            name: &user.first_name,
-        };
+        Ok(())
+    }
 
-        diesel::update(inline_users.find(current.id))
-            //.values(&hrundel)
+    pub async fn update_hrundel(
+        &self,
+        data: UpdateInlineUser<'_>,
+    ) -> MyResult<()> {
+        use crate::schema::inline_users::dsl::*;
+
+        diesel::update(inline_users.find(data.id))
             .set((
-                date.eq(hrundel.date),
-                weight.eq(hrundel.weight),
-                lang.eq(hrundel.lang),
-                f_name.eq(hrundel.f_name),
+                date.eq(data.date),
+                weight.eq(data.weight),
+                lang.eq(data.lang),
+                f_name.eq(data.f_name),
             ))
             .execute(&mut self.pool.get().await?)
             .await?;
 
-        self.get_hrundel(user.id.0).await
+        Ok(())
     }
 
     pub async fn add_hrundel(

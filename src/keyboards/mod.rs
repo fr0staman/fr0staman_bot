@@ -142,6 +142,19 @@ pub fn keyboard_voice_check(id_user: UserId) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(keyboard)
 }
 
+pub fn keyboard_change_flag(
+    ltag: LocaleTag,
+    id_user: UserId,
+    flag_code: &str,
+) -> InlineKeyboardMarkup {
+    let data = encode_callback_data(Actions::ChangeFlag, id_user, flag_code);
+
+    let text = lng("HandPigFlagChangeButton", ltag);
+    let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
 pub fn keyboard_empty() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::default()
 }

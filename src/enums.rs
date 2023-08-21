@@ -36,7 +36,7 @@ pub enum EpycCommands {
 }
 
 #[derive(Display, AsRefStr, EnumString)]
-pub enum Commands {
+pub enum InlineCommands {
     #[strum(
         serialize = "ім'я",
         serialize = "імя",
@@ -46,10 +46,12 @@ pub enum Commands {
     Name,
     #[strum(serialize = "хрю", serialize = "hru", serialize = "grunt")]
     Hru,
+    #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
+    Flag,
 }
 
 #[derive(Display, AsRefStr, EnumString)]
-pub enum Keywords {
+pub enum InlineKeywords {
     #[strum(
         serialize = "ім'я",
         serialize = "імя",
@@ -68,6 +70,8 @@ pub enum Keywords {
     OC,
     #[strum(serialize = "хрю", serialize = "hru", serialize = "grunt")]
     Hru,
+    #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
+    Flag,
 }
 
 #[derive(AsRefStr, EnumString, Display)]
@@ -83,6 +87,7 @@ pub enum Actions {
     // Naming is not really good, but legacy is legacy
     AllowVoice,
     DisallowVoice,
+    ChangeFlag,
 }
 
 #[derive(AsRefStr, EnumString, Display)]

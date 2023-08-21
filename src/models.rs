@@ -62,6 +62,7 @@ pub struct InlineUser {
     pub weight: i32,
     pub date: NaiveDate,
     pub lang: String,
+    pub flag: String,
     pub win: u16,
     pub rout: u16,
     pub status: i8,
@@ -85,7 +86,18 @@ pub struct NewInlineUser<'a> {
     pub weight: i32,
     pub date: NaiveDate,
     pub lang: &'a str,
+    pub flag: &'a str,
     pub name: &'a str,
+}
+
+#[derive(Queryable)]
+#[diesel(table_name = inline_users)]
+pub struct UpdateInlineUser<'a> {
+    pub id: i32,
+    pub f_name: &'a str,
+    pub weight: i32,
+    pub date: NaiveDate,
+    pub lang: &'a str,
 }
 
 #[derive(Queryable, Selectable, Debug)]
