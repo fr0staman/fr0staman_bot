@@ -141,11 +141,8 @@ async fn inline_name_hrundel(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0).await?.unwrap();
-
-    let results = vec![InlineQueryResult::Article(name_hryak_info(
-        ltag,
-        hrundel_info.name,
-    ))];
+    let article = name_hryak_info(ltag, hrundel_info.name);
+    let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
     Ok(())
@@ -158,9 +155,8 @@ async fn inline_rename_hrundel(
     new_name: &str,
 ) -> MyResult<()> {
     let old_name = DB.hand_pig.get_hrundel(q.from.id.0).await?.unwrap().name;
-    let results = vec![InlineQueryResult::Article(rename_hryak_info(
-        ltag, q.from.id, old_name, new_name,
-    ))];
+    let article = rename_hryak_info(ltag, q.from.id, old_name, new_name);
+    let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
     Ok(())
@@ -171,8 +167,8 @@ async fn inline_day_pig(
     q: InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let results =
-        vec![InlineQueryResult::Article(day_pig_info(ltag, q.from.id))];
+    let article = day_pig_info(ltag, q.from.id);
+    let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
     Ok(())
