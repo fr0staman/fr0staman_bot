@@ -50,7 +50,7 @@ diesel::table! {
     inline_users (id) {
         id -> Integer,
         user_id -> Unsigned<Bigint>,
-        #[max_length = 128]
+        #[max_length = 64]
         f_name -> Varchar,
         weight -> Integer,
         date -> Date,
