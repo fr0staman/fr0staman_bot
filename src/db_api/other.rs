@@ -1,11 +1,12 @@
+use chrono::NaiveDateTime;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
 use crate::{
     db::MyPool,
     models::{Groups, InlineVoice, User},
     MyResult,
 };
-use chrono::NaiveDateTime;
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
 
 #[derive(Clone)]
 pub struct Other {
@@ -70,14 +71,12 @@ impl Other {
         Ok(results)
     }
 
-    pub async fn get_50_inline_voices(&self) -> MyResult<Vec<InlineVoice>> {
+    pub async fn get_inline_voices(&self) -> MyResult<Vec<InlineVoice>> {
         use crate::schema::inline_voices::dsl::*;
-        sql_function!(fn rand() -> Text);
 
         let results = inline_voices
             .filter(status.eq(1))
-            .limit(50)
-            .order_by(rand())
+            .order_by(id.desc())
             .select(InlineVoice::as_select())
             .load(&mut self.pool.get().await?)
             .await?;

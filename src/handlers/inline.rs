@@ -200,10 +200,10 @@ async fn inline_hruks(
     bot: MyBot,
     q: InlineQuery,
     ltag: LocaleTag,
-    #[allow(unused)] payload: &str,
+    payload: &str,
 ) -> MyResult<()> {
     let voices: Vec<InlineVoice> = if payload.is_empty() {
-        DB.other.get_50_inline_voices().await?
+        DB.other.get_inline_voices().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
             bot.answer_inline_query(
@@ -224,23 +224,35 @@ async fn inline_hruks(
         return Ok(());
     }
 
+    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
+
+    let (start_index, end_index) = {
+        const ON_PAGE: usize = INLINE_QUERY_LIMIT;
+        let start_index = ON_PAGE * number_from_offset;
+        let probably_end_index = start_index + ON_PAGE;
+
+        (start_index, probably_end_index.min(voices.len()))
+    };
+
     let url = "https://t.me".parse::<url::Url>().unwrap();
 
-    let results: Vec<InlineQueryResult> = voices
+    let paged_voices = &voices[start_index..end_index];
+    let results: Vec<InlineQueryResult> = paged_voices
         .iter()
         .map(|item| {
             let caption = lng("InlineHrukCaptionNumber", ltag)
                 .args(&[("number", &item.id.to_string())]);
-
+            let voice_url = url.join(&item.url).unwrap_or(url.clone());
             InlineQueryResult::Voice(InlineQueryResultVoice::new(
                 item.id.to_string(),
-                url.join(&item.url).unwrap_or(url.clone()),
+                voice_url,
                 caption,
             ))
         })
         .collect();
 
-    bot.answer_inline_query(&q.id, results).cache_time(30).await?;
+    let query = bot.answer_inline_query(&q.id, results).cache_time(30);
+
     Ok(())
 }
 
