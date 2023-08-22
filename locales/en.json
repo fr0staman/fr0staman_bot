@@ -28,6 +28,7 @@
   "EPYC": "EPYC.\nJust EPYC.",
   "EPYCCenterOnlyForChats": "Only for chats!",
   "Error": "Error!",
+  "ErrorInlineTooMuchResponse": "❌ Bot is called too often, limit the number of calls",
   "ErrorInlineTooMuchMessage": "❌ <b>Error</b>\n\nYou sent too many messages, which is why Telegram restricts bot from editing.\nLimit the numbers of bot calls, and then everything will be fine.",
   "ErrorInlineInvalidQueryMessage": "❌ <b>Error</b>\n\nYou take too many simultaneous duels.\nLimit the numbers of simultaneous bot calls, and then everything will be fine.",
   "ErrorUndefCallbackResponse": "😦 Error, developer has been notified",

@@ -112,51 +112,47 @@ async fn _handle_error(
 
     log::error!("Error in callback: {:?}", err);
 
-    let temp_bot = bot.clone();
+    let thread_identifier = get_hash(&im_id);
 
     tokio::spawn(async move {
-        let thread_identifier = get_hash(&im_id);
-
         {
-            let locks = Arc::clone(&DUEL_LOCKS);
-            if let Some(value) = locks.get(&q.from.id.0) {
-                {
-                    let mut user_threads = value.lock().await;
-                    user_threads.retain(|&x| x != thread_identifier);
-                }
+            let locks = DUEL_LOCKS.clone();
 
+            if let Some(value) = locks.get(&q.from.id.0) {
+                value.lock().await.retain(|&x| x != thread_identifier);
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
                     &q.from.id
                 );
-
-                // Try to change message about error
-                if let Error::RequestError(err) = err {
-                    tokio::spawn(async move {
-                        let text =
-                            if let teloxide::RequestError::RetryAfter(time) =
-                                err
-                            {
-                                sleep(time).await;
-                                lng("ErrorInlineTooMuchMessage", ltag)
-                            } else {
-                                lng("ErrorInlineInvalidQueryMessage", ltag)
-                            };
-
-                        let _ = temp_bot
-                            .edit_message_text_inline(im_id, text)
-                            .await;
-                    });
-                };
             };
         };
+
+        // Try to change message about error
+        if let Error::RequestError(err) = err {
+            let temp_bot = bot.clone();
+
+            tokio::spawn(async move {
+                let text = if let teloxide::RequestError::RetryAfter(time) = err
+                {
+                    let _ = callback_error(&temp_bot, q, ltag).await;
+
+                    sleep(time).await;
+                    lng("ErrorInlineTooMuchMessage", ltag)
+                } else {
+                    lng("ErrorInlineInvalidQueryMessage", ltag)
+                };
+
+                let _ = temp_bot.edit_message_text_inline(im_id, text).await;
+            });
+        } else {
+            let _ = callback_empty(bot, q, ltag).await;
+        };
+
         {
-            let mut going_duels = DUEL_LIST.lock().await;
-            going_duels.retain(|&x| x != thread_identifier);
+            DUEL_LIST.lock().await.retain(|&x| x != thread_identifier);
         };
     });
-    let _ = callback_empty(bot, q, ltag).await;
 
     Ok(())
 }
@@ -663,6 +659,19 @@ async fn callback_access_denied(
 ) -> MyResult<()> {
     let text = lng("UserAccessDeniedResponse", ltag);
     bot.answer_callback_query(q.id).text(text).await?;
+    Ok(())
+}
+
+async fn callback_error(
+    bot: &MyBot,
+    q: CallbackQuery,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    let text = lng("ErrorInlineTooMuchResponse", ltag);
+    bot.answer_callback_query(q.id).text(text).await?;
+    let user_id = q.from.id;
+    log::error!("Empty callback from user [{}]", user_id);
+
     Ok(())
 }
 
