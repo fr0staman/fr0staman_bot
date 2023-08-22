@@ -448,6 +448,10 @@ async fn callback_start_duel(
 
     let Some([first, second]) = hrundels else {
         new_item.retain(|&x| x != thread_identifier);
+        {
+            let mut going_duels = DUEL_LIST.lock().await;
+            going_duels.retain(|&x| x != thread_identifier);
+        }
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id).text(text).await?;
         return Ok(());
