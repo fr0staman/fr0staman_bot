@@ -23,7 +23,7 @@ use crate::{
         formulas,
         helpers::{self, get_hash},
     },
-    InnerLang, MyBot, MyResult, TOP_LIMIT,
+    Error, InnerLang, MyBot, MyResult, TOP_LIMIT,
 };
 
 use std::{str::FromStr, sync::Arc};
@@ -108,23 +108,47 @@ async fn _handle_error(
     ltag: LocaleTag,
     err: crate::Error,
 ) -> MyResult<()> {
-    let Some(inline_message_id) = q.inline_message_id.clone() else { return Ok(()) };
+    let Some(im_id) = q.inline_message_id.clone() else { return Ok(()) };
 
     log::error!("Error in callback: {:?}", err);
 
+    let temp_bot = bot.clone();
+
     tokio::spawn(async move {
-        let thread_identifier = get_hash(&inline_message_id);
+        let thread_identifier = get_hash(&im_id);
 
         {
             let locks = Arc::clone(&DUEL_LOCKS);
             if let Some(value) = locks.get(&q.from.id.0) {
-                let mut user_threads = value.lock().await;
-                user_threads.retain(|&x| x != thread_identifier);
+                {
+                    let mut user_threads = value.lock().await;
+                    user_threads.retain(|&x| x != thread_identifier);
+                }
+
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
                     &q.from.id
-                )
+                );
+
+                // Try to change message about error
+                if let Error::RequestError(err) = err {
+                    tokio::spawn(async move {
+                        let text =
+                            if let teloxide::RequestError::RetryAfter(time) =
+                                err
+                            {
+                                sleep(time).await;
+                                lng("ErrorInlineTooMuchMessage", ltag)
+                            } else {
+                                lng("ErrorInlineInvalidQueryMessage", ltag)
+                            };
+
+                        let _ = temp_bot
+                            .edit_message_text_inline(im_id, text)
+                            .await;
+                    });
+                };
             };
         };
         {
@@ -132,7 +156,8 @@ async fn _handle_error(
             going_duels.retain(|&x| x != thread_identifier);
         };
     });
-    callback_empty(bot, q, ltag).await?;
+    let _ = callback_empty(bot, q, ltag).await;
+
     Ok(())
 }
 async fn callback_give_hand_pig_name(
@@ -417,22 +442,23 @@ async fn callback_start_duel(
         return Ok(())
     };
 
+    let mut new_item = new_item.lock().await;
+
+    let hrundels = _start_duel_get_2_hrundels((q.from.id, data.1)).await?;
+
+    let Some([first, second]) = hrundels else {
+        new_item.retain(|&x| x != thread_identifier);
+        let text = lng("HandPigNoInBarn", ltag);
+        bot.answer_callback_query(q.id).text(text).await?;
+        return Ok(());
+    };
+
     log::info!(
         "Started duel [{}] from user [{}] to [{}]",
         thread_identifier,
         key,
         data.1,
     );
-
-    let mut new_item = new_item.lock().await;
-
-    let hrundels = _start_duel_get_2_hrundels((q.from.id, data.1)).await?;
-
-    let Some([first, second]) = hrundels else {
-        let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(q.id).text(text).await?;
-        return Ok(());
-    };
 
     let text = lng("InlineDuelGoingMessage", ltag).args(&[
         ("first_name", bold(&first.name)),
@@ -450,8 +476,8 @@ async fn callback_start_duel(
 
     let ((winner, looser), damage, status) = _duel_get_winner(&first, &second);
 
-    let key = &format!("InlineDuelMessage_{}", &status);
-    let text = lng(key, ltag).args(&[
+    let lng_key = &format!("InlineDuelMessage_{}", &status);
+    let text = lng(lng_key, ltag).args(&[
         ("winner_name", bold(&winner.name)),
         ("looser_name", bold(&looser.name)),
         ("diff", bold(&damage.to_string())),
