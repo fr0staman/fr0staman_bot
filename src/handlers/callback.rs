@@ -113,17 +113,21 @@ async fn _handle_error(
     log::error!("Error in callback: {:?}", err);
 
     tokio::spawn(async move {
+        let thread_identifier = get_hash(&inline_message_id);
+
         {
-            let locks = DUEL_LOCKS.clone();
+            let locks = Arc::clone(&DUEL_LOCKS);
             if let Some(value) = locks.get(&q.from.id.0) {
                 let mut user_threads = value.lock().await;
-                user_threads.clear();
-                log::warn!("Cleaned threads for user [{}]", &q.from.id)
+                user_threads.retain(|&x| x != thread_identifier);
+                log::warn!(
+                    "Cleaned errored duel [{}] for user [{}]",
+                    thread_identifier,
+                    &q.from.id
+                )
             };
         };
         {
-            let thread_identifier = get_hash(&inline_message_id);
-
             let mut going_duels = DUEL_LIST.lock().await;
             going_duels.retain(|&x| x != thread_identifier);
         };
@@ -374,6 +378,14 @@ async fn callback_start_duel(
     let thread_identifier = get_hash(&inline_message_id);
 
     let key = q.from.id.0;
+
+    log::info!(
+        "Try starting duel [{}] from user [{}] to [{}]",
+        thread_identifier,
+        key,
+        data.1,
+    );
+
     let locks = DUEL_LOCKS.clone();
 
     {
@@ -404,6 +416,13 @@ async fn callback_start_duel(
         log::error!("User threads cleaned after insert!");
         return Ok(())
     };
+
+    log::info!(
+        "Started duel [{}] from user [{}] to [{}]",
+        thread_identifier,
+        key,
+        data.1,
+    );
 
     let mut new_item = new_item.lock().await;
 
@@ -457,6 +476,13 @@ async fn callback_start_duel(
         let mut going_duels = DUEL_LIST.lock().await;
         going_duels.retain(|&x| x != thread_identifier);
     }
+
+    log::info!(
+        "Ended duel [{}] from user [{}] to [{}]",
+        thread_identifier,
+        key,
+        data.1,
+    );
 
     Ok(())
 }
