@@ -34,47 +34,45 @@ pub async fn filter_inline_commands(
 ) -> MyResult<()> {
     let ltag = tag(get_tag(&q.from));
 
-    let temp_q = q.clone();
     let temp_bot = bot.clone();
-    let text = q.query.clone();
 
-    let split_command = text.split_once(' ');
+    let split_command = q.query.split_once(' ');
 
     let function = match split_command {
         Some((action, payload)) => match InlineCommands::from_str(action) {
             Ok(cmd) => match cmd {
                 InlineCommands::Name => {
-                    inline_rename_hrundel(bot, q, ltag, payload).boxed()
+                    inline_rename_hrundel(bot, &q, ltag, payload).boxed()
                 },
                 InlineCommands::Hru => {
-                    inline_hruks(bot, q, ltag, payload).boxed()
+                    inline_hruks(bot, &q, ltag, payload).boxed()
                 },
                 InlineCommands::Flag => {
-                    inline_flag(bot, q, ltag, payload).boxed()
+                    inline_flag(bot, &q, ltag, payload).boxed()
                 },
             },
-            Err(_) => inline_hrundel(bot, q, ltag).boxed(),
+            Err(_) => inline_hrundel(bot, &q, ltag).boxed(),
         },
         None => match InlineKeywords::from_str(&q.query) {
             Ok(kwd) => match kwd {
                 InlineKeywords::Name => {
-                    inline_name_hrundel(bot, q, ltag).boxed()
+                    inline_name_hrundel(bot, &q, ltag).boxed()
                 },
-                InlineKeywords::DayPig => inline_day_pig(bot, q, ltag).boxed(),
-                InlineKeywords::OC => inline_oc_stats(bot, q, ltag).boxed(),
-                InlineKeywords::Hru => inline_hruks(bot, q, ltag, "").boxed(),
-                InlineKeywords::Flag => inline_flag(bot, q, ltag, "").boxed(),
+                InlineKeywords::DayPig => inline_day_pig(bot, &q, ltag).boxed(),
+                InlineKeywords::OC => inline_oc_stats(bot, &q, ltag).boxed(),
+                InlineKeywords::Hru => inline_hruks(bot, &q, ltag, "").boxed(),
+                InlineKeywords::Flag => inline_flag(bot, &q, ltag, "").boxed(),
             },
-            Err(_) => inline_hrundel(bot, q, ltag).boxed(),
+            Err(_) => inline_hrundel(bot, &q, ltag).boxed(),
         },
     };
 
     let response = function.await;
 
     if let Err(err) = response {
-        handle_error(temp_bot, temp_q, ltag, err).await;
+        handle_error(temp_bot, q, ltag, err).await;
     } else {
-        handle_good(temp_q).await;
+        handle_good(q).await;
     }
 
     Ok(())
@@ -82,17 +80,17 @@ pub async fn filter_inline_commands(
 
 async fn inline_hrundel(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let show_query = _get_hryak(&q, ltag).await?;
+    let show_query = _get_hryak(q, ltag).await?;
 
     let results = show_query
         .into_iter()
         .map(InlineQueryResult::Article)
         .collect::<Vec<_>>();
 
-    bot.answer_inline_query(q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
     Ok(())
 }
 
@@ -160,7 +158,7 @@ async fn _get_hryak(
 
 async fn inline_name_hrundel(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0).await?.unwrap();
@@ -173,7 +171,7 @@ async fn inline_name_hrundel(
 
 async fn inline_rename_hrundel(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
     new_name: &str,
 ) -> MyResult<()> {
@@ -187,7 +185,7 @@ async fn inline_rename_hrundel(
 
 async fn inline_day_pig(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let article = day_pig_info(ltag, q.from.id);
@@ -199,7 +197,7 @@ async fn inline_day_pig(
 
 async fn inline_oc_stats(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let user_id = q.from.id.0;
@@ -221,7 +219,7 @@ async fn inline_oc_stats(
 
 async fn inline_hruks(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
     payload: &str,
 ) -> MyResult<()> {
@@ -230,7 +228,7 @@ async fn inline_hruks(
     } else {
         let Ok(id) = payload.parse::<i16>() else {
             bot.answer_inline_query(
-                q.id,
+                &q.id,
                 vec![InlineQueryResult::Article(handle_error_parse(ltag))],
             )
             .await?;
@@ -243,7 +241,7 @@ async fn inline_hruks(
 
     if voices.is_empty() {
         let result = InlineQueryResult::Article(handle_no_results(ltag));
-        bot.answer_inline_query(q.id, vec![result]).await?;
+        bot.answer_inline_query(&q.id, vec![result]).await?;
         return Ok(());
     }
 
@@ -265,7 +263,7 @@ async fn inline_hruks(
         .map(|item| {
             let caption = lng("InlineHrukCaptionNumber", ltag)
                 .args(&[("number", &item.id.to_string())]);
-            let voice_url = url.join(&item.url).unwrap_or(url.clone());
+            let voice_url = url.join(&item.url).unwrap_or_else(|_| url.clone());
             InlineQueryResult::Voice(InlineQueryResultVoice::new(
                 item.id.to_string(),
                 voice_url,
@@ -287,7 +285,7 @@ async fn inline_hruks(
 
 async fn inline_flag(
     bot: MyBot,
-    q: InlineQuery,
+    q: &InlineQuery,
     ltag: LocaleTag,
     payload: &str,
 ) -> MyResult<()> {
@@ -348,7 +346,7 @@ async fn inline_flag(
     }
 
     let new_offset = number_from_offset + 1;
-    let query = bot.answer_inline_query(q.id, results).cache_time(0);
+    let query = bot.answer_inline_query(&q.id, results).cache_time(0);
 
     if end_index != searched_flags.len() {
         query.next_offset(new_offset.to_string()).await?;

@@ -31,7 +31,7 @@ pub async fn filter_commands(
         return Ok(());
     }
 
-    let function = match cmd.clone() {
+    let function = match &cmd {
         EpycCommands::EpycUA(arg)
         | EpycCommands::EpycRU(arg)
         | EpycCommands::EpycEN(arg) => command_epyc(bot, m, ltag, arg).boxed(),
@@ -53,7 +53,7 @@ async fn command_epyc(
     bot: MyBot,
     m: Message,
     ltag: LocaleTag,
-    arg: String,
+    arg: &str,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
 

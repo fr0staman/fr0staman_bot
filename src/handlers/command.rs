@@ -23,22 +23,21 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     let ltag = tag(get_tag_opt(m.from()));
 
-    let temp_m = m.clone();
     let user_id = m.from().map_or(0, |u| u.id.0);
 
-    let function = match cmd.clone() {
-        MyCommands::Start => command_start(bot, m, ltag).boxed(),
-        MyCommands::Help => command_help(bot, m, ltag).boxed(),
-        MyCommands::Pidor => command_pidor(bot, m, ltag).boxed(),
+    let function = match &cmd {
+        MyCommands::Start => command_start(bot, &m, ltag).boxed(),
+        MyCommands::Help => command_help(bot, &m, ltag).boxed(),
+        MyCommands::Pidor => command_pidor(bot, &m, ltag).boxed(),
         MyCommands::Print(arg) | MyCommands::P(arg) => {
-            command_print(bot, m, ltag, arg).boxed()
+            command_print(bot, &m, ltag, arg).boxed()
         },
-        MyCommands::Grow => command_grow(bot, m, ltag).boxed(),
-        MyCommands::Name(arg) => command_name(bot, m, ltag, arg).boxed(),
-        MyCommands::My => command_my(bot, m, ltag).boxed(),
-        MyCommands::Top => command_top(bot, m, ltag).boxed(),
-        MyCommands::Game => command_game(bot, m, ltag).boxed(),
-        MyCommands::Lang => command_lang(bot, m, ltag).boxed(),
+        MyCommands::Grow => command_grow(bot, &m, ltag).boxed(),
+        MyCommands::Name(arg) => command_name(bot, &m, ltag, arg).boxed(),
+        MyCommands::My => command_my(bot, &m, ltag).boxed(),
+        MyCommands::Top => command_top(bot, &m, ltag).boxed(),
+        MyCommands::Game => command_game(bot, &m, ltag).boxed(),
+        MyCommands::Lang => command_lang(bot, &m, ltag).boxed(),
     };
 
     let response = function.await;
@@ -49,13 +48,13 @@ pub async fn filter_commands(
             err,
             cmd,
             user_id,
-            temp_m.chat.id,
+            m.chat.id,
         );
     } else {
         log::info!(
             "Handled command /{:?}: by user [{}] in chat [{}]",
             cmd,
-            temp_m.chat.id,
+            m.chat.id,
             user_id
         );
     }
@@ -65,7 +64,7 @@ pub async fn filter_commands(
 
 async fn command_start(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
@@ -88,69 +87,77 @@ async fn command_start(
         } else {
             DB.other.change_user_status(from.id.0, 0).await?;
         }
-        bot.send_message(m.chat.id, text_reg).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text_reg).maybe_thread_id(m).await?;
 
         let url = BOT_CONFIG.me.tme_url();
         bot.send_message(m.chat.id, text)
-            .maybe_thread_id(&m)
+            .maybe_thread_id(m)
             .reply_markup(keyboard_startgroup(ltag, url))
             .await?;
         return Ok(());
     }
 
-    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
 
     Ok(())
 }
 
-async fn command_help(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
+async fn command_help(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
     let link = lng("HelpLink", ltag);
     let text = lng("HelpMessage", ltag).args(&[("link", link)]);
-    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     Ok(())
 }
 
 async fn command_pidor(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
+    let chat_id = m.chat.id;
+    let m_id = m.id;
+
     if let Some(reply) = m.reply_to_message().cloned() {
         let bot = bot.clone();
         tokio::spawn(async move {
+            let text = lng("YouPidor", ltag);
             let _ = bot
-                .send_message(m.chat.id, lng("YouPidor", ltag))
+                .send_message(chat_id, text)
                 .reply_to_message_id(reply.id)
                 .await;
         });
     }
     tokio::spawn(async move {
-        let _ = bot.delete_message(m.chat.id, m.id).await;
+        let _ = bot.delete_message(chat_id, m_id).await;
     });
     Ok(())
 }
 
 async fn command_print(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
-    arg: String,
+    arg: &str,
 ) -> MyResult<()> {
     if arg.is_empty() {
         let text = lng("ErrorTextAsArgument", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     } else {
-        let truncated = truncate(&arg, 4096);
+        let truncated = truncate(arg, 4096);
         let text = italic(truncated.0);
         let request = if let Some(reply) = m.reply_to_message() {
             bot.send_message(m.chat.id, text)
                 .disable_web_page_preview(true)
                 .reply_to_message_id(reply.id)
-                .maybe_thread_id(&m)
+                .maybe_thread_id(m)
         } else {
             bot.send_message(m.chat.id, text)
                 .disable_web_page_preview(true)
-                .maybe_thread_id(&m)
+                .maybe_thread_id(m)
         };
 
         tokio::spawn(async move {
@@ -161,14 +168,20 @@ async fn command_print(
         });
     }
 
+    let chat_id = m.chat.id;
+    let m_id = m.id;
     tokio::spawn(async move {
-        let _ = bot.delete_message(m.chat.id, m.id).await;
+        let _ = bot.delete_message(chat_id, m_id).await;
     });
 
     Ok(())
 }
 
-async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
+async fn command_grow(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
 
     if let ChatKind::Private(_) = m.chat.kind {
@@ -209,7 +222,7 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
             skip_date_check = true;
             let text =
                 lng("GameStartGreeting", ltag).args(&[("mention", &mention)]);
-            bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
             new_pig
         } else {
             return Ok(());
@@ -245,7 +258,7 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
 
         let text = lng("GameAlreadyFeeded", ltag)
             .args(&[("next_feed", &italic(&next_feed))]);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
     }
 
@@ -267,16 +280,16 @@ async fn command_grow(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
 
     bot.send_message(m.chat.id, text)
         .disable_web_page_preview(true)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
 async fn command_name(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
-    payload: String,
+    payload: &str,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
 
@@ -291,14 +304,14 @@ async fn command_name(
         return Ok(());
     };
 
-    let payload = escape(&payload);
+    let payload = escape(payload);
     if payload.is_empty() {
         let text = lng("GameNamePig", ltag).args(&[("name", &pig.name)]);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
     } else if payload.len() > 64 {
         let text = lng("GameNameTagLetterLimit", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
     }
 
@@ -308,12 +321,12 @@ async fn command_name(
 
     bot.send_message(m.chat.id, text)
         .disable_web_page_preview(true)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
-async fn command_my(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
+async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
 
     if let ChatKind::Private(_) = m.chat.kind {
@@ -331,12 +344,12 @@ async fn command_my(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
     bot.send_message(m.chat.id, text)
         .disable_web_page_preview(true)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
-async fn command_top(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
+async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
 
     if let ChatKind::Private(_) = m.chat.kind {
@@ -365,7 +378,7 @@ async fn command_top(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
 
     if top50_pigs.is_empty() {
         let text = lng("GameNoChatPigs", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
     }
 
@@ -378,19 +391,23 @@ async fn command_top(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
         .disable_web_page_preview(true)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
 
     Ok(())
 }
 
-async fn command_game(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
+async fn command_game(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
     let url = BOT_CONFIG.me.tme_url();
     let text = lng("GameAboutMessage", ltag);
     let markup = keyboard_startgroup(ltag, url);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
 
     Ok(())
@@ -398,18 +415,18 @@ async fn command_game(bot: MyBot, m: Message, ltag: LocaleTag) -> MyResult<()> {
 
 async fn command_lang(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     #[allow(unused)] ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
     let code = from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
-    bot.send_message(m.chat.id, code).maybe_thread_id(&m).await?;
+    bot.send_message(m.chat.id, code).maybe_thread_id(m).await?;
     Ok(())
 }
 
 async fn _game_only_for_chats(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let url = BOT_CONFIG.me.tme_url();
@@ -417,17 +434,17 @@ async fn _game_only_for_chats(
     let markup = keyboard_startgroup(ltag, url);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
 async fn _game_no_chat_pig(
     bot: MyBot,
-    m: Message,
+    m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("GameNoChatPigs", ltag);
-    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     Ok(())
 }

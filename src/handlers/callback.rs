@@ -42,39 +42,33 @@ pub async fn filter_callback_commands(
     q: CallbackQuery,
 ) -> MyResult<()> {
     let ltag = tag(get_tag(&q.from));
-
     let temp_bot = bot.clone();
-    let temp_q = q.clone();
 
     let cloned_data = q.data.clone().unwrap_or_default();
     let decoded_data = helpers::decode_callback_data(&cloned_data);
 
     let function = match decoded_data {
-        Some(payload) => _inner_filter(bot, q, ltag, payload),
-        None => callback_empty(bot, q, ltag).boxed(),
+        Some(payload) => _inner_filter(bot, &q, ltag, payload),
+        None => callback_empty(bot, &q, ltag).boxed(),
     };
 
     let response = function.await;
 
     if let Err(err) = response {
-        _handle_error(temp_bot, temp_q, ltag, err).await?;
+        _handle_error(temp_bot, q, ltag, err).await?;
     } else {
-        log::info!(
-            "Handled callback [{}]: user: [{}]",
-            temp_q.id,
-            temp_q.from.id
-        );
+        log::info!("Handled callback [{}]: user: [{}]", q.id, q.from.id);
     }
 
     Ok(())
 }
 
-fn _inner_filter(
+fn _inner_filter<'a>(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &'a CallbackQuery,
     ltag: LocaleTag,
-    data: ParsedCallbackData<'_>,
-) -> BoxFuture<'_, MyResult<()>> {
+    data: ParsedCallbackData<'a>,
+) -> BoxFuture<'a, MyResult<()>> {
     let Ok(matched_enum) = Actions::from_str(data.0) else {
         return callback_empty(bot, q, ltag).boxed();
     };
@@ -132,7 +126,7 @@ async fn _handle_error(
             tokio::spawn(async move {
                 let text = if let teloxide::RequestError::RetryAfter(time) = err
                 {
-                    let _ = callback_error(&temp_bot, q, ltag).await;
+                    let _ = callback_error(&temp_bot, &q, ltag).await;
 
                     sleep(time).await;
                     lng("ErrorInlineTooMuchMessage", ltag)
@@ -143,7 +137,7 @@ async fn _handle_error(
                 let _ = temp_bot.edit_message_text_inline(im_id, text).await;
             });
         } else {
-            let _ = callback_empty(bot, q, ltag).await;
+            let _ = callback_empty(bot, &q, ltag).await;
         };
 
         DUEL_LIST.retain(|&x| x != thread_identifier);
@@ -153,7 +147,7 @@ async fn _handle_error(
 }
 async fn callback_give_hand_pig_name(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
@@ -162,9 +156,9 @@ async fn callback_give_hand_pig_name(
     DB.hand_pig.update_hrundel_name(q.from.id.0, new_name).await?;
 
     let text = lng("HandPigNameChangedResponse", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
 
-    if let Some(id) = q.inline_message_id {
+    if let Some(id) = &q.inline_message_id {
         let text =
             lng("HandPigNameNowIs", ltag).args(&[("new_name", new_name)]);
         bot.edit_message_text_inline(id, text)
@@ -176,11 +170,11 @@ async fn callback_give_hand_pig_name(
 
 async fn callback_find_day_pig(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     _data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id else {
+    let Some(im_id) = &q.inline_message_id else {
         return Ok(());
     };
 
@@ -208,7 +202,7 @@ async fn callback_find_day_pig(
             .get_hryak_day_in_chat(&q.chat_instance, cur_date)
             .await?;
         if let Some(current_chat) = result {
-            bot.answer_callback_query(q.id).await?;
+            bot.answer_callback_query(&q.id).await?;
 
             let mention = user_mention(
                 i64::try_from(current_chat.2.user_id).unwrap(),
@@ -216,24 +210,24 @@ async fn callback_find_day_pig(
             );
 
             let text1 = lng("DayPigLabel1", ltag);
-            bot.edit_message_text_inline(&im_id, text1).await?;
+            bot.edit_message_text_inline(im_id, text1).await?;
 
             sleep(Duration::from_secs(2)).await;
 
             let text2 = lng("DayPigLabel2", ltag);
-            bot.edit_message_text_inline(&im_id, text2).await?;
+            bot.edit_message_text_inline(im_id, text2).await?;
 
             sleep(Duration::from_secs(2)).await;
             let text3 = lng("DayPigLabel3", ltag);
-            bot.edit_message_text_inline(&im_id, text3).await?;
+            bot.edit_message_text_inline(im_id, text3).await?;
 
             sleep(Duration::from_secs(2)).await;
 
             let res = lng("DayPigFound", ltag).args(&[("mention", mention)]);
-            bot.edit_message_text_inline(&im_id, res).await?;
+            bot.edit_message_text_inline(im_id, res).await?;
         }
     } else {
-        bot.answer_callback_query(q.id)
+        bot.answer_callback_query(&q.id)
             .text(lng("HandPigNoInBarn", ltag))
             .await?;
         return Ok(());
@@ -243,7 +237,7 @@ async fn callback_find_day_pig(
 
 async fn callback_add_inline_chat(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
@@ -252,12 +246,12 @@ async fn callback_add_inline_chat(
         return Ok(());
     }
 
-    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
     _check_or_insert_user_or_chat(q.from.id.0, &q.chat_instance).await?;
 
     let text = lng("ChatAddedToRating", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     bot.edit_message_reply_markup_inline(im_id).await?;
 
     Ok(())
@@ -265,7 +259,7 @@ async fn callback_add_inline_chat(
 
 async fn callback_top10(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
@@ -302,12 +296,12 @@ async fn callback_top10(
 
 async fn top10_chat(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     chat_type: Top10Variant,
     to: Top10Variant,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
     _check_or_insert_user_or_chat(q.from.id.0, &q.chat_instance).await?;
 
@@ -329,12 +323,12 @@ async fn top10_chat(
 
 async fn top10_global(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     chat_type: Top10Variant,
     to: Top10Variant,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
     let cur_date = get_date();
     let top10_chat_info = DB.hand_pig.get_top10_global(cur_date).await?;
@@ -355,12 +349,12 @@ async fn top10_global(
 
 async fn top10_win(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     chat_type: Top10Variant,
     to: Top10Variant,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
     let top10_chat_info = DB.hand_pig.get_top10_win().await?;
 
@@ -379,19 +373,19 @@ async fn top10_win(
 
 async fn callback_start_duel(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(inline_message_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
     if q.from.id == data.1 {
         let message = lng("InlineDuelCantFightSelf", ltag);
-        bot.answer_callback_query(q.id).text(message).await?;
+        bot.answer_callback_query(&q.id).text(message).await?;
         return Ok(());
     }
 
-    let thread_identifier = get_hash(&inline_message_id);
+    let thread_identifier = get_hash(im_id);
 
     let key = q.from.id.0;
 
@@ -437,7 +431,7 @@ async fn callback_start_duel(
         new_item.retain(|&x| x != thread_identifier);
         DUEL_LIST.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(q.id).text(text).await?;
+        bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
     };
 
@@ -455,10 +449,10 @@ async fn callback_start_duel(
         ("secnd_weight", bold(&(second.weight).to_string())),
     ]);
 
-    bot.edit_message_text_inline(&inline_message_id, text)
+    bot.edit_message_text_inline(im_id, text)
         .disable_web_page_preview(true)
         .await?;
-    bot.answer_callback_query(q.id).await?;
+    bot.answer_callback_query(&q.id).await?;
 
     sleep(Duration::from_secs(3)).await;
 
@@ -481,7 +475,7 @@ async fn callback_start_duel(
     DB.hand_pig.update_hrundel_duel(winner_id, damage, true).await?;
     DB.hand_pig.update_hrundel_duel(looser_id, damage, looser_is_win).await?;
 
-    bot.edit_message_text_inline(inline_message_id, text)
+    bot.edit_message_text_inline(im_id, text)
         .disable_web_page_preview(true)
         .await?;
 
@@ -500,11 +494,11 @@ async fn callback_start_duel(
 
 async fn callback_change_top(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(m) = q.message else { return Ok(()) };
+    let Some(m) = &q.message else { return Ok(()) };
     let Some(from) = m.from() else { return Ok(())};
 
     let chat_info = DB.other.get_chat(m.chat.id.0).await?;
@@ -530,7 +524,7 @@ async fn callback_change_top(
 
     if top50_pigs.is_empty() {
         let text = lng("HandPigNoInBarn", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
     }
 
@@ -639,21 +633,21 @@ async fn _start_duel_get_2_hrundels(
 
 async fn callback_access_denied(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("UserAccessDeniedResponse", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     Ok(())
 }
 
 async fn callback_error(
     bot: &MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("ErrorInlineTooMuchResponse", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     let user_id = q.from.id;
     log::error!("Empty callback from user [{}]", user_id);
 
@@ -662,11 +656,11 @@ async fn callback_error(
 
 async fn callback_empty(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("ErrorUndefCallbackResponse", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     let user_id = q.from.id;
     log::error!("Empty callback from user [{}]", user_id);
 
@@ -675,21 +669,21 @@ async fn callback_empty(
 
 async fn callback_allow_voice(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     mut ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(m) = q.message else { return Ok(())};
+    let Some(m) = &q.message else { return Ok(())};
     let user_id = data.1;
 
     log::info!("Allowed voice from [{}]", user_id);
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(q.id).text(text).await?;
+        bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
     }
     let text = lng("VoiceAccepted", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     let probably_url =
         BOT_CONFIG.content_check_channel_name.clone() + "/" + &m.id.to_string();
 
@@ -717,18 +711,18 @@ async fn callback_allow_voice(
     let number = voices.last().map_or(0, |v| v.id);
 
     let text = lng("VoiceAcceptedCongrats", ltag).args(&[("number", number)]);
-    bot.send_message(user_id, text).maybe_thread_id(&m).await?;
+    bot.send_message(user_id, text).maybe_thread_id(m).await?;
 
     Ok(())
 }
 
 async fn callback_disallow_voice(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     mut ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(m) = q.message else { return Ok(())};
+    let Some(m) = &q.message else { return Ok(())};
 
     let user_id = data.1;
 
@@ -736,11 +730,11 @@ async fn callback_disallow_voice(
 
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(q.id).text(text).await?;
+        bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
     }
     let text = lng("VoiceAccepted", ltag);
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
 
     let not_accepted = lng("NotAccepted", ltag);
     let edited_text = format!("{} {}", not_accepted, user_id);
@@ -755,13 +749,13 @@ async fn callback_disallow_voice(
     }
 
     let text = lng("VoiceNotAcceptedMsg", ltag);
-    bot.send_message(user_id, text).maybe_thread_id(&m).await?;
+    bot.send_message(user_id, text).maybe_thread_id(m).await?;
     Ok(())
 }
 
 async fn callback_change_flag(
     bot: MyBot,
-    q: CallbackQuery,
+    q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
@@ -770,7 +764,7 @@ async fn callback_change_flag(
         return Ok(());
     }
 
-    let Some(im_id) = q.inline_message_id else { return Ok(()) };
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
     let probably_flag = Flags::from_code(data.2).unwrap_or(Flags::Us);
 
     DB.hand_pig
@@ -780,7 +774,7 @@ async fn callback_change_flag(
     let text = lng("HandPigFlagChangeResponse", ltag)
         .args(&[("flag", probably_flag.to_emoji())]);
     bot.edit_message_text_inline(im_id, &text).await?;
-    bot.answer_callback_query(q.id).text(text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
     Ok(())
 }
 
