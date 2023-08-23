@@ -56,7 +56,7 @@ pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: u64) -> f32 {
 }
 
 pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {
-    let mut chance = rand::thread_rng().gen_range(-2..=20);
+    let mut chance = rand::thread_rng().gen_range(-8..=20);
     let mut status = PigGrowthStatus::Gained;
 
     #[allow(clippy::comparison_chain)]
