@@ -1,12 +1,17 @@
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use futures::{future::BoxFuture, FutureExt};
 use once_cell::sync::Lazy;
 use rand::Rng;
+use std::str::FromStr;
 use teloxide::{
     prelude::*,
     requests::Requester,
     types::{CallbackQuery, UserId},
     utils::html::{bold, user_mention},
+};
+use tokio::{
+    sync::Mutex,
+    time::{sleep, Duration},
 };
 
 use crate::{
@@ -26,16 +31,9 @@ use crate::{
     Error, InnerLang, MyBot, MyResult, TOP_LIMIT,
 };
 
-use std::{str::FromStr, sync::Arc};
-
-use tokio::{
-    sync::Mutex,
-    time::{sleep, Duration},
-};
-
-static DUEL_LOCKS: Lazy<Arc<DashMap<u64, Mutex<Vec<u64>>>>> =
-    Lazy::new(|| Arc::new(DashMap::new()));
-static DUEL_LIST: Lazy<Mutex<Vec<u64>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static DUEL_LOCKS: Lazy<DashMap<u64, Mutex<Vec<u64>>>> =
+    Lazy::new(DashMap::new);
+static DUEL_LIST: Lazy<DashSet<u64>> = Lazy::new(DashSet::new);
 
 type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);
 
@@ -112,19 +110,18 @@ async fn _handle_error(
 
     log::error!("Error in callback: {:?}", err);
 
+    let key = q.from.id.0;
     let thread_identifier = get_hash(&im_id);
 
     tokio::spawn(async move {
         {
-            let locks = DUEL_LOCKS.clone();
-
-            if let Some(value) = locks.get(&q.from.id.0) {
-                value.lock().await.retain(|&x| x != thread_identifier);
+            if let Some(value) = DUEL_LOCKS.get(&key) {
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
-                    &q.from.id
+                    key
                 );
+                value.lock().await.retain(|&x| x != thread_identifier);
             };
         };
 
@@ -149,9 +146,7 @@ async fn _handle_error(
             let _ = callback_empty(bot, q, ltag).await;
         };
 
-        {
-            DUEL_LIST.lock().await.retain(|&x| x != thread_identifier);
-        };
+        DUEL_LIST.retain(|&x| x != thread_identifier);
     });
 
     Ok(())
@@ -407,21 +402,17 @@ async fn callback_start_duel(
         data.1,
     );
 
-    let locks = DUEL_LOCKS.clone();
-
     {
-        let mut going_duels = DUEL_LIST.lock().await;
-
-        if going_duels.contains(&thread_identifier) {
+        if DUEL_LIST.contains(&thread_identifier) {
             log::warn!("Pending duel here!");
             return Ok(());
         } else {
-            going_duels.push(thread_identifier);
+            DUEL_LIST.insert(thread_identifier);
         };
     }
 
     {
-        if let Some(user_threads) = locks.get(&key) {
+        if let Some(user_threads) = DUEL_LOCKS.get(&key) {
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
                 log::error!("Found user thread duplicate!");
@@ -429,11 +420,11 @@ async fn callback_start_duel(
             }
             locked_threads.push(thread_identifier);
         } else {
-            locks.insert(key, Mutex::new(vec![thread_identifier]));
+            DUEL_LOCKS.insert(key, Mutex::new(vec![thread_identifier]));
         }
     }
 
-    let Some(new_item) = locks.get(&key) else {
+    let Some(new_item) = DUEL_LOCKS.get(&key) else {
         log::error!("User threads cleaned after insert!");
         return Ok(())
     };
@@ -444,10 +435,7 @@ async fn callback_start_duel(
 
     let Some([first, second]) = hrundels else {
         new_item.retain(|&x| x != thread_identifier);
-        {
-            let mut going_duels = DUEL_LIST.lock().await;
-            going_duels.retain(|&x| x != thread_identifier);
-        }
+        DUEL_LIST.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id).text(text).await?;
         return Ok(());
@@ -496,12 +484,9 @@ async fn callback_start_duel(
     bot.edit_message_text_inline(inline_message_id, text)
         .disable_web_page_preview(true)
         .await?;
-    {
-        new_item.retain(|&x| x != thread_identifier);
 
-        let mut going_duels = DUEL_LIST.lock().await;
-        going_duels.retain(|&x| x != thread_identifier);
-    }
+    new_item.retain(|&x| x != thread_identifier);
+    DUEL_LIST.retain(|&x| x != thread_identifier);
 
     log::info!(
         "Ended duel [{}] from user [{}] to [{}]",
