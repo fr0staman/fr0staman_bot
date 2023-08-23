@@ -187,17 +187,17 @@ async fn default_log_handler(upd: Arc<Update>) {
         if let Some(chat) = upd.chat() {
             let chat_id = chat.id;
             let chat_kind = get_chat_kind(&chat.kind);
-            log::warn!("Unhandled update [{update_id}]: user: [{user_id}] chat: [{chat_kind}:{chat_id}]");
+            log::info!("Unhandled update [{update_id}]: user: [{user_id}] chat: [{chat_kind}:{chat_id}]");
         } else {
-            log::warn!("Unhandled update [{update_id}]: user: [{user_id}] ");
+            log::info!("Unhandled update [{update_id}]: user: [{user_id}] ");
         };
     } else if let Some(chat) = upd.chat() {
         let chat_id = chat.id;
         let chat_kind = get_chat_kind(&chat.kind);
-        log::warn!(
+        log::info!(
             "Unhandled update [{update_id}]: chat: [{chat_kind}:{chat_id}]"
         );
     } else {
-        log::warn!("Unhandled update [{update_id}]: kind: {:?}", upd.kind);
+        log::info!("Unhandled update [{update_id}]: kind: {:?}", upd.kind);
     }
 }
