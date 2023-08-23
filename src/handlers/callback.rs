@@ -44,8 +44,8 @@ pub async fn filter_callback_commands(
     let ltag = tag(get_tag(&q.from));
     let temp_bot = bot.clone();
 
-    let cloned_data = q.data.clone().unwrap_or_default();
-    let decoded_data = helpers::decode_callback_data(&cloned_data);
+    let decoded_data =
+        q.data.as_deref().and_then(helpers::decode_callback_data);
 
     let function = match decoded_data {
         Some(payload) => _inner_filter(bot, &q, ltag, payload),
