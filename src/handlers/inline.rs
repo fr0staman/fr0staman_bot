@@ -102,7 +102,7 @@ async fn _get_hryak(
     let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0).await?;
     let cur_date = get_date();
 
-    if hrundel_info.is_none() {
+    let Some(info) = hrundel_info else {
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
 
         let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
@@ -119,9 +119,7 @@ async fn _get_hryak(
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
         return _get_hryak(q, ltag).await;
-    }
-
-    let info = hrundel_info.unwrap();
+    };
 
     if info.date != cur_date {
         // Pig exist, but not "today", just recreate that!
@@ -161,8 +159,12 @@ async fn inline_name_hrundel(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0).await?.unwrap();
-    let article = name_hryak_info(ltag, hrundel_info.name);
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        return Ok(())
+    };
+    let article = name_hryak_info(ltag, hrundel.name);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -175,8 +177,12 @@ async fn inline_rename_hrundel(
     ltag: LocaleTag,
     new_name: &str,
 ) -> MyResult<()> {
-    let old_name = DB.hand_pig.get_hrundel(q.from.id.0).await?.unwrap().name;
-    let article = rename_hryak_info(ltag, q.from.id, old_name, new_name);
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        return Ok(())
+    };
+    let article = rename_hryak_info(ltag, q.from.id, hrundel.name, new_name);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
