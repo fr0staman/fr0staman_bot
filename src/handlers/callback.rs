@@ -443,10 +443,10 @@ async fn callback_start_duel(
     );
 
     let text = lng("InlineDuelGoingMessage", ltag).args(&[
-        ("first_name", bold(&first.name)),
-        ("secnd_name", bold(&second.name)),
-        ("first_weight", bold(&(first.weight).to_string())),
-        ("secnd_weight", bold(&(second.weight).to_string())),
+        ("first_name", &first.name),
+        ("secnd_name", &second.name),
+        ("first_weight", &first.weight.to_string()),
+        ("secnd_weight", &second.weight.to_string()),
     ]);
 
     bot.edit_message_text_inline(im_id, text)
@@ -460,11 +460,11 @@ async fn callback_start_duel(
 
     let lng_key = &format!("InlineDuelMessage_{}", &status);
     let text = lng(lng_key, ltag).args(&[
-        ("winner_name", bold(&winner.name)),
-        ("looser_name", bold(&looser.name)),
-        ("diff", bold(&damage.to_string())),
-        ("winner_weight", bold(&(winner.weight + damage).to_string())),
-        ("looser_weight", bold(&(looser.weight - damage).to_string())),
+        ("winner_name", &winner.name),
+        ("looser_name", &looser.name),
+        ("diff", &damage.to_string()),
+        ("winner_weight", &(winner.weight + damage).to_string()),
+        ("looser_weight", &(looser.weight - damage).to_string()),
     ]);
 
     let winner_id = winner.user_id;

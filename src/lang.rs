@@ -13,7 +13,7 @@ pub type LocaleTag = usize;
 #[derive(Debug)]
 struct Lang {
     tag: String,
-    map: serde_json::Map<String, serde_json::Value>,
+    map: ahash::AHashMap<String, String>,
 }
 
 #[derive(Debug)]
@@ -50,7 +50,21 @@ impl Locale {
                         let json: serde_json::Value = data;
                         if let Some(map) = json.as_object() {
                             // Store
-                            let lang = Lang { tag, map: map.to_owned() };
+
+                            let mut converted_map = ahash::AHashMap::default();
+                            for (key, value) in map.iter() {
+                                let value = match value {
+                                    serde_json::Value::String(value) => value,
+                                    _ => {
+                                        panic!(
+                                            "Locale::new(): only String can be passed!"
+                                        )
+                                    },
+                                };
+                                converted_map
+                                    .insert(key.to_owned(), value.to_owned());
+                            }
+                            let lang = Lang { tag, map: converted_map };
                             langs.push(lang);
                         } else {
                             log::error!(
@@ -103,7 +117,7 @@ impl InnerLang for String {
     {
         let mut res = self;
 
-        let mut key_replace = String::with_capacity(64);
+        let mut key_replace = String::with_capacity(32);
 
         for (key, value) in hash_args.iter() {
             key_replace.push('{');
@@ -119,7 +133,7 @@ impl InnerLang for String {
 pub fn lng(key: &str, tag: LocaleTag) -> String {
     let s = match LOC.get() {
         Some(s) => s,
-        None => return String::from("lang: error"),
+        None => panic!("Lang is not set!"),
     };
 
     if tag >= s.langs.len() {
@@ -135,11 +149,6 @@ pub fn lng(key: &str, tag: LocaleTag) -> String {
     let res = match res.get(key) {
         Some(data) => data,
         None => return format!("lang: key '{}' not found", key),
-    };
-
-    let res = match res {
-        serde_json::Value::String(res) => res,
-        _ => return format!("lang: key '{}' not a string", key),
     };
 
     res.to_owned()

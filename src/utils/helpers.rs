@@ -14,7 +14,7 @@ use crate::{
     enums::{Actions, Image},
 };
 
-const SEPARATOR: &str = ":";
+const SEPARATOR: char = ':';
 
 pub fn encode_callback_data<U>(
     action: Actions,
@@ -27,9 +27,9 @@ where
     let mut capacity = String::with_capacity(64);
 
     capacity.push_str(action.as_ref());
-    capacity.push_str(SEPARATOR);
+    capacity.push(SEPARATOR);
     capacity.push_str(&id_user.to_string());
-    capacity.push_str(SEPARATOR);
+    capacity.push(SEPARATOR);
     capacity.push_str(&second.into());
     capacity
 }
@@ -90,7 +90,7 @@ pub fn get_hash<T>(value: T) -> u64
 where
     T: std::hash::Hash,
 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = ahash::AHasher::default();
     value.hash(&mut hasher);
     hasher.finish()
 }
