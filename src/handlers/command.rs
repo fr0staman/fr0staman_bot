@@ -307,7 +307,10 @@ async fn command_name(
     let payload = escape(payload);
     if payload.is_empty() {
         let text = lng("GameNamePig", ltag).args(&[("name", &pig.name)]);
-        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        bot.send_message(m.chat.id, text)
+            .maybe_thread_id(m)
+            .disable_web_page_preview(true)
+            .await?;
         return Ok(());
     } else if payload.len() > 64 {
         let text = lng("GameNameTagLetterLimit", ltag);
