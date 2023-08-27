@@ -41,6 +41,7 @@ pub async fn filter_callback_commands(
     bot: MyBot,
     q: CallbackQuery,
 ) -> MyResult<()> {
+    crate::metrics::CALLBACK_COUNTER.inc();
     let ltag = tag(get_tag(&q.from));
     let temp_bot = bot.clone();
 

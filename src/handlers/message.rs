@@ -19,6 +19,7 @@ const GRUNT: &str =
     "AwACAgIAAxkBAAIfv2Eep89pMun_Qq3u-o_UdS997Bx9AAIsEgACErX4SBRdIvQwnUdhIAQ";
 
 pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
+    crate::metrics::MESSAGE_COUNTER.inc();
     let text_lower = m.text().unwrap().to_lowercase();
     let text_str = text_lower.as_str();
 
@@ -61,6 +62,7 @@ async fn _maybe_send_message(
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message: chat [{}]", m.chat.id);
+            crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::RSticker(file_id) => {
             bot.send_sticker(m.chat.id, InputFile::file_id(file_id))
@@ -68,6 +70,7 @@ async fn _maybe_send_message(
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with sticker: chat [{}]", m.chat.id);
+            crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::RVoice(file_id) => {
             bot.send_voice(m.chat.id, InputFile::file_id(file_id))
@@ -75,6 +78,7 @@ async fn _maybe_send_message(
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with voice: chat [{}]", m.chat.id);
+            crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::Photo(file_id) => {
             bot.send_photo(m.chat.id, InputFile::file_id(file_id))
@@ -82,6 +86,7 @@ async fn _maybe_send_message(
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with image: chat [{}]", m.chat.id);
+            crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::None => {
             log::info!("Unhandled message: chat [{}]", m.chat.id)

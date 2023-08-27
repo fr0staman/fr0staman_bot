@@ -1,3 +1,4 @@
+use axum::Router;
 use config::{BOT_CONFIG, BOT_ME};
 use std::sync::Arc;
 
@@ -17,6 +18,7 @@ pub mod enums;
 pub mod handlers;
 pub mod keyboards;
 pub mod lang;
+pub mod metrics;
 pub mod models;
 pub mod schema;
 pub mod traits;
@@ -55,7 +57,7 @@ async fn run() {
     setup_db().await;
     setup_commands(&bot).await;
 
-    let listener = setup_listener(&bot).await;
+    let listener = setup_listener(&bot).await.expect("Couldn't setup webhook!");
 
     let handler = dptree::entry()
         .branch(
@@ -129,16 +131,40 @@ async fn run() {
 
 async fn setup_listener(
     bot: &MyBot,
-) -> impl UpdateListener<Err = std::convert::Infallible> {
+) -> MyResult<impl UpdateListener<Err = std::convert::Infallible>> {
     let port = BOT_CONFIG.webhook_port;
 
-    let addr = ([127, 0, 0, 1], port).into();
+    let addr = ([0, 0, 0, 0], port).into();
     let host = &BOT_CONFIG.webhook_url;
     let url = host.join("/webhookBot").expect("Invalid WEBHOOK_URL");
 
-    webhooks::axum(bot.clone(), webhooks::Options::new(addr, url))
-        .await
-        .expect("Webhook crashed!")
+    let options = webhooks::Options::new(addr, url);
+
+    let webhooks::Options { address, .. } = options;
+
+    let (mut update_listener, stop_flag, bot_router) =
+        webhooks::axum_to_router(bot.clone(), options).await?;
+    let stop_token = update_listener.stop_token();
+
+    let metrics_router = metrics::init();
+    tokio::spawn(async move {
+        axum::Server::bind(&address)
+            .serve(
+                Router::new()
+                    .merge(bot_router)
+                    .merge(metrics_router)
+                    .into_make_service(),
+            )
+            .with_graceful_shutdown(stop_flag)
+            .await
+            .map_err(|err| {
+                stop_token.stop();
+                err
+            })
+            .expect("Axum server error");
+    });
+
+    Ok(update_listener)
 }
 
 fn setup_lang() {
@@ -181,6 +207,8 @@ async fn setup_commands(bot: &MyBot) {
 }
 
 async fn default_log_handler(upd: Arc<Update>) {
+    crate::metrics::UNHANDLED_COUNTER.inc();
+
     let update_id = upd.id;
     if let Some(user) = upd.user() {
         let user_id = user.id;

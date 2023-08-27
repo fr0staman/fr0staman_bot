@@ -21,6 +21,8 @@ pub async fn filter_commands(
     m: Message,
     cmd: MyCommands,
 ) -> MyResult<()> {
+    crate::metrics::CMD_COUNTER.inc();
+
     let ltag = tag(get_tag_opt(m.from()));
 
     let function = match &cmd {
@@ -68,6 +70,7 @@ async fn command_start(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(())};
+    crate::metrics::CMD_START_COUNTER.inc();
 
     let text = lng("ChatGreetingFirst", ltag);
 
@@ -107,6 +110,7 @@ async fn command_help(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
+    crate::metrics::CMD_HELP_COUNTER.inc();
     let link = lng("HelpLink", ltag);
     let text = lng("HelpMessage", ltag).args(&[("link", link)]);
     bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;

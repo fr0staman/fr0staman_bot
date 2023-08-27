@@ -32,6 +32,7 @@ pub async fn filter_inline_commands(
     bot: MyBot,
     q: InlineQuery,
 ) -> MyResult<()> {
+    crate::metrics::INLINE_COUNTER.inc();
     let ltag = tag(get_tag(&q.from));
 
     let temp_bot = bot.clone();

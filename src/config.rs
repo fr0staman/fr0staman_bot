@@ -22,6 +22,7 @@ pub struct Config {
     pub creator_id: u64,
     // For some situations with props with "me"
     pub me: &'static Me,
+    pub prometheus_token: String,
 }
 
 fn _from_env<T: FromStr>(name: &str) -> T
@@ -46,6 +47,7 @@ pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     content_check_channel_name: _from_env("CONTENT_CHECK_CHANNEL_NAME"),
     creator_id: _from_env("CREATOR_ID"),
     me: BOT_ME.get().expect("BOT_ME is not set!"),
+    prometheus_token: _from_env("PROMETHEUS_TOKEN"),
 });
 
 pub static BOT_ME: OnceLock<Me> = OnceLock::new();
