@@ -89,6 +89,8 @@ pub fn init() -> axum::Router {
         .register(&INLINE_COUNTER)
         .register(&CALLBACK_COUNTER)
         .register(&MESSAGE_COUNTER)
+        .register(&MESSAGE_HANDLED_COUNTER)
+        .register(&UNHANDLED_COUNTER)
         .register(&CMD_START_COUNTER)
         .register(&CMD_HELP_COUNTER)
         .register(&CMD_COUNTER)
