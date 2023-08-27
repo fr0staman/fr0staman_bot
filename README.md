@@ -21,7 +21,7 @@
 ## Overview
 ❗️ This repository is rather not an example for beginners, as it combines several technologies, which can complicate the initial learning path.
 
-**@fr0staman_bot** is a multifunctional game-like bot, which was written on [Rust](https://www.rust-lang.org/), using [teloxide](https://github.com/teloxide/teloxide).
+**@fr0staman_bot** is a multifunctional game-like bot, which was written in [Rust](https://www.rust-lang.org/), using [teloxide](https://github.com/teloxide/teloxide).
 Bot uses much from Telegram Bot API, and implement many (non) classic tasks, so you can see in the code:
 - Multilingualism
 - Message/Inline/Callback filter and handling
