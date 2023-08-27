@@ -133,9 +133,9 @@ async fn setup_listener(
     bot: &MyBot,
 ) -> MyResult<impl UpdateListener<Err = std::convert::Infallible>> {
     let port = BOT_CONFIG.webhook_port;
+    let host = &BOT_CONFIG.webhook_url;
 
     let addr = ([0, 0, 0, 0], port).into();
-    let host = &BOT_CONFIG.webhook_url;
     let url = host.join("/webhookBot").expect("Invalid WEBHOOK_URL");
 
     let options = webhooks::Options::new(addr, url);
@@ -146,13 +146,13 @@ async fn setup_listener(
         webhooks::axum_to_router(bot.clone(), options).await?;
     let stop_token = update_listener.stop_token();
 
-    let metrics_router = metrics::init();
     tokio::spawn(async move {
         axum::Server::bind(&address)
             .serve(
                 Router::new()
                     .merge(bot_router)
-                    .merge(metrics_router)
+                    .merge(metrics::init())
+                    .fallback(fallback_404)
                     .into_make_service(),
             )
             .with_graceful_shutdown(stop_flag)
@@ -228,4 +228,8 @@ async fn default_log_handler(upd: Arc<Update>) {
     } else {
         log::info!("Unhandled update [{update_id}]: kind: {:?}", upd.kind);
     }
+}
+
+async fn fallback_404() {
+    log::warn!("Axum: 404");
 }
