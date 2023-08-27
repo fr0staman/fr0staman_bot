@@ -1,5 +1,20 @@
+mod config;
+mod consts;
+mod db;
+mod db_api;
+mod enums;
+mod handlers;
+mod keyboards;
+mod lang;
+mod metrics;
+mod models;
+mod schema;
+mod traits;
+mod types;
+mod utils;
+pub use types::{MyBot, MyError, MyResult};
+
 use axum::Router;
-use config::{BOT_CONFIG, BOT_ME};
 use std::sync::Arc;
 
 use teloxide::{
@@ -10,27 +25,9 @@ use teloxide::{
     utils::command::BotCommands,
 };
 
-pub mod config;
-pub mod consts;
-pub mod db;
-pub mod db_api;
-pub mod enums;
-pub mod handlers;
-pub mod keyboards;
-pub mod lang;
-pub mod metrics;
-pub mod models;
-pub mod schema;
-pub mod traits;
-pub mod types;
-pub mod utils;
-
-pub use consts::*;
-pub use lang::InnerLang;
-pub use traits::*;
-pub use types::*;
-
 use crate::{
+    config::{BOT_CONFIG, BOT_ME},
+    consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG},
     db::Database,
     enums::{EpycCommands, MyCommands},
     handlers::{callback, command, epyc, inline, message, system},
@@ -169,7 +166,7 @@ async fn setup_listener(
 
 fn setup_lang() {
     let loc = lang::Locale::new(DEFAULT_LANG_TAG);
-    lang::LOC.set(loc).expect("Locale set error!");
+    lang::LANG.set(loc).expect("Locale set error!");
 }
 
 async fn setup_me(bot: &MyBot) {

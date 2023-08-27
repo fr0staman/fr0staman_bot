@@ -1,9 +1,16 @@
 use crate::{
-    MaybeMessageSetter, MaybePhotoSetter, MaybeStickerSetter, MaybeVoiceSetter,
+    traits::{
+        MaybeMessageSetter, MaybePhotoSetter, MaybeStickerSetter,
+        MaybeVoiceSetter,
+    },
     MyBot, MyResult,
 };
-use teloxide::types::Message;
-use teloxide::{prelude::*, types::InputFile, utils::html::italic};
+
+use teloxide::{
+    prelude::*,
+    types::{InputFile, Message},
+    utils::html::italic,
+};
 
 enum Actions<'a> {
     Text(String),

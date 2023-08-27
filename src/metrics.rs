@@ -100,35 +100,7 @@ pub fn init() -> axum::Router {
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
 
-    let sys = System::new();
-
-    tokio::spawn(async move {
-        sleep(Duration::from_secs(1)).await;
-        loop {
-            match sys.cpu_load_aggregate() {
-                Ok(cpu) => {
-                    sleep(Duration::from_secs(1)).await;
-
-                    let cpu = cpu.done().unwrap();
-                    CPU_USAGE.set(f64::trunc(
-                        ((cpu.system * 100.0) + (cpu.user * 100.0)).into(),
-                    ));
-                },
-                Err(x) => log::error!("CPU load: error: {}", x),
-            }
-
-            match sys.memory() {
-                Ok(mem) => {
-                    let memory_used = mem.total.0 - mem.free.0;
-                    let pourcentage_used =
-                        (memory_used as f64 / mem.total.0 as f64) * 100.0;
-                    MEM_USAGE.set(f64::trunc(pourcentage_used));
-                },
-                Err(x) => log::error!("Memory: error: {}", x),
-            }
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        }
-    });
+    init_interval_listener();
 
     axum::Router::new()
         .route(
@@ -160,6 +132,39 @@ pub fn init() -> axum::Router {
             }),
         )
         .layer(prometheus_layer)
+}
+
+fn init_interval_listener() {
+    let sys = System::new();
+
+    tokio::spawn(async move {
+        sleep(Duration::from_secs(1)).await;
+        loop {
+            match sys.cpu_load_aggregate() {
+                Ok(cpu) => {
+                    sleep(Duration::from_secs(1)).await;
+
+                    let cpu = cpu.done().unwrap();
+
+                    CPU_USAGE.set(f64::trunc(
+                        ((cpu.system * 100.0) + (cpu.user * 100.0)).into(),
+                    ));
+                },
+                Err(x) => log::error!("CPU load: error: {}", x),
+            }
+
+            match sys.memory() {
+                Ok(mem) => {
+                    let memory_used = mem.total.0 - mem.free.0;
+                    let pourcentage_used =
+                        (memory_used as f64 / mem.total.0 as f64) * 100.0;
+                    MEM_USAGE.set(f64::trunc(pourcentage_used));
+                },
+                Err(x) => log::error!("Memory: error: {}", x),
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        }
+    });
 }
 
 pub struct Counter {

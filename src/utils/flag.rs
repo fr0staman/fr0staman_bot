@@ -11,7 +11,7 @@ macro_rules! bidirectional_str_enum {
         impl $enum_name {
             pub const FLAGS: [Flags; 255] = [$(Self::$property),*];
 
-            pub fn to_code(&self) -> &str {
+            pub fn to_code(self) -> &'static str {
                 match self {
                     $(Self::$property => $code),*
                 }
@@ -24,12 +24,13 @@ macro_rules! bidirectional_str_enum {
                 }
             }
 
-            pub fn to_emoji(&self) -> &str {
+            pub fn to_emoji(self) -> &'static str {
                 match self {
                     $(Self::$property => $emoji),*
                 }
             }
 
+            #[allow(unused)]
             pub fn from_emoji(emoji: &str) -> Option<$enum_name> {
                 match emoji {
                     $($emoji => Some(Self::$property)),*,

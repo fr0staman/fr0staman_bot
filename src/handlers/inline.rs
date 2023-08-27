@@ -14,6 +14,7 @@ use teloxide::{
     },
 };
 
+use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
 use crate::enums::{Image, InlineCommands, InlineKeywords};
 use crate::lang::{get_tag, lng, tag, InnerLang, LocaleTag};
@@ -23,10 +24,7 @@ use crate::utils::date::get_date;
 use crate::utils::flag::Flags;
 use crate::utils::helpers::{get_photostock, truncate};
 use crate::utils::{formulas, helpers};
-use crate::{keyboards, INLINE_QUERY_LIMIT};
-use crate::{Error, MyResult, BOT_PARSE_MODE, DEFAULT_LANG_TAG};
-
-use super::callback::generate_top10_text;
+use crate::{keyboards, MyError, MyResult};
 
 pub async fn filter_inline_commands(
     bot: MyBot,
@@ -363,13 +361,20 @@ async fn inline_flag(
     Ok(())
 }
 
-async fn handle_error(bot: MyBot, q: InlineQuery, ltag: LocaleTag, err: Error) {
+async fn handle_error(
+    bot: MyBot,
+    q: InlineQuery,
+    ltag: LocaleTag,
+    err: MyError,
+) {
     let error_message =
         vec![InlineQueryResult::Article(handle_error_info(ltag))];
     let _ = bot.answer_inline_query(q.id, error_message).cache_time(0).await;
     log::error!("Error in inline handler: {:?} by user [{}]", err, q.from.id);
-    if let Error::Database(diesel::result::Error::DatabaseError(_, err_info)) =
-        err
+    if let MyError::Database(diesel::result::Error::DatabaseError(
+        _,
+        err_info,
+    )) = err
     {
         let message = err_info.message();
         log::error!("Error with database: {}", message);
@@ -396,7 +401,7 @@ async fn _get_for_top10_info(
 
     let text = top10_chat_info.map_or_else(
         || lng("HandPigNoInBarn", ltag),
-        |v| generate_top10_text(ltag, v, chat_type),
+        |v| crate::utils::text::generate_top10_text(ltag, v, chat_type),
     );
 
     Ok(text)

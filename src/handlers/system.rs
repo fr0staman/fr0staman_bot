@@ -2,11 +2,11 @@ use crate::{
     config::BOT_CONFIG,
     db::DB,
     keyboards::keyboard_voice_check,
-    lang::{get_tag, get_tag_opt, lng, tag},
+    lang::{get_tag, get_tag_opt, lng, tag, InnerLang},
     models::Groups,
     traits::MaybeMessageSetter,
     utils::date::get_datetime,
-    InnerLang, MyBot, MyResult,
+    MyBot, MyResult,
 };
 use teloxide::{
     prelude::*,

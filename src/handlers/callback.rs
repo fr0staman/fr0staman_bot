@@ -1,13 +1,11 @@
-use dashmap::{DashMap, DashSet};
 use futures::{future::BoxFuture, FutureExt};
-use once_cell::sync::Lazy;
 use rand::Rng;
 use std::str::FromStr;
 use teloxide::{
     prelude::*,
     requests::Requester,
     types::{CallbackQuery, UserId},
-    utils::html::{bold, user_mention},
+    utils::html::user_mention,
 };
 use tokio::{
     sync::Mutex,
@@ -16,26 +14,23 @@ use tokio::{
 
 use crate::{
     config::BOT_CONFIG,
+    consts::{DUEL_LIST, DUEL_LOCKS, TOP_LIMIT},
     db::DB,
     enums::{Actions, Top10Variant},
     keyboards,
-    lang::{get_tag, lng, tag, LocaleTag},
-    models::{Game, InlineUser},
+    lang::{get_tag, lng, tag, InnerLang, LocaleTag},
+    models::InlineUser,
     traits::MaybeMessageSetter,
+    types::ParsedCallbackData,
     utils::{
         date::{get_date, get_datetime},
         flag::Flags,
         formulas,
         helpers::{self, get_hash},
+        text::{generate_chat_top50_text, generate_top10_text},
     },
-    Error, InnerLang, MyBot, MyResult, TOP_LIMIT,
+    MyBot, MyError, MyResult,
 };
-
-static DUEL_LOCKS: Lazy<DashMap<u64, Mutex<Vec<u64>>>> =
-    Lazy::new(DashMap::new);
-static DUEL_LIST: Lazy<DashSet<u64>> = Lazy::new(DashSet::new);
-
-type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);
 
 pub async fn filter_callback_commands(
     bot: MyBot,
@@ -99,7 +94,7 @@ async fn _handle_error(
     bot: MyBot,
     q: CallbackQuery,
     ltag: LocaleTag,
-    err: crate::Error,
+    err: MyError,
 ) -> MyResult<()> {
     let Some(im_id) = q.inline_message_id.clone() else { return Ok(()) };
 
@@ -121,7 +116,7 @@ async fn _handle_error(
         };
 
         // Try to change message about error
-        if let Error::RequestError(err) = err {
+        if let MyError::RequestError(err) = err {
             let temp_bot = bot.clone();
 
             tokio::spawn(async move {
@@ -817,65 +812,4 @@ async fn _check_or_insert_user_or_chat(
     }
 
     Ok(())
-}
-
-pub fn generate_top10_text(
-    ltag: LocaleTag,
-    top10_info: Vec<InlineUser>,
-    chat_type: &str,
-) -> String {
-    let chat_type = chat_type.replace("p_", "");
-
-    let text = lng(&format!("InlineTop10Header_{}", chat_type), ltag);
-    let header = bold(&text);
-
-    let mut result = String::with_capacity(512) + &header + "\n";
-
-    let is_win = chat_type == "win";
-
-    for (index, item) in top10_info.iter().enumerate() {
-        let value = if is_win { item.win as i32 } else { item.weight };
-
-        let key = format!("InlineTop10Line_{}", chat_type);
-
-        let code = Flags::from_code(&item.flag).unwrap_or(Flags::Us);
-        let flag = code.to_emoji();
-
-        let line = lng(&key, ltag).args(&[
-            ("number", (index + 1).to_string()),
-            ("flag", flag.to_string()),
-            ("name", helpers::escape(&item.name)),
-            ("value", value.to_string()),
-        ]);
-
-        result += &("\n".to_owned() + &line);
-    }
-
-    result
-}
-
-pub fn generate_chat_top50_text(
-    ltag: LocaleTag,
-    top50_info: Vec<Game>,
-    offset_multiplier: i64,
-) -> String {
-    let text = lng("GameTop50Header", ltag);
-    let header = bold(&text);
-
-    let mut result = String::with_capacity(512) + &header;
-
-    for (index, item) in top50_info.iter().enumerate() {
-        let value = item.mass;
-        let index = (index as i64) + (offset_multiplier * TOP_LIMIT);
-
-        let line = lng("GameTop50Line", ltag).args(&[
-            ("number", (index + 1).to_string()),
-            ("name", helpers::escape(&item.name)),
-            ("value", value.to_string()),
-        ]);
-
-        result += &("\n".to_owned() + &line);
-    }
-
-    result
 }

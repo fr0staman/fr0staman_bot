@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use crate::{db::MyPool, models::Game, MyResult, TOP_LIMIT};
+use crate::{consts::TOP_LIMIT, db::MyPool, models::Game, MyResult};
 
 #[derive(Clone)]
 pub struct ChatPig {
@@ -32,24 +32,6 @@ impl ChatPig {
             .optional()?;
 
         Ok(results)
-    }
-
-    pub async fn get_chat_pigs(
-        &self,
-        id_user: u64,
-    ) -> MyResult<Option<Vec<Game>>> {
-        use crate::schema::game::dsl::*;
-
-        let results: Vec<Game> = game
-            .filter(user_id.eq(&id_user))
-            .select(Game::as_select())
-            .load(&mut self.pool.get().await?)
-            .await?;
-
-        if results.is_empty() {
-            return Ok(None);
-        }
-        Ok(Some(results))
     }
 
     pub async fn get_biggest_chat_pig(

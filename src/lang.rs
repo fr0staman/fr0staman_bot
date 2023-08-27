@@ -6,7 +6,7 @@ use walkdir::WalkDir;
 use crate::consts::DEFAULT_LANG_TAG;
 
 // Access to localize
-pub static LOC: OnceLock<Locale> = OnceLock::new();
+pub static LANG: OnceLock<Locale> = OnceLock::new();
 
 pub type LocaleTag = usize;
 
@@ -131,7 +131,7 @@ impl InnerLang for String {
 }
 
 pub fn lng(key: &str, tag: LocaleTag) -> String {
-    let s = match LOC.get() {
+    let s = match LANG.get() {
         Some(s) => s,
         None => panic!("Lang is not set!"),
     };
@@ -167,7 +167,7 @@ pub fn get_tag(from: &User) -> &str {
 }
 
 pub fn tag(tag: &str) -> LocaleTag {
-    let s = match LOC.get() {
+    let s = match LANG.get() {
         Some(s) => s,
         None => return 0,
     };
@@ -178,7 +178,7 @@ pub fn tag(tag: &str) -> LocaleTag {
 }
 
 pub fn get_langs() -> Vec<&'static str> {
-    let s = LOC.get().expect("No langs set currently!");
+    let s = LANG.get().expect("No langs set currently!");
 
     s.langs.iter().map(|item| item.tag.as_str()).collect()
 }

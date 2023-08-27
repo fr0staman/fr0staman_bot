@@ -4,6 +4,7 @@ use teloxide::types::ChatKind;
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
+use crate::consts::DEFAULT_LANG_TAG;
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards::{keyboard_startgroup, keyboard_top50};
@@ -12,9 +13,8 @@ use crate::traits::MaybeMessageSetter;
 use crate::utils::date::{get_datetime, get_timediff};
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, plural, truncate};
-use crate::{MyBot, MyResult, DEFAULT_LANG_TAG};
-
-use super::callback::generate_chat_top50_text;
+use crate::utils::text::generate_chat_top50_text;
+use crate::{MyBot, MyResult};
 
 pub async fn filter_commands(
     bot: MyBot,

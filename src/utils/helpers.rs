@@ -12,6 +12,7 @@ use url::Url;
 use crate::{
     config::BOT_CONFIG,
     enums::{Actions, Image},
+    types::ParsedCallbackData,
 };
 
 const SEPARATOR: char = ':';
@@ -34,7 +35,7 @@ where
     capacity
 }
 
-pub fn decode_callback_data(data: &str) -> Option<(&str, UserId, &str)> {
+pub fn decode_callback_data(data: &str) -> Option<ParsedCallbackData> {
     let splitted: Vec<&str> = data.splitn(3, SEPARATOR).collect();
 
     if splitted.len() < 3 {
@@ -110,6 +111,7 @@ pub fn plural(n: i64) -> i64 {
     }
 }
 
+#[allow(unused)]
 pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Mysql> {
     debug_query::<Mysql, _>(query)
 }

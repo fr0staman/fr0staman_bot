@@ -16,6 +16,7 @@ pub fn get_date() -> NaiveDate {
     get_datetime().date()
 }
 
+#[allow(unused)]
 pub fn get_timestamp() -> i64 {
     get_datetime().timestamp()
 }

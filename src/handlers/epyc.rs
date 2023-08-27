@@ -1,8 +1,8 @@
 use crate::db::DB;
 use crate::enums::EpycCommands;
-use crate::lang::{get_tag_opt, lng, tag, LocaleTag};
+use crate::lang::{get_tag_opt, lng, tag, InnerLang, LocaleTag};
 use crate::traits::MaybeMessageSetter;
-use crate::{InnerLang, MyBot, MyResult};
+use crate::{MyBot, MyResult};
 
 use futures::FutureExt;
 use teloxide::prelude::*;

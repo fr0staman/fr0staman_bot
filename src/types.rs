@@ -1,12 +1,8 @@
+use diesel_async::pooled_connection::deadpool::PoolError;
 use teloxide::{adaptors::DefaultParseMode, prelude::*};
 
-pub type MyBot = DefaultParseMode<Bot>;
-pub type MyResult<T> = Result<T, Error>;
-
-use diesel_async::pooled_connection::deadpool::PoolError;
-
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum MyError {
     #[error(transparent)]
     Database(#[from] diesel::result::Error),
 
@@ -25,3 +21,8 @@ pub enum Error {
     #[error("unknown error: {0}")]
     Unknown(String),
 }
+
+pub type MyBot = DefaultParseMode<Bot>;
+pub type MyResult<T> = Result<T, MyError>;
+
+pub type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);

@@ -100,6 +100,7 @@ pub enum Top10Variant {
     PWin,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(AsRefStr)]
 pub enum Image {
     #[strum(serialize = "1_fight_200x200.jpg")]
