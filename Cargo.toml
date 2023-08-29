@@ -11,7 +11,7 @@ async-recursion = "1.0.4"
 axum = "0.6.20"
 axum-prometheus = "0.4.0"
 chrono = { version = "0.4.26" }
-dashmap = "5.5.1"
+dashmap = "5.5.2"
 diesel = { version = "2.1.0", features = ["chrono"] }
 diesel-async = { version = "0.3.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
