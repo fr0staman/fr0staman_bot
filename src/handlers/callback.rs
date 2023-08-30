@@ -105,13 +105,15 @@ async fn _handle_error(
 
     tokio::spawn(async move {
         {
-            if let Some(value) = DUEL_LOCKS.get(&key) {
+            if let Some(value) = DUEL_LOCKS.try_get(&key).try_unwrap() {
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
                     key
                 );
+
                 value.lock().await.retain(|&x| x != thread_identifier);
+                DUEL_LIST.retain(|&x| x != thread_identifier);
             };
         };
 
@@ -135,8 +137,6 @@ async fn _handle_error(
         } else {
             let _ = callback_empty(bot, &q, ltag).await;
         };
-
-        DUEL_LIST.retain(|&x| x != thread_identifier);
     });
 
     Ok(())
@@ -402,7 +402,12 @@ async fn callback_start_duel(
     }
 
     {
-        if let Some(user_threads) = DUEL_LOCKS.get(&key) {
+        let maybe_threads = DUEL_LOCKS.try_get(&key);
+        if maybe_threads.is_locked() {
+            return Ok(());
+        }
+
+        if let Some(user_threads) = DUEL_LOCKS.try_get(&key).try_unwrap() {
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
                 log::error!("Found user thread duplicate!");
@@ -414,8 +419,8 @@ async fn callback_start_duel(
         }
     }
 
-    let Some(new_item) = DUEL_LOCKS.get(&key) else {
-        log::error!("User threads cleaned after insert!");
+    let Some(new_item) = DUEL_LOCKS.try_get(&key).try_unwrap() else {
+        log::error!("User threads cleaned after insert or locked!");
         return Ok(())
     };
 
