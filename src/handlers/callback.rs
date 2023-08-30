@@ -407,7 +407,7 @@ async fn callback_start_duel(
             return Ok(());
         }
 
-        if let Some(user_threads) = DUEL_LOCKS.try_get(&key).try_unwrap() {
+        if let Some(user_threads) = maybe_threads.try_unwrap() {
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
                 log::error!("Found user thread duplicate!");
