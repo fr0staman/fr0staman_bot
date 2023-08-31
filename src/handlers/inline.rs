@@ -16,7 +16,7 @@ use teloxide::{
 
 use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
-use crate::enums::{Image, InlineCommands, InlineKeywords};
+use crate::enums::{Image, InlineCommands, InlineKeywords, InlineUserStatus};
 use crate::lang::{get_tag, lng, tag, InnerLang, LocaleTag};
 use crate::models::{InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
@@ -134,6 +134,8 @@ async fn _get_hryak(
             weight: size + add,
             lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
             date: cur_date,
+            status: info.status,
+            gifted: false,
         };
 
         DB.hand_pig.update_hrundel(update_data).await?;
@@ -459,7 +461,7 @@ fn get_hryak_info(
     info: &InlineUser,
     remove_markup: bool,
 ) -> InlineQueryResultArticle {
-    let append = if info.status == 2 {
+    let append = if info.status == InlineUserStatus::Supported as i8 {
         lng("InlineSupportedDeveloping", ltag)
     } else {
         String::new()

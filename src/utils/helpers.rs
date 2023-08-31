@@ -11,14 +11,14 @@ use url::Url;
 
 use crate::{
     config::BOT_CONFIG,
-    enums::{Actions, Image},
+    enums::{CbActions, Image, InlineUserStatus},
     types::ParsedCallbackData,
 };
 
 const SEPARATOR: char = ':';
 
 pub fn encode_callback_data<U>(
-    action: Actions,
+    action: CbActions,
     id_user: UserId,
     second: U,
 ) -> String
@@ -117,9 +117,12 @@ pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Mysql> {
 }
 
 pub fn mass_addition_on_status(status: i8) -> i32 {
-    match status {
-        1 => 100,
-        2 => 500,
+    let maybe_status = InlineUserStatus::n(status);
+
+    let Some(maybe_status) = maybe_status else { return 0 };
+    match maybe_status {
+        InlineUserStatus::Subscriber => 100,
+        InlineUserStatus::Supported => 500,
         _ => 0,
     }
 }

@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use strum::{AsRefStr, Display, EnumString};
 use teloxide::macros::BotCommands;
 
@@ -76,7 +78,7 @@ pub enum InlineKeywords {
 
 #[derive(AsRefStr, EnumString, Display)]
 #[strum(serialize_all = "snake_case")]
-pub enum Actions {
+pub enum CbActions {
     GiveName,
     FindHryak,
     AddChat,
@@ -88,6 +90,8 @@ pub enum Actions {
     AllowVoice,
     DisallowVoice,
     ChangeFlag,
+    SubCheck,
+    SubGift,
 }
 
 #[derive(AsRefStr, EnumString, Display)]
@@ -131,4 +135,11 @@ pub enum PigGrowthStatus {
     Lost,
     Maintained,
     Gained,
+}
+
+#[derive(Copy, Clone, enumn::N)]
+pub enum InlineUserStatus {
+    Default,
+    Subscriber,
+    Supported,
 }

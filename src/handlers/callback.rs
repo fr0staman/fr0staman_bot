@@ -14,12 +14,15 @@ use tokio::{
 
 use crate::{
     config::BOT_CONFIG,
-    consts::{DUEL_LIST, DUEL_LOCKS, TOP_LIMIT},
+    consts::{
+        DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
+        SUBSCRIBE_GIFT, TOP_LIMIT,
+    },
     db::DB,
-    enums::{Actions, Top10Variant},
+    enums::{CbActions, InlineUserStatus, Top10Variant},
     keyboards,
     lang::{get_tag, lng, tag, InnerLang, LocaleTag},
-    models::InlineUser,
+    models::{InlineUser, UpdateInlineUser},
     traits::MaybeMessageSetter,
     types::ParsedCallbackData,
     utils::{
@@ -63,30 +66,32 @@ fn _inner_filter<'a>(
     bot: MyBot,
     q: &'a CallbackQuery,
     ltag: LocaleTag,
-    data: ParsedCallbackData<'a>,
+    d: ParsedCallbackData<'a>,
 ) -> BoxFuture<'a, MyResult<()>> {
-    let Ok(matched_enum) = Actions::from_str(data.0) else {
+    let Ok(matched_enum) = CbActions::from_str(d.0) else {
         return callback_empty(bot, q, ltag).boxed();
     };
 
     match matched_enum {
-        Actions::GiveName => {
-            callback_give_hand_pig_name(bot, q, ltag, data).boxed()
+        CbActions::GiveName => {
+            callback_give_hand_pig_name(bot, q, ltag, d).boxed()
         },
-        Actions::FindHryak => callback_find_day_pig(bot, q, ltag, data).boxed(),
-        Actions::AddChat => {
-            callback_add_inline_chat(bot, q, ltag, data).boxed()
+        CbActions::FindHryak => callback_find_day_pig(bot, q, ltag, d).boxed(),
+        CbActions::AddChat => callback_add_inline_chat(bot, q, ltag, d).boxed(),
+        CbActions::Top10 => callback_top10(bot, q, ltag, d).boxed(),
+        CbActions::StartDuel => callback_start_duel(bot, q, ltag, d).boxed(),
+        CbActions::TopLeft | CbActions::TopRight => {
+            callback_change_top(bot, q, ltag, d).boxed()
         },
-        Actions::Top10 => callback_top10(bot, q, ltag, data).boxed(),
-        Actions::StartDuel => callback_start_duel(bot, q, ltag, data).boxed(),
-        Actions::TopLeft | Actions::TopRight => {
-            callback_change_top(bot, q, ltag, data).boxed()
+        CbActions::AllowVoice => callback_allow_voice(bot, q, ltag, d).boxed(),
+        CbActions::DisallowVoice => {
+            callback_disallow_voice(bot, q, ltag, d).boxed()
         },
-        Actions::AllowVoice => callback_allow_voice(bot, q, ltag, data).boxed(),
-        Actions::DisallowVoice => {
-            callback_disallow_voice(bot, q, ltag, data).boxed()
+        CbActions::ChangeFlag => callback_change_flag(bot, q, ltag, d).boxed(),
+        CbActions::SubCheck => {
+            callback_check_subscribe(bot, q, ltag, d).boxed()
         },
-        Actions::ChangeFlag => callback_change_flag(bot, q, ltag, data).boxed(),
+        CbActions::SubGift => callback_gift(bot, q, ltag, d).boxed(),
     }
 }
 
@@ -735,7 +740,7 @@ async fn callback_disallow_voice(
         bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
     }
-    let text = lng("VoiceAccepted", ltag);
+    let text = lng("VoiceNotAccepted", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
 
     let not_accepted = lng("NotAccepted", ltag);
@@ -785,6 +790,98 @@ async fn _get_biggest_chat_pig_mass(id_user: u64) -> MyResult<i32> {
     let biggest_mass = biggest.map_or(0, |b| b.mass);
 
     Ok(biggest_mass)
+}
+
+async fn callback_gift<'a>(
+    bot: MyBot,
+    q: &'a CallbackQuery,
+    ltag: LocaleTag,
+    _data: ParsedCallbackData<'a>,
+) -> MyResult<()> {
+    let chat_id = ChatId(BOT_CONFIG.channel_id);
+    let channel_member = bot.get_chat_member(chat_id, q.from.id).await?;
+
+    if !channel_member.is_present() {
+        let text = lng("SubscribeChannelFirstResponse", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+        let text = lng("HandPigNoInBarn", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    };
+
+    if hrundel.gifted {
+        let text = lng("GiftAlreadyTakenTomorrow", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+
+    let hrundel_on_update = UpdateInlineUser {
+        id: hrundel.id,
+        date: hrundel.date,
+        f_name: &q.from.first_name,
+        weight: hrundel.weight + DAILY_GIFT_AMOUNT,
+        lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
+        status: hrundel.status,
+        gifted: true,
+    };
+
+    DB.hand_pig.update_hrundel(hrundel_on_update).await?;
+
+    let text = lng("GiftThanksReceive500", ltag);
+    bot.answer_callback_query(&q.id).text(text).await?;
+
+    Ok(())
+}
+
+async fn callback_check_subscribe<'a>(
+    bot: MyBot,
+    q: &'a CallbackQuery,
+    ltag: LocaleTag,
+    _data: ParsedCallbackData<'a>,
+) -> MyResult<()> {
+    let chat_id = ChatId(BOT_CONFIG.channel_id);
+    let channel_member = bot.get_chat_member(chat_id, q.from.id).await?;
+
+    if !channel_member.is_present() {
+        let text = lng("SubscribeChannelFirstResponse", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+        let text = lng("HandPigNoInBarn", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    };
+
+    if hrundel.status == InlineUserStatus::Subscriber as i8
+        || hrundel.status == InlineUserStatus::Supported as i8
+    {
+        let text = lng("GiftAlreadyTaken", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+
+    let hrundel_on_update = UpdateInlineUser {
+        id: hrundel.id,
+        date: hrundel.date,
+        f_name: &q.from.first_name,
+        weight: hrundel.weight + SUBSCRIBE_GIFT,
+        lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
+        status: InlineUserStatus::Subscriber as i8,
+        gifted: false,
+    };
+
+    DB.hand_pig.update_hrundel(hrundel_on_update).await?;
+
+    let text = lng("GiftThanksReceive100", ltag);
+    bot.answer_callback_query(&q.id).text(text).await?;
+
+    Ok(())
 }
 
 async fn _check_or_insert_user_or_chat(

@@ -745,6 +745,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumn"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b893c4eb2dc092c811165f84dc7447fae16fb66521717968c34c509b39b1a5c5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.29",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -843,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "fr0staman_bot"
-version = "1.1.5"
+version = "1.2.0"
 dependencies = [
  "ahash 0.8.3",
  "async-recursion",
@@ -854,6 +865,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "dotenvy",
+ "enumn",
  "futures",
  "log",
  "once_cell",

@@ -58,6 +58,8 @@
   "GiftThanksReceive100": "Thank you!\nYou receive +100 kg forever 🎂",
   "GiftThanksReceive500": "Thank you!\nYou receive +500kg today 🎂",
   "GiveMeUserIdArgument": "Give me a user_id as a argument :)",
+  "GiftAlreadyTaken": "😅 You have already received your gift",
+  "GiftAlreadyTakenTomorrow": "🤫 Come tomorrow for a new gift",
   "GreetingsDisabled": "Greetings disabled successfully!",
   "GreetingsEnabled": "Greetings enabled successfully!",
   "HandPigFlagGoCaption": "Your flag: {flag}",

@@ -98,6 +98,8 @@ pub struct UpdateInlineUser<'a> {
     pub weight: i32,
     pub date: NaiveDate,
     pub lang: &'a str,
+    pub status: i8,
+    pub gifted: bool,
 }
 
 #[derive(Queryable, Selectable, Debug)]

@@ -2,7 +2,7 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
 use url::Url;
 
 use crate::{
-    enums::Actions,
+    enums::CbActions,
     lang::{lng, LocaleTag},
     utils::helpers::encode_callback_data,
 };
@@ -12,7 +12,8 @@ pub fn keyboard_new_name(
     id_user: UserId,
     new_name: String,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(Actions::GiveName, id_user, new_name);
+    let coded_data =
+        encode_callback_data(CbActions::GiveName, id_user, new_name);
 
     let keyboard = vec![vec![InlineKeyboardButton::callback(
         lng("HandPigNameChangeButton", ltag),
@@ -26,7 +27,7 @@ pub fn keyboard_day_pig(
     ltag: LocaleTag,
     id_user: UserId,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(Actions::FindHryak, id_user, "");
+    let coded_data = encode_callback_data(CbActions::FindHryak, id_user, "");
 
     let keyboard = vec![vec![InlineKeyboardButton::callback(
         lng("InlineDayPigButton", ltag),
@@ -40,7 +41,7 @@ pub fn keyboard_add_inline_top10(
     ltag: LocaleTag,
     id_user: UserId,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(Actions::AddChat, id_user, "");
+    let coded_data = encode_callback_data(CbActions::AddChat, id_user, "");
 
     let keyboard = vec![vec![InlineKeyboardButton::callback(
         lng("InlineAddTop10ChatButton", ltag),
@@ -55,7 +56,7 @@ pub fn keyboard_in_top10(
     id_user: UserId,
     to: &str,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(Actions::Top10, id_user, to);
+    let coded_data = encode_callback_data(CbActions::Top10, id_user, to);
 
     let key = to.replace("p_", "");
 
@@ -71,7 +72,7 @@ pub fn keyboard_start_duel(
     ltag: LocaleTag,
     id_user: UserId,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(Actions::StartDuel, id_user, "");
+    let coded_data = encode_callback_data(CbActions::StartDuel, id_user, "");
 
     let keyboard = vec![vec![InlineKeyboardButton::callback(
         lng("InlineDuelStartButton", ltag),
@@ -102,7 +103,7 @@ pub fn keyboard_top50(
         let button_left = lng("GameTop50Button_left", ltag);
 
         let button_left_data = encode_callback_data(
-            Actions::TopLeft,
+            CbActions::TopLeft,
             id_user,
             left_offset.to_string(),
         );
@@ -115,7 +116,7 @@ pub fn keyboard_top50(
 
         let right_offset = offset + 1;
         let button_right_data = encode_callback_data(
-            Actions::TopRight,
+            CbActions::TopRight,
             id_user,
             right_offset.to_string(),
         );
@@ -132,9 +133,10 @@ pub fn keyboard_top50(
 }
 
 pub fn keyboard_voice_check(id_user: UserId) -> InlineKeyboardMarkup {
-    let success_data = encode_callback_data(Actions::AllowVoice, id_user, "");
+    let success_data = encode_callback_data(CbActions::AllowVoice, id_user, "");
     let success_button = InlineKeyboardButton::callback("✅", success_data);
-    let denied_data = encode_callback_data(Actions::DisallowVoice, id_user, "");
+    let denied_data =
+        encode_callback_data(CbActions::DisallowVoice, id_user, "");
     let denied_button = InlineKeyboardButton::callback("❌", denied_data);
 
     let keyboard = vec![vec![success_button, denied_button]];
@@ -147,7 +149,7 @@ pub fn keyboard_change_flag(
     id_user: UserId,
     flag_code: &str,
 ) -> InlineKeyboardMarkup {
-    let data = encode_callback_data(Actions::ChangeFlag, id_user, flag_code);
+    let data = encode_callback_data(CbActions::ChangeFlag, id_user, flag_code);
 
     let text = lng("HandPigFlagChangeButton", ltag);
     let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
