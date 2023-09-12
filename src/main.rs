@@ -41,7 +41,7 @@ use crate::{
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
-    pretty_env_logger::init();
+    pretty_env_logger::init_timed();
     run().await
 }
 
