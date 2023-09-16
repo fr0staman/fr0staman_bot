@@ -4,7 +4,7 @@ use teloxide::types::ChatKind;
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
-use crate::consts::DEFAULT_LANG_TAG;
+use crate::consts::{DEFAULT_LANG_TAG, CHAT_PIG_START_MASS};
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards::{keyboard_startgroup, keyboard_top50};
@@ -218,6 +218,7 @@ async fn command_grow(
                 chat_info.id,
                 truncated_f_name,
                 cur_date,
+                CHAT_PIG_START_MASS
             )
             .await?;
         let maybe_new_pig =

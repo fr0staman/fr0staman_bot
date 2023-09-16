@@ -109,6 +109,7 @@ impl ChatPig {
         id_group: i32,
         cur_name: &str,
         cur_date: NaiveDate,
+        start_mass: i32,
     ) -> MyResult<()> {
         use crate::schema::game::dsl::*;
 
@@ -119,6 +120,7 @@ impl ChatPig {
                 name.eq(cur_name),
                 f_name.eq(cur_name),
                 date.eq(cur_date),
+                mass.eq(start_mass),
             ))
             .execute(&mut self.pool.get().await?)
             .await?;
