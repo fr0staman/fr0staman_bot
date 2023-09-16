@@ -69,6 +69,9 @@ pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {
         chance = rand::thread_rng().gen_range(-min..0);
         status = PigGrowthStatus::Lost;
     } else if chance == 0 {
+        if current_kg == 0 {
+            return calculate_chat_pig_grow(current_kg);
+        }
         status = PigGrowthStatus::Maintained;
     }
 
