@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.3"
-async-recursion = "1.0.4"
+async-recursion = "1.0.5"
 axum = "0.6.20"
 axum-prometheus = "0.4.0"
-chrono = { version = "0.4.30" }
+chrono = { version = "0.4.31" }
 dashmap = "5.5.3"
-diesel = { version = "2.1.1", features = ["chrono"] }
+diesel = { version = "2.1.3", features = ["chrono"] }
 diesel-async = { version = "0.4.1", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 enumn = "0.1.12"
@@ -22,13 +22,13 @@ once_cell = "1.18.0"
 pretty_env_logger = "0.5"
 prometheus = "0.13.3"
 rand = "0.8.5"
-serde_json = "1.0.106"
+serde_json = "1.0.107"
 strum = { version = "0.25.0", features = ["derive"] }
 systemstat = "0.2.3"
 teloxide = { version = "0.12.2", features = ["macros", "webhooks-axum"] }
-thiserror = "1.0.48"
-tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros"] }
-unicode-width = "0.1.10"
+thiserror = "1.0.49"
+tokio = { version = "1.33.0", features = ["rt-multi-thread", "macros"] }
+unicode-width = "0.1.11"
 url = "2.4.1"
 walkdir = "2.4.0"
 
