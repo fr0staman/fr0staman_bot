@@ -15,5 +15,4 @@ UPDATE `users` u SET `banned` = 1 WHERE `status` = 1;
 -- If user banned me in private, that means, he started also
 UPDATE `users` u SET `started` = 1 WHERE `status` = 1;
 
-UPDATE `users` SET `supported` = 1;
 ALTER TABLE `users` DROP COLUMN `status`;
