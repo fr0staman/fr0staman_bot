@@ -33,7 +33,7 @@ url = "2.4.1"
 walkdir = "2.4.0"
 
 [profile.release]
-lto = true
+lto = "thin"
 strip = true
 opt-level = "z"
 # panic = "abort"
