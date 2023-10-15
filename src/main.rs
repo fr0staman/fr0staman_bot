@@ -29,8 +29,8 @@ use crate::{
     config::{BOT_CONFIG, BOT_ME},
     consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG},
     db::Database,
-    enums::{EpycCommands, MyCommands},
-    handlers::{callback, command, epyc, inline, message, system},
+    enums::{AdminCommands, EpycCommands, MyCommands},
+    handlers::{admin, callback, command, epyc, inline, message, system},
     lang::{get_langs, lng},
     utils::helpers::get_chat_kind,
 };
@@ -68,6 +68,16 @@ async fn run() {
                     dptree::entry()
                         .filter_command::<EpycCommands>()
                         .endpoint(epyc::filter_commands),
+                )
+                .branch(
+                    dptree::filter(|m: Message| {
+                        m.chat.is_private()
+                            && m.from().is_some_and(|u| {
+                                u.id.0 == BOT_CONFIG.creator_id
+                            })
+                    })
+                    .filter_command::<AdminCommands>()
+                    .endpoint(admin::filter_admin_commands),
                 )
                 .branch(
                     Message::filter_new_chat_members()
@@ -179,7 +189,7 @@ async fn setup_db() {
     let _ = Database::new();
 }
 
-const IGNORED_COMMANDS: &[&str] = &["/lang", "/p", "/start"];
+const IGNORED_COMMANDS: &[&str] = &["/lang", "/p", "/start", "/id"];
 
 async fn setup_commands(bot: &MyBot) {
     let langs = get_langs();

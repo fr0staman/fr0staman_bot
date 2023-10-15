@@ -39,6 +39,7 @@ pub async fn filter_commands(
         MyCommands::Top => command_top(bot, &m, ltag).boxed(),
         MyCommands::Game => command_game(bot, &m, ltag).boxed(),
         MyCommands::Lang => command_lang(bot, &m, ltag).boxed(),
+        MyCommands::Id => command_id(bot, &m, ltag).boxed(),
     };
 
     let response = function.await;
@@ -444,6 +445,17 @@ async fn command_lang(
     let Some(from) = m.from() else { return Ok(()) };
     let code = from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
     bot.send_message(m.chat.id, code).maybe_thread_id(m).await?;
+    Ok(())
+}
+
+async fn command_id(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
+    let Some(from) = m.from() else { return Ok(()) };
+
+    let Some(user) = DB.other.get_user(from.id.0).await? else {
+        return Ok(());
+    };
+    let text = lng("UserCommandIdMessage", ltag).args(&[("id", user.id)]);
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     Ok(())
 }
 

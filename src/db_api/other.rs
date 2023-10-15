@@ -49,6 +49,19 @@ impl Other {
         Ok(result)
     }
 
+    pub async fn get_user_by_id(&self, uid: u32) -> MyResult<Option<User>> {
+        use crate::schema::users::dsl::*;
+
+        let result = users
+            .filter(id.eq(uid))
+            .select(User::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
+
+        Ok(result)
+    }
+
     pub async fn change_user_status(
         &self,
         id_user: u64,

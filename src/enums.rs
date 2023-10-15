@@ -10,6 +10,7 @@ pub enum MyCommands {
     /// System
     Start,
     Help,
+    Id,
 
     Pidor,
 
@@ -35,6 +36,13 @@ pub enum EpycCommands {
     EpycRU(String),
     #[command(rename = "epyc", prefix = "!")]
     EpycEN(String),
+}
+
+// Descriptions of BotCommands — check locales /<command>_desc
+#[derive(BotCommands, Clone, Debug)]
+#[command(rename_rule = "lowercase")]
+pub enum AdminCommands {
+    Promote(String),
 }
 
 #[derive(Display, AsRefStr, EnumString)]
