@@ -831,7 +831,6 @@ async fn callback_gift<'a>(
         f_name: &q.from.first_name,
         weight: hrundel.0.weight + DAILY_GIFT_AMOUNT,
         lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-        status: hrundel.0.status,
         gifted: true,
     };
 
@@ -876,7 +875,6 @@ async fn callback_check_subscribe<'a>(
         f_name: &q.from.first_name,
         weight: hrundel.0.weight + SUBSCRIBE_GIFT,
         lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-        status: 0,
         gifted: false,
     };
 

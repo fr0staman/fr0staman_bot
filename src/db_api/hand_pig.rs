@@ -145,7 +145,6 @@ impl HandPig {
                 weight.eq(data.weight),
                 lang.eq(data.lang),
                 f_name.eq(data.f_name),
-                status.eq(data.status),
                 gifted.eq(data.gifted),
             ))
             .execute(&mut self.pool.get().await?)

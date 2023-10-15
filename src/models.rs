@@ -62,7 +62,6 @@ pub struct InlineUser {
     pub flag: String,
     pub win: u16,
     pub rout: u16,
-    pub status: i8,
     pub name: String,
     pub gifted: bool,
 }
@@ -95,7 +94,6 @@ pub struct UpdateInlineUser<'a> {
     pub weight: i32,
     pub date: NaiveDate,
     pub lang: &'a str,
-    pub status: i8,
     pub gifted: bool,
 }
 

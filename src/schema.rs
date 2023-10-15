@@ -51,7 +51,6 @@ diesel::table! {
         lang -> Varchar,
         win -> Unsigned<Smallint>,
         rout -> Unsigned<Smallint>,
-        status -> Tinyint,
         #[max_length = 64]
         name -> Varchar,
         gifted -> Bool,

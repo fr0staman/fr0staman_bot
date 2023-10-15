@@ -144,7 +144,6 @@ async fn _get_hryak(
             weight: size + add,
             lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
             date: cur_date,
-            status: info.0.status,
             gifted: false,
         };
 
