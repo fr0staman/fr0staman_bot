@@ -19,10 +19,10 @@ use crate::{
         SUBSCRIBE_GIFT, TOP_LIMIT,
     },
     db::DB,
-    enums::{CbActions, InlineUserStatus, Top10Variant},
+    enums::{CbActions, Top10Variant},
     keyboards,
     lang::{get_tag, lng, tag, InnerLang, LocaleTag},
-    models::{InlineUser, UpdateInlineUser, User},
+    models::{InlineUser, UpdateInlineUser, User, UserStatus},
     traits::MaybeMessageSetter,
     types::ParsedCallbackData,
     utils::{
@@ -621,9 +621,8 @@ async fn _start_duel_get_2_hrundels(
             let user_id = hrundel.1.user_id;
             let size = formulas::calculate_hryak_size(user_id);
             let biggest = _get_biggest_chat_pig_mass(user_id).await?;
-            let add = size
-                + biggest
-                + helpers::mass_addition_on_status(hrundel.0.status);
+            let add =
+                size + biggest + helpers::mass_addition_on_status(&hrundel.1);
 
             DB.hand_pig
                 .update_hrundel_date_and_size(user_id, add, today)
@@ -714,7 +713,9 @@ async fn callback_allow_voice(
             .await?;
         ltag = tag(&hrundel.0.lang);
     }
-    let Some(user) = DB.other.maybe_get_or_insert_user(user_id.0).await? else {
+    let Some(user) =
+        DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
+    else {
         return Ok(());
     };
     DB.other.add_voice(user.id, probably_url).await?;
@@ -863,9 +864,7 @@ async fn callback_check_subscribe<'a>(
         return Ok(());
     };
 
-    if hrundel.0.status == InlineUserStatus::Subscriber as i8
-        || hrundel.0.status == InlineUserStatus::Supported as i8
-    {
+    if hrundel.1.subscribed || hrundel.1.supported {
         let text = lng("GiftAlreadyTaken", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
@@ -877,11 +876,18 @@ async fn callback_check_subscribe<'a>(
         f_name: &q.from.first_name,
         weight: hrundel.0.weight + SUBSCRIBE_GIFT,
         lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-        status: InlineUserStatus::Subscriber as i8,
+        status: 0,
         gifted: false,
     };
 
+    let user_status = UserStatus {
+        subscribed: true,
+        banned: hrundel.1.banned,
+        started: hrundel.1.banned,
+        supported: hrundel.1.supported,
+    };
     DB.hand_pig.update_hrundel(hrundel_on_update).await?;
+    DB.other.change_user_status(q.from.id.0, user_status).await?;
 
     let text = lng("GiftThanksReceive100", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
@@ -910,7 +916,8 @@ async fn _check_or_insert_user_or_chat(
         if let Some(chat) = chat {
             DB.hand_pig.add_group_to_user(user.0.id, chat.id).await?;
         } else {
-            DB.hand_pig.add_inline_group(chat_instance).await?;
+            let cur_datetime = get_datetime();
+            DB.hand_pig.add_inline_group(chat_instance, cur_datetime).await?;
 
             let Some(chat) =
                 DB.hand_pig.get_inline_group(chat_instance).await?

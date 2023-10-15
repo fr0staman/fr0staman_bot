@@ -16,11 +16,13 @@ use teloxide::{
 
 use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
-use crate::enums::{Image, InlineCommands, InlineKeywords, InlineUserStatus};
+use crate::enums::{Image, InlineCommands, InlineKeywords};
 use crate::lang::{get_tag, lng, tag, InnerLang, LocaleTag};
-use crate::models::{InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser};
+use crate::models::{
+    InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
+};
 use crate::types::MyBot;
-use crate::utils::date::get_date;
+use crate::utils::date::{get_date, get_datetime};
 use crate::utils::flag::Flags;
 use crate::utils::helpers::{get_photostock, truncate};
 use crate::utils::{formulas, helpers};
@@ -107,7 +109,10 @@ async fn _get_hryak(
         let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
         let truncated_f_name = truncate(&q.from.first_name, 64);
         let lang = q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
-        let Some(user) = DB.other.maybe_get_or_insert_user(q.from.id.0).await?
+        let Some(user) = DB
+            .other
+            .maybe_get_or_insert_user(q.from.id.0, get_datetime)
+            .await?
         else {
             return Ok(vec![handle_error_info(ltag)]);
         };
@@ -129,8 +134,7 @@ async fn _get_hryak(
         // Pig exist, but not "today", just recreate that!
         let size = formulas::calculate_hryak_size(q.from.id.0);
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
-        let add =
-            biggest_mass + helpers::mass_addition_on_status(info.1.status);
+        let add = biggest_mass + helpers::mass_addition_on_status(&info.1);
 
         let truncated_f_name = truncate(&q.from.first_name, 64).0;
 
@@ -155,7 +159,7 @@ async fn _get_hryak(
     let result = vec![
         get_start_duel(ltag, q.from.id, &info.0),
         get_top10_info(ltag, q.from.id, text, to),
-        get_hryak_info(ltag, q.from.id, &info.0, remove_markup),
+        get_hryak_info(ltag, q.from.id, &info, remove_markup),
     ];
 
     Ok(result)
@@ -466,21 +470,21 @@ fn get_top10_info(
 fn get_hryak_info(
     ltag: LocaleTag,
     id_user: UserId,
-    info: &InlineUser,
+    info: &(InlineUser, User),
     remove_markup: bool,
 ) -> InlineQueryResultArticle {
-    let append = if info.status == InlineUserStatus::Supported as i8 {
+    let append = if info.1.supported {
         lng("InlineSupportedDeveloping", ltag)
     } else {
         String::new()
     };
 
-    let converted_mass = info.weight.to_string();
+    let converted_mass = info.0.weight.to_string();
 
     let caption = lng("InlineStatsCaption", ltag);
     let message = lng("HandPigWeightMessage", ltag).args(&[
         ("weight", converted_mass.as_str()),
-        ("emoji", formulas::get_pig_emoji(info.weight)),
+        ("emoji", formulas::get_pig_emoji(info.0.weight)),
         ("append", append.as_str()),
     ]);
 

@@ -15,7 +15,6 @@ dashmap = "5.5.3"
 diesel = { version = "2.1.3", features = ["chrono"] }
 diesel-async = { version = "0.4.1", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
-enumn = "0.1.12"
 futures = "0.3.28"
 log = "0.4.20"
 once_cell = "1.18.0"

@@ -47,6 +47,7 @@ pub struct HryakDay {
 pub struct InlineGroup {
     pub id: i32,
     pub chat_instance: i64,
+    pub invited_at: NaiveDateTime,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Debug)]
@@ -113,5 +114,18 @@ pub struct InlineVoice {
 pub struct User {
     pub id: u32,
     pub user_id: u64,
-    pub status: i8,
+    pub started: bool,
+    pub banned: bool,
+    pub supported: bool,
+    pub subscribed: bool,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Queryable, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UserStatus {
+    pub started: bool,
+    pub banned: bool,
+    pub supported: bool,
+    pub subscribed: bool,
 }

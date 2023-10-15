@@ -11,7 +11,8 @@ use url::Url;
 
 use crate::{
     config::BOT_CONFIG,
-    enums::{CbActions, Image, InlineUserStatus},
+    enums::{CbActions, Image},
+    models::User,
     types::ParsedCallbackData,
 };
 
@@ -116,13 +117,12 @@ pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Mysql> {
     debug_query::<Mysql, _>(query)
 }
 
-pub fn mass_addition_on_status(status: i8) -> i32 {
-    let maybe_status = InlineUserStatus::n(status);
-
-    let Some(maybe_status) = maybe_status else { return 0 };
-    match maybe_status {
-        InlineUserStatus::Subscriber => 100,
-        InlineUserStatus::Supported => 500,
-        _ => 0,
+pub fn mass_addition_on_status(user: &User) -> i32 {
+    if user.supported {
+        500
+    } else if user.subscribed {
+        100
+    } else {
+        0
     }
 }

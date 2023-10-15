@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     db::MyPool,
-    models::{Groups, InlineVoice, User},
+    models::{Groups, InlineVoice, User, UserStatus},
     MyResult,
 };
 
@@ -18,10 +18,19 @@ impl Other {
         Self { pool }
     }
 
-    pub async fn register_user(&self, id_user: u64) -> MyResult<()> {
+    pub async fn register_user(
+        &self,
+        id_user: u64,
+        is_started: bool,
+        cur_datetime: NaiveDateTime,
+    ) -> MyResult<()> {
         use crate::schema::users::dsl::*;
         diesel::insert_or_ignore_into(users)
-            .values(user_id.eq(id_user))
+            .values((
+                user_id.eq(id_user),
+                started.eq(is_started),
+                created_at.eq(cur_datetime),
+            ))
             .execute(&mut self.pool.get().await?)
             .await?;
         Ok(())
@@ -39,14 +48,15 @@ impl Other {
 
         Ok(result)
     }
+
     pub async fn change_user_status(
         &self,
         id_user: u64,
-        s: i8,
+        status: UserStatus,
     ) -> MyResult<()> {
         use crate::schema::users::dsl::*;
         diesel::update(users)
-            .set(status.eq(s))
+            .set(&status)
             .filter(user_id.eq(id_user))
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -193,6 +203,7 @@ impl Other {
     pub async fn maybe_get_or_insert_user(
         &self,
         user_id: u64,
+        generate_datetime: fn() -> NaiveDateTime,
     ) -> MyResult<Option<User>> {
         let user = Self::get_user(self, user_id).await?;
 
@@ -200,7 +211,8 @@ impl Other {
             return Ok(user);
         }
 
-        Self::register_user(self, user_id).await?;
+        let cur_datetime = generate_datetime();
+        Self::register_user(self, user_id, false, cur_datetime).await?;
 
         Self::get_user(self, user_id).await
     }

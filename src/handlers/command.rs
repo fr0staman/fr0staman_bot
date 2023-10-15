@@ -9,6 +9,7 @@ use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards::{keyboard_startgroup, keyboard_top50};
 use crate::lang::{get_tag_opt, lng, tag, InnerLang, LocaleTag};
+use crate::models::UserStatus;
 use crate::traits::MaybeMessageSetter;
 use crate::utils::date::{get_datetime, get_timediff};
 use crate::utils::formulas::calculate_chat_pig_grow;
@@ -85,11 +86,19 @@ async fn command_start(
         let text_reg = lng(key, ltag);
 
         let probably_user = DB.other.get_user(from.id.0).await?;
-        if probably_user.is_none() {
-            DB.other.register_user(from.id.0).await?;
+        if let Some(user) = probably_user {
+            let user_status = UserStatus {
+                banned: false,
+                started: true,
+                supported: user.supported,
+                subscribed: user.subscribed,
+            };
+            DB.other.change_user_status(from.id.0, user_status).await?;
         } else {
-            DB.other.change_user_status(from.id.0, 0).await?;
-        }
+            let cur_datetime = get_datetime();
+            DB.other.register_user(from.id.0, true, cur_datetime).await?;
+        };
+
         bot.send_message(m.chat.id, text_reg).maybe_thread_id(m).await?;
 
         let url = BOT_CONFIG.me.tme_url();
@@ -211,7 +220,8 @@ async fn command_grow(
             return Ok(());
         };
 
-        let Some(user) = DB.other.maybe_get_or_insert_user(from.id.0).await?
+        let Some(user) =
+            DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
         else {
             return Ok(());
         };

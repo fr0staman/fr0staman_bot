@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
@@ -236,11 +236,18 @@ impl HandPig {
         Ok(results)
     }
 
-    pub async fn add_inline_group(&self, instance_chat: &str) -> MyResult<()> {
+    pub async fn add_inline_group(
+        &self,
+        instance_chat: &str,
+        cur_datetime: NaiveDateTime,
+    ) -> MyResult<()> {
         use crate::schema::inline_groups::dsl::*;
 
         diesel::insert_into(inline_groups)
-            .values(chat_instance.eq(instance_chat.parse::<i64>().unwrap_or(1)))
+            .values((
+                chat_instance.eq(instance_chat.parse::<i64>().unwrap_or(1)),
+                invited_at.eq(cur_datetime),
+            ))
             .execute(&mut self.pool.get().await?)
             .await?;
 

@@ -1,13 +1,6 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    counter (id) {
-        id -> Integer,
-        count -> Integer,
-    }
-}
-
-diesel::table! {
     game (id) {
         id -> Integer,
         group_id -> Integer,
@@ -43,6 +36,7 @@ diesel::table! {
     inline_groups (id) {
         id -> Integer,
         chat_instance -> Bigint,
+        invited_at -> Datetime,
     }
 }
 
@@ -91,7 +85,11 @@ diesel::table! {
     users (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Bigint>,
-        status -> Tinyint,
+        started -> Bool,
+        subscribed -> Bool,
+        supported -> Bool,
+        banned -> Bool,
+        created_at -> Datetime,
     }
 }
 
@@ -104,7 +102,6 @@ diesel::joinable!(inline_users_groups -> inline_users (iu_id));
 diesel::joinable!(inline_voices -> users (uid));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    counter,
     game,
     groups,
     hryak_day,

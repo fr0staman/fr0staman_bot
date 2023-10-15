@@ -136,10 +136,3 @@ pub enum PigGrowthStatus {
     Maintained,
     Gained,
 }
-
-#[derive(Copy, Clone, enumn::N)]
-pub enum InlineUserStatus {
-    Default,
-    Subscriber,
-    Supported,
-}

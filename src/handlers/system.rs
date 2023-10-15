@@ -3,7 +3,7 @@ use crate::{
     db::DB,
     keyboards::keyboard_voice_check,
     lang::{get_tag, get_tag_opt, lng, tag, InnerLang},
-    models::Groups,
+    models::{Groups, UserStatus},
     traits::MaybeMessageSetter,
     utils::date::get_datetime,
     MyBot, MyResult,
@@ -104,8 +104,26 @@ pub async fn handle_ban_or_unban_in_private(
     let UpdateKind::MyChatMember(member) = u.kind else { return Ok(()) };
 
     let is_banned = member.new_chat_member.is_banned();
-    let status = if is_banned { 1 } else { 0 };
-    DB.other.change_user_status(member.from.id.0, status).await?;
+    let Some(user) = DB
+        .other
+        .maybe_get_or_insert_user(
+            member.new_chat_member.user.id.0,
+            get_datetime,
+        )
+        .await?
+    else {
+        log::error!("User not inserted!");
+        return Ok(());
+    };
+
+    let user_status = UserStatus {
+        banned: is_banned,
+        started: user.started,
+        supported: user.supported,
+        subscribed: user.subscribed,
+    };
+
+    DB.other.change_user_status(member.from.id.0, user_status).await?;
 
     if is_banned {
         log::info!("User ban bot [{}]", member.from.id);
@@ -144,7 +162,7 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
 }
 
 pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
     let ltag = tag(get_tag_opt(m.from()));
     let text = lng("InlineHrukAddMessage", ltag);
 
