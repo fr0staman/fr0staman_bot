@@ -21,12 +21,14 @@ impl ChatPig {
     ) -> MyResult<Option<Game>> {
         use crate::schema::game::dsl::*;
         use crate::schema::groups;
+        use crate::schema::users;
 
         let results = game
-            .filter(user_id.eq(&id_user))
+            .inner_join(groups::table)
+            .inner_join(users::table)
+            .filter(users::user_id.eq(&id_user))
             .filter(groups::chat_id.eq(&id_chat))
             .select(Game::as_select())
-            .inner_join(groups::table)
             .first(&mut self.pool.get().await?)
             .await
             .optional()?;
@@ -39,9 +41,11 @@ impl ChatPig {
         id_user: u64,
     ) -> MyResult<Option<Game>> {
         use crate::schema::game::dsl::*;
+        use crate::schema::users;
 
         let results: Option<Game> = game
-            .filter(user_id.eq(&id_user))
+            .inner_join(users::table)
+            .filter(users::user_id.eq(&id_user))
             .order(mass.desc())
             .limit(1)
             .select(Game::as_select())
@@ -60,10 +64,17 @@ impl ChatPig {
     ) -> MyResult<()> {
         use crate::schema::game::dsl::*;
         use crate::schema::groups;
+        use crate::schema::users;
 
         diesel::update(game)
             .set(name.eq(new_name))
-            .filter(user_id.eq(id_user))
+            .filter(
+                uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .filter(
                 group_id.eq_any(
                     groups::table
@@ -86,10 +97,17 @@ impl ChatPig {
     ) -> MyResult<()> {
         use crate::schema::game::dsl::*;
         use crate::schema::groups;
+        use crate::schema::users;
 
         diesel::update(game)
             .set((mass.eq(other_mass), date.eq(cur_date)))
-            .filter(user_id.eq(&id_user))
+            .filter(
+                uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .filter(
                 group_id.eq_any(
                     groups::table
@@ -105,7 +123,7 @@ impl ChatPig {
 
     pub async fn create_chat_pig(
         &self,
-        id_user: u64,
+        id_user: u32,
         id_group: i32,
         cur_name: &str,
         cur_date: NaiveDate,
@@ -115,7 +133,7 @@ impl ChatPig {
 
         diesel::insert_into(game)
             .values((
-                user_id.eq(id_user),
+                uid.eq(id_user),
                 group_id.eq(id_group),
                 name.eq(cur_name),
                 f_name.eq(cur_name),

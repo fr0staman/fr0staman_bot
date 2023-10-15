@@ -107,8 +107,13 @@ async fn _get_hryak(
         let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
         let truncated_f_name = truncate(&q.from.first_name, 64);
         let lang = q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
+        let Some(user) = DB.other.maybe_get_or_insert_user(q.from.id.0).await?
+        else {
+            return Ok(vec![handle_error_info(ltag)]);
+        };
+
         let hrundel = NewInlineUser {
-            user_id: q.from.id.0,
+            uid: user.id,
             f_name: truncated_f_name.0,
             weight: size,
             date: cur_date,
@@ -120,21 +125,22 @@ async fn _get_hryak(
         return _get_hryak(q, ltag).await;
     };
 
-    if info.date != cur_date {
+    if info.0.date != cur_date {
         // Pig exist, but not "today", just recreate that!
         let size = formulas::calculate_hryak_size(q.from.id.0);
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
-        let add = biggest_mass + helpers::mass_addition_on_status(info.status);
+        let add =
+            biggest_mass + helpers::mass_addition_on_status(info.1.status);
 
         let truncated_f_name = truncate(&q.from.first_name, 64).0;
 
         let update_data = UpdateInlineUser {
-            id: info.id,
+            id: info.0.id,
             f_name: truncated_f_name,
             weight: size + add,
             lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
             date: cur_date,
-            status: info.status,
+            status: info.0.status,
             gifted: false,
         };
 
@@ -147,9 +153,9 @@ async fn _get_hryak(
     let text = _get_for_top10_info(ltag, chat_type).await?;
 
     let result = vec![
-        get_start_duel(ltag, q.from.id, &info),
+        get_start_duel(ltag, q.from.id, &info.0),
         get_top10_info(ltag, q.from.id, text, to),
-        get_hryak_info(ltag, q.from.id, &info, remove_markup),
+        get_hryak_info(ltag, q.from.id, &info.0, remove_markup),
     ];
 
     Ok(result)
@@ -163,9 +169,10 @@ async fn inline_name_hrundel(
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results = InlineQueryResult::Article(handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
-        return Ok(())
+        return Ok(());
     };
-    let article = name_hryak_info(ltag, hrundel.name);
+
+    let article = name_hryak_info(ltag, hrundel.0.name);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -181,9 +188,10 @@ async fn inline_rename_hrundel(
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results = InlineQueryResult::Article(handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
-        return Ok(())
+        return Ok(());
     };
-    let article = rename_hryak_info(ltag, q.from.id, hrundel.name, new_name);
+
+    let article = rename_hryak_info(ltag, q.from.id, hrundel.0.name, new_name);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -299,10 +307,10 @@ async fn inline_flag(
     let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results = InlineQueryResult::Article(handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
-        return Ok(())
+        return Ok(());
     };
 
-    let old_flag = Flags::from_code(&user.flag).unwrap_or(Flags::Us);
+    let old_flag = Flags::from_code(&user.0.flag).unwrap_or(Flags::Us);
     let mut results = Vec::with_capacity(64);
 
     if q.offset.is_empty() {

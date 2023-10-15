@@ -4,7 +4,7 @@ use teloxide::types::ChatKind;
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
-use crate::consts::{DEFAULT_LANG_TAG, CHAT_PIG_START_MASS};
+use crate::consts::{CHAT_PIG_START_MASS, DEFAULT_LANG_TAG};
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards::{keyboard_startgroup, keyboard_top50};
@@ -69,7 +69,7 @@ async fn command_start(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
     crate::metrics::CMD_START_COUNTER.inc();
 
     let text = lng("ChatGreetingFirst", ltag);
@@ -186,7 +186,7 @@ async fn command_grow(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -211,14 +211,19 @@ async fn command_grow(
             return Ok(());
         };
 
+        let Some(user) = DB.other.maybe_get_or_insert_user(from.id.0).await?
+        else {
+            return Ok(());
+        };
+
         let truncated_f_name = truncate(&from.first_name, 64).0;
         DB.chat_pig
             .create_chat_pig(
-                from.id.0,
+                user.id,
                 chat_info.id,
                 truncated_f_name,
                 cur_date,
-                CHAT_PIG_START_MASS
+                CHAT_PIG_START_MASS,
             )
             .await?;
         let maybe_new_pig =
@@ -296,7 +301,7 @@ async fn command_name(
     ltag: LocaleTag,
     payload: &str,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -335,7 +340,7 @@ async fn command_name(
 }
 
 async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -344,9 +349,9 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
     let Some(pig) = pig else {
-            _game_no_chat_pig(bot, m, ltag).await?;
-            return Ok(());
-        };
+        _game_no_chat_pig(bot, m, ltag).await?;
+        return Ok(());
+    };
 
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
@@ -358,7 +363,7 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 }
 
 async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -426,7 +431,7 @@ async fn command_lang(
     m: &Message,
     #[allow(unused)] ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
     let code = from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
     bot.send_message(m.chat.id, code).maybe_thread_id(m).await?;
     Ok(())

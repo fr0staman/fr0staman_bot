@@ -10,7 +10,6 @@ diesel::table! {
 diesel::table! {
     game (id) {
         id -> Integer,
-        user_id -> Unsigned<Bigint>,
         group_id -> Integer,
         mass -> Integer,
         date -> Date,
@@ -18,6 +17,7 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 64]
         f_name -> Varchar,
+        uid -> Unsigned<Integer>,
     }
 }
 
@@ -49,7 +49,6 @@ diesel::table! {
 diesel::table! {
     inline_users (id) {
         id -> Integer,
-        user_id -> Unsigned<Bigint>,
         #[max_length = 64]
         f_name -> Varchar,
         weight -> Integer,
@@ -64,6 +63,7 @@ diesel::table! {
         gifted -> Bool,
         #[max_length = 17]
         flag -> Varchar,
+        uid -> Unsigned<Integer>,
     }
 }
 
@@ -80,25 +80,28 @@ diesel::table! {
         id -> Smallint,
         #[max_length = 128]
         url -> Varchar,
-        user_id -> Unsigned<Bigint>,
         #[max_length = 64]
         caption -> Varchar,
         status -> Smallint,
+        uid -> Unsigned<Integer>,
     }
 }
 
 diesel::table! {
     users (id) {
-        id -> Unsigned<Smallint>,
+        id -> Unsigned<Integer>,
         user_id -> Unsigned<Bigint>,
         status -> Tinyint,
     }
 }
 
 diesel::joinable!(game -> groups (group_id));
+diesel::joinable!(game -> users (uid));
 diesel::joinable!(hryak_day -> inline_users_groups (iug_id));
+diesel::joinable!(inline_users -> users (uid));
 diesel::joinable!(inline_users_groups -> inline_groups (ig_id));
 diesel::joinable!(inline_users_groups -> inline_users (iu_id));
+diesel::joinable!(inline_voices -> users (uid));
 
 diesel::allow_tables_to_appear_in_same_query!(
     counter,

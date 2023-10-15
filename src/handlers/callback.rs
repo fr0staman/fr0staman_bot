@@ -22,7 +22,7 @@ use crate::{
     enums::{CbActions, InlineUserStatus, Top10Variant},
     keyboards,
     lang::{get_tag, lng, tag, InnerLang, LocaleTag},
-    models::{InlineUser, UpdateInlineUser},
+    models::{InlineUser, UpdateInlineUser, User},
     traits::MaybeMessageSetter,
     types::ParsedCallbackData,
     utils::{
@@ -206,7 +206,7 @@ async fn callback_find_day_pig(
             bot.answer_callback_query(&q.id).await?;
 
             let mention = user_mention(
-                i64::try_from(current_chat.2.user_id).unwrap(),
+                i64::try_from(current_chat.3.user_id).unwrap(),
                 &current_chat.2.f_name,
             );
 
@@ -426,7 +426,7 @@ async fn callback_start_duel(
 
     let Some(new_item) = DUEL_LOCKS.try_get(&key).try_unwrap() else {
         log::error!("User threads cleaned after insert or locked!");
-        return Ok(())
+        return Ok(());
     };
 
     let mut new_item = new_item.lock().await;
@@ -450,10 +450,10 @@ async fn callback_start_duel(
     );
 
     let text = lng("InlineDuelGoingMessage", ltag).args(&[
-        ("first_name", &first.name),
-        ("secnd_name", &second.name),
-        ("first_weight", &first.weight.to_string()),
-        ("secnd_weight", &second.weight.to_string()),
+        ("first_name", &first.0.name),
+        ("secnd_name", &second.0.name),
+        ("first_weight", &first.0.weight.to_string()),
+        ("secnd_weight", &second.0.weight.to_string()),
     ]);
 
     bot.edit_message_text_inline(im_id, text)
@@ -467,15 +467,15 @@ async fn callback_start_duel(
 
     let lng_key = &format!("InlineDuelMessage_{}", &status);
     let text = lng(lng_key, ltag).args(&[
-        ("winner_name", &winner.name),
-        ("looser_name", &looser.name),
+        ("winner_name", &winner.0.name),
+        ("looser_name", &looser.0.name),
         ("diff", &damage.to_string()),
-        ("winner_weight", &(winner.weight + damage).to_string()),
-        ("looser_weight", &(looser.weight - damage).to_string()),
+        ("winner_weight", &(winner.0.weight + damage).to_string()),
+        ("looser_weight", &(looser.0.weight - damage).to_string()),
     ]);
 
-    let winner_id = winner.user_id;
-    let looser_id = looser.user_id;
+    let winner_id = winner.1.user_id;
+    let looser_id = looser.1.user_id;
 
     let looser_is_win = status == 0;
 
@@ -506,7 +506,7 @@ async fn callback_change_top(
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
     let Some(m) = &q.message else { return Ok(()) };
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     let chat_info = DB.other.get_chat(m.chat.id.0).await?;
 
@@ -549,12 +549,14 @@ async fn callback_change_top(
     Ok(())
 }
 
+type Hrundel = (InlineUser, User);
+
 fn _duel_get_winner<'a>(
-    first: &'a InlineUser,
-    second: &'a InlineUser,
-) -> ((&'a InlineUser, &'a InlineUser), i32, i32) {
-    let mut first_chance = first.weight;
-    let mut second_chance = second.weight;
+    first: &'a Hrundel,
+    second: &'a Hrundel,
+) -> ((&'a Hrundel, &'a Hrundel), i32, i32) {
+    let mut first_chance = first.0.weight;
+    let mut second_chance = second.0.weight;
 
     if first_chance / second_chance > 5 {
         second_chance = first_chance / 5;
@@ -571,17 +573,17 @@ fn _duel_get_winner<'a>(
     #[allow(clippy::comparison_chain)]
     if first_random > second_random {
         status = 1;
-        if first_random >= (first.weight * 95) / 100 {
+        if first_random >= (first.0.weight * 95) / 100 {
             status = 3;
-            if first_random >= (first.weight * 95) / 100 {
+            if first_random >= (first.0.weight * 95) / 100 {
                 status = 5;
             }
         }
     } else if second_random > first_random {
         status = 2;
-        if second_random >= (second.weight * 95) / 100 {
+        if second_random >= (second.0.weight * 95) / 100 {
             status = 4;
-            if second_random >= (second.weight * 95) / 100 {
+            if second_random >= (second.0.weight * 95) / 100 {
                 status = 6;
             }
         }
@@ -590,10 +592,10 @@ fn _duel_get_winner<'a>(
     }
 
     let damage = match status {
-        1 | 2 => looser.weight / 8,
-        3 | 4 => looser.weight / 3,
-        5 | 6 => (looser.weight as f32 / 1.5) as i32,
-        _ => std::cmp::max(first.weight, second.weight) / 8,
+        1 | 2 => looser.0.weight / 8,
+        3 | 4 => looser.0.weight / 3,
+        5 | 6 => (looser.0.weight as f32 / 1.5) as i32,
+        _ => std::cmp::max(first.0.weight, second.0.weight) / 8,
     };
 
     ((winner, looser), damage, status)
@@ -601,12 +603,12 @@ fn _duel_get_winner<'a>(
 
 async fn _start_duel_get_2_hrundels(
     ids: (UserId, UserId),
-) -> MyResult<Option<[InlineUser; 2]>> {
-    let Some(first) = DB.hand_pig.get_hrundel(ids.0.0).await? else {
-            return Ok(None);
-        };
+) -> MyResult<Option<[(InlineUser, User); 2]>> {
+    let Some(first) = DB.hand_pig.get_hrundel(ids.0 .0).await? else {
+        return Ok(None);
+    };
 
-    let Some(second) = DB.hand_pig.get_hrundel(ids.1.0).await? else {
+    let Some(second) = DB.hand_pig.get_hrundel(ids.1 .0).await? else {
         return Ok(None);
     };
 
@@ -615,20 +617,20 @@ async fn _start_duel_get_2_hrundels(
     let mut hrundels = [first, second];
 
     for hrundel in hrundels.iter_mut() {
-        if hrundel.date != today {
-            let user_id = hrundel.user_id;
+        if hrundel.0.date != today {
+            let user_id = hrundel.1.user_id;
             let size = formulas::calculate_hryak_size(user_id);
             let biggest = _get_biggest_chat_pig_mass(user_id).await?;
             let add = size
                 + biggest
-                + helpers::mass_addition_on_status(hrundel.status);
+                + helpers::mass_addition_on_status(hrundel.0.status);
 
             DB.hand_pig
                 .update_hrundel_date_and_size(user_id, add, today)
                 .await?;
 
             let Some(exist) = DB.hand_pig.get_hrundel(user_id).await? else {
-                return Ok(None)
+                return Ok(None);
             };
 
             *hrundel = exist;
@@ -680,7 +682,7 @@ async fn callback_allow_voice(
     mut ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(m) = &q.message else { return Ok(())};
+    let Some(m) = &q.message else { return Ok(()) };
     let user_id = data.1;
 
     log::info!("Allowed voice from [{}]", user_id);
@@ -704,17 +706,20 @@ async fn callback_allow_voice(
 
     let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
     if let Some(hrundel) = hrundel {
-        let final_mass = hrundel.weight + 250;
+        let final_mass = hrundel.0.weight + 250;
         let cur_date = get_date();
 
         DB.hand_pig
             .update_hrundel_date_and_size(user_id.0, final_mass, cur_date)
             .await?;
-        ltag = tag(&hrundel.lang);
+        ltag = tag(&hrundel.0.lang);
     }
-    DB.other.add_voice(user_id.0, probably_url).await?;
+    let Some(user) = DB.other.maybe_get_or_insert_user(user_id.0).await? else {
+        return Ok(());
+    };
+    DB.other.add_voice(user.id, probably_url).await?;
 
-    let voices = DB.other.get_voice(user_id.0).await?;
+    let voices = DB.other.get_voices_by_user(user.id).await?;
     let number = voices.last().map_or(0, |v| v.id);
 
     let text = lng("VoiceAcceptedCongrats", ltag).args(&[("number", number)]);
@@ -729,7 +734,7 @@ async fn callback_disallow_voice(
     mut ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    let Some(m) = &q.message else { return Ok(())};
+    let Some(m) = &q.message else { return Ok(()) };
 
     let user_id = data.1;
 
@@ -752,7 +757,7 @@ async fn callback_disallow_voice(
 
     let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
     if let Some(hrundel) = hrundel {
-        ltag = tag(&hrundel.lang);
+        ltag = tag(&hrundel.0.lang);
     }
 
     let text = lng("VoiceNotAcceptedMsg", ltag);
@@ -813,19 +818,19 @@ async fn callback_gift<'a>(
         return Ok(());
     };
 
-    if hrundel.gifted {
+    if hrundel.0.gifted {
         let text = lng("GiftAlreadyTakenTomorrow", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
     }
 
     let hrundel_on_update = UpdateInlineUser {
-        id: hrundel.id,
-        date: hrundel.date,
+        id: hrundel.0.id,
+        date: hrundel.0.date,
         f_name: &q.from.first_name,
-        weight: hrundel.weight + DAILY_GIFT_AMOUNT,
+        weight: hrundel.0.weight + DAILY_GIFT_AMOUNT,
         lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-        status: hrundel.status,
+        status: hrundel.0.status,
         gifted: true,
     };
 
@@ -858,8 +863,8 @@ async fn callback_check_subscribe<'a>(
         return Ok(());
     };
 
-    if hrundel.status == InlineUserStatus::Subscriber as i8
-        || hrundel.status == InlineUserStatus::Supported as i8
+    if hrundel.0.status == InlineUserStatus::Subscriber as i8
+        || hrundel.0.status == InlineUserStatus::Supported as i8
     {
         let text = lng("GiftAlreadyTaken", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
@@ -867,10 +872,10 @@ async fn callback_check_subscribe<'a>(
     }
 
     let hrundel_on_update = UpdateInlineUser {
-        id: hrundel.id,
-        date: hrundel.date,
+        id: hrundel.0.id,
+        date: hrundel.0.date,
         f_name: &q.from.first_name,
-        weight: hrundel.weight + SUBSCRIBE_GIFT,
+        weight: hrundel.0.weight + SUBSCRIBE_GIFT,
         lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
         status: InlineUserStatus::Subscriber as i8,
         gifted: false,
@@ -903,14 +908,16 @@ async fn _check_or_insert_user_or_chat(
 
     if let Some(user) = user {
         if let Some(chat) = chat {
-            DB.hand_pig.add_group_to_user(user.id, chat.id).await?;
+            DB.hand_pig.add_group_to_user(user.0.id, chat.id).await?;
         } else {
             DB.hand_pig.add_inline_group(chat_instance).await?;
 
-            let Some(chat) = DB.hand_pig.get_inline_group(chat_instance).await? else {
+            let Some(chat) =
+                DB.hand_pig.get_inline_group(chat_instance).await?
+            else {
                 return Ok(());
             };
-            DB.hand_pig.add_group_to_user(user.id, chat.id).await?;
+            DB.hand_pig.add_group_to_user(user.0.id, chat.id).await?;
         }
     }
 

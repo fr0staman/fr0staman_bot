@@ -146,24 +146,27 @@ impl Other {
 
     pub async fn add_voice(
         &self,
-        id_user: u64,
+        iv_uid: u32,
         new_url: String,
     ) -> MyResult<()> {
         use crate::schema::inline_voices::dsl::*;
 
         diesel::insert_into(inline_voices)
-            .values((url.eq(new_url), user_id.eq(id_user)))
+            .values((url.eq(new_url), uid.eq(iv_uid)))
             .execute(&mut self.pool.get().await?)
             .await?;
 
         Ok(())
     }
 
-    pub async fn get_voice(&self, id_user: u64) -> MyResult<Vec<InlineVoice>> {
+    pub async fn get_voices_by_user(
+        &self,
+        iv_uid: u32,
+    ) -> MyResult<Vec<InlineVoice>> {
         use crate::schema::inline_voices::dsl::*;
 
         let results = inline_voices
-            .filter(user_id.eq(id_user))
+            .filter(uid.eq(iv_uid))
             .select(InlineVoice::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
@@ -185,5 +188,20 @@ impl Other {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn maybe_get_or_insert_user(
+        &self,
+        user_id: u64,
+    ) -> MyResult<Option<User>> {
+        let user = Self::get_user(self, user_id).await?;
+
+        if user.is_some() {
+            return Ok(user);
+        }
+
+        Self::register_user(self, user_id).await?;
+
+        Self::get_user(self, user_id).await
     }
 }

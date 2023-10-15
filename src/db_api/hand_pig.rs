@@ -6,7 +6,7 @@ use crate::{
     db::MyPool,
     models::{
         HryakDay, InlineGroup, InlineUser, InlineUsersGroup, NewInlineUser,
-        UpdateInlineUser,
+        UpdateInlineUser, User,
     },
     MyResult,
 };
@@ -28,10 +28,18 @@ impl HandPig {
         is_win: bool,
     ) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
+        use crate::schema::users;
         use diesel::dsl::sql;
 
         if is_win {
-            diesel::update(inline_users.filter(user_id.eq(id_user)))
+            diesel::update(inline_users)
+                .filter(
+                    uid.eq_any(
+                        users::table
+                            .select(users::id)
+                            .filter(users::user_id.eq(&id_user)),
+                    ),
+                )
                 .set((weight.eq(weight + offset), win.eq(win + 1)))
                 .execute(&mut self.pool.get().await?)
                 .await?;
@@ -41,7 +49,14 @@ impl HandPig {
                 offset, offset
             ));
 
-            diesel::update(inline_users.filter(user_id.eq(id_user)))
+            diesel::update(inline_users)
+                .filter(
+                    uid.eq_any(
+                        users::table
+                            .select(users::id)
+                            .filter(users::user_id.eq(&id_user)),
+                    ),
+                )
                 .set((weight.eq(condition), rout.eq(rout + 1)))
                 .execute(&mut self.pool.get().await?)
                 .await?;
@@ -56,8 +71,16 @@ impl HandPig {
         cur_date: NaiveDate,
     ) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
+        use crate::schema::users;
 
-        diesel::update(inline_users.filter(user_id.eq(id_user)))
+        diesel::update(inline_users)
+            .filter(
+                uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .set((date.eq(cur_date), weight.eq(size)))
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -70,8 +93,16 @@ impl HandPig {
         new_name: &str,
     ) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
+        use crate::schema::users;
 
-        diesel::update(inline_users.filter(user_id.eq(id_user)))
+        diesel::update(inline_users)
+            .filter(
+                uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .set(name.eq(new_name))
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -85,8 +116,16 @@ impl HandPig {
         new_flag: &str,
     ) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
+        use crate::schema::users;
 
-        diesel::update(inline_users.filter(user_id.eq(id_user)))
+        diesel::update(inline_users)
+            .filter(
+                uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .set(flag.eq(new_flag))
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -132,12 +171,14 @@ impl HandPig {
     pub async fn get_hrundel(
         &self,
         id_user: u64,
-    ) -> MyResult<Option<InlineUser>> {
-        use crate::schema::inline_users::dsl::*;
+    ) -> MyResult<Option<(InlineUser, User)>> {
+        use crate::schema::inline_users;
+        use crate::schema::users;
 
-        let results = inline_users
-            .filter(user_id.eq(id_user))
-            .select(InlineUser::as_select())
+        let results = inline_users::table
+            .filter(users::user_id.eq(id_user))
+            .inner_join(users::table)
+            .select((InlineUser::as_select(), User::as_select()))
             .first(&mut self.pool.get().await?)
             .await
             .optional()?;
@@ -149,11 +190,12 @@ impl HandPig {
         &self,
         chat_instance: &str,
         the_date: NaiveDate,
-    ) -> MyResult<Option<(InlineGroup, HryakDay, InlineUser)>> {
+    ) -> MyResult<Option<(InlineGroup, HryakDay, InlineUser, User)>> {
         use crate::schema::hryak_day;
         use crate::schema::inline_groups;
         use crate::schema::inline_users;
         use crate::schema::inline_users_groups;
+        use crate::schema::users;
 
         let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
         let results = hryak_day::table
@@ -162,12 +204,13 @@ impl HandPig {
             .inner_join(
                 inline_users_groups::table
                     .inner_join(inline_groups::table)
-                    .inner_join(inline_users::table),
+                    .inner_join(inline_users::table.inner_join(users::table)),
             )
             .select((
                 InlineGroup::as_select(),
                 HryakDay::as_select(),
                 InlineUser::as_select(),
+                User::as_select(),
             ))
             .first(&mut self.pool.get().await?)
             .await
@@ -234,13 +277,20 @@ impl HandPig {
         use crate::schema::inline_groups;
         use crate::schema::inline_users;
         use crate::schema::inline_users_groups;
+        use crate::schema::users;
 
         let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
         let results = inline_users_groups::table
             .inner_join(inline_groups::table)
             .inner_join(inline_users::table)
             .filter(inline_groups::chat_instance.eq(parsed_instance))
-            .filter(inline_users::user_id.eq(id_user))
+            .filter(
+                inline_users::uid.eq_any(
+                    users::table
+                        .select(users::id)
+                        .filter(users::user_id.eq(&id_user)),
+                ),
+            )
             .select(InlineUsersGroup::as_select())
             .first(&mut self.pool.get().await?)
             .await
