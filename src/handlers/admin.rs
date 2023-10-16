@@ -4,7 +4,7 @@ use teloxide::prelude::*;
 use crate::{
     db::DB,
     enums::AdminCommands,
-    lang::{get_tag_opt, lng, tag, LocaleTag},
+    lang::{get_tag, lng, tag_one_or, LocaleTag},
     models::UserStatus,
     traits::MaybeMessageSetter,
     utils::{date::get_date, formulas::calculate_hryak_size, helpers},
@@ -16,7 +16,10 @@ pub async fn filter_admin_commands(
     m: Message,
     cmd: AdminCommands,
 ) -> MyResult<()> {
-    let ltag = tag(get_tag_opt(m.from()));
+    let Some(from) = m.from() else { return Ok(()) };
+    let Some(user) = DB.other.get_user(from.id.0).await? else { return Ok(()) };
+
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag(from));
 
     let function = match &cmd {
         AdminCommands::Promote(arg) => {

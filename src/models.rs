@@ -32,6 +32,15 @@ pub struct Groups {
     pub date: NaiveDateTime,
     pub settings: i8,
     pub top10_setting: i32,
+    pub lang: Option<String>,
+}
+
+#[derive(Queryable, AsChangeset)]
+#[diesel(table_name = groups)]
+pub struct UpdateGroups {
+    pub settings: i8,
+    pub top10_setting: i32,
+    pub lang: Option<String>,
 }
 
 #[derive(Queryable, Selectable, Debug)]
@@ -58,7 +67,6 @@ pub struct InlineUser {
     pub f_name: String,
     pub weight: i32,
     pub date: NaiveDate,
-    pub lang: String,
     pub flag: String,
     pub win: u16,
     pub rout: u16,
@@ -81,7 +89,6 @@ pub struct NewInlineUser<'a> {
     pub f_name: &'a str,
     pub weight: i32,
     pub date: NaiveDate,
-    pub lang: &'a str,
     pub flag: &'a str,
     pub name: &'a str,
 }
@@ -93,7 +100,6 @@ pub struct UpdateInlineUser<'a> {
     pub f_name: &'a str,
     pub weight: i32,
     pub date: NaiveDate,
-    pub lang: &'a str,
     pub gifted: bool,
 }
 
@@ -117,6 +123,7 @@ pub struct User {
     pub supported: bool,
     pub subscribed: bool,
     pub created_at: NaiveDateTime,
+    pub lang: Option<String>,
 }
 
 #[derive(Queryable, AsChangeset)]

@@ -151,7 +151,25 @@ pub fn keyboard_change_flag(
 ) -> InlineKeyboardMarkup {
     let data = encode_callback_data(CbActions::ChangeFlag, id_user, flag_code);
 
-    let text = lng("HandPigFlagChangeButton", ltag);
+    let text = lng("InlineLangChangeButton", ltag);
+    let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
+pub fn keyboard_change_lang(
+    ltag: LocaleTag,
+    id_user: UserId,
+    flag_code: &str,
+) -> InlineKeyboardMarkup {
+    let data = encode_callback_data(CbActions::ChangeLang, id_user, flag_code);
+
+    let button_key = if flag_code == "-" {
+        "InlineLangDeleteButton"
+    } else {
+        "InlineLangChangeButton"
+    };
+    let text = lng(button_key, ltag);
     let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
 
     InlineKeyboardMarkup::new(keyboard)

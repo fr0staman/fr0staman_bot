@@ -82,6 +82,8 @@ pub enum InlineKeywords {
     Hru,
     #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
     Flag,
+    #[strum(serialize = "мова", serialize = "язык", serialize = "lang")]
+    Lang,
 }
 
 #[derive(AsRefStr, EnumString, Display)]
@@ -98,6 +100,7 @@ pub enum CbActions {
     AllowVoice,
     DisallowVoice,
     ChangeFlag,
+    ChangeLang,
     SubCheck,
     SubGift,
 }

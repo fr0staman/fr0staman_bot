@@ -4,11 +4,11 @@ use teloxide::types::ChatKind;
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
-use crate::consts::{CHAT_PIG_START_MASS, DEFAULT_LANG_TAG};
+use crate::consts::CHAT_PIG_START_MASS;
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards::{keyboard_startgroup, keyboard_top50};
-use crate::lang::{get_tag_opt, lng, tag, InnerLang, LocaleTag};
+use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
 use crate::models::UserStatus;
 use crate::traits::MaybeMessageSetter;
 use crate::utils::date::{get_datetime, get_timediff};
@@ -24,7 +24,19 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     crate::metrics::CMD_COUNTER.inc();
 
-    let ltag = tag(get_tag_opt(m.from()));
+    let user_info = if let Some(from) = m.from() {
+        DB.other.get_user(from.id.0).await?
+    } else {
+        None
+    };
+
+    let chat_info = DB.other.get_chat(m.chat.id.0).await?;
+
+    let ltag = tag_one_two_or(
+        user_info.and_then(|c| c.lang).as_deref(),
+        chat_info.and_then(|c| c.lang).as_deref(),
+        get_tag_opt(m.from()),
+    );
 
     let function = match &cmd {
         MyCommands::Start => command_start(bot, &m, ltag).boxed(),
@@ -440,11 +452,37 @@ async fn command_game(
 async fn command_lang(
     bot: MyBot,
     m: &Message,
-    #[allow(unused)] ltag: LocaleTag,
+    ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(()) };
-    let code = from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
-    bot.send_message(m.chat.id, code).maybe_thread_id(m).await?;
+    let user_info = DB.other.get_user(from.id.0).await?;
+
+    let is_not_public = m.chat.is_private() || m.chat.is_channel();
+    let chat_info = if is_not_public {
+        None
+    } else {
+        DB.other.get_chat(m.chat.id.0).await?
+    };
+
+    let maybe_user_lang = user_info.and_then(|u| u.lang);
+    let maybe_chat_lang = chat_info.and_then(|c| c.lang);
+
+    let user_lang = maybe_user_lang.as_deref().unwrap_or("-");
+    let chat_lang = maybe_chat_lang.as_deref().unwrap_or("-");
+    let client_lang = from.language_code.as_deref().unwrap_or("-");
+
+    let append = if is_not_public {
+        "".to_string()
+    } else {
+        lng("UserCommandLangPublicMessage", ltag)
+            .args(&[("chat_lang", chat_lang)])
+            + "\n"
+    };
+
+    let text = append
+        + &lng("UserCommandLangMessage", ltag)
+            .args(&[("user_lang", user_lang), ("client_lang", client_lang)]);
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     Ok(())
 }
 

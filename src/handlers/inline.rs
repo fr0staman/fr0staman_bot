@@ -17,7 +17,7 @@ use teloxide::{
 use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
 use crate::enums::{Image, InlineCommands, InlineKeywords};
-use crate::lang::{get_tag, lng, tag, InnerLang, LocaleTag};
+use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
 use crate::models::{
     InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
 };
@@ -33,7 +33,9 @@ pub async fn filter_inline_commands(
     q: InlineQuery,
 ) -> MyResult<()> {
     crate::metrics::INLINE_COUNTER.inc();
-    let ltag = tag(get_tag(&q.from));
+    let user = DB.other.get_user(q.from.id.0).await?;
+    let ltag =
+        tag_one_or(user.and_then(|u| u.lang).as_deref(), get_tag(&q.from));
 
     let temp_bot = bot.clone();
 
@@ -63,6 +65,7 @@ pub async fn filter_inline_commands(
                 InlineKeywords::OC => inline_oc_stats(bot, &q, ltag).boxed(),
                 InlineKeywords::Hru => inline_hruks(bot, &q, ltag, "").boxed(),
                 InlineKeywords::Flag => inline_flag(bot, &q, ltag, "").boxed(),
+                InlineKeywords::Lang => inline_lang(bot, &q, ltag).boxed(),
             },
             Err(_) => inline_hrundel(bot, &q, ltag).boxed(),
         },
@@ -108,7 +111,6 @@ async fn _get_hryak(
 
         let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
         let truncated_f_name = truncate(&q.from.first_name, 64);
-        let lang = q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG);
         let Some(user) = DB
             .other
             .maybe_get_or_insert_user(q.from.id.0, get_datetime)
@@ -122,8 +124,7 @@ async fn _get_hryak(
             f_name: truncated_f_name.0,
             weight: size,
             date: cur_date,
-            lang,
-            flag: lang,
+            flag: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
             name: truncated_f_name.0,
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
@@ -142,7 +143,6 @@ async fn _get_hryak(
             id: info.0.id,
             f_name: truncated_f_name,
             weight: size + add,
-            lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
             date: cur_date,
             gifted: false,
         };
@@ -371,6 +371,47 @@ async fn inline_flag(
     } else {
         query.await?;
     }
+    Ok(())
+}
+
+async fn inline_lang(
+    bot: MyBot,
+    q: &InlineQuery,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    let Some(user) = DB.other.get_user(q.from.id.0).await? else {
+        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        return Ok(());
+    };
+
+    let mut langs: Vec<&str> = get_langs();
+
+    langs.reverse();
+
+    let current_flag = user.lang.as_deref().and_then(Flags::from_code);
+    let mut results = Vec::new();
+
+    let start_article = current_flag.map_or_else(
+        || lang_empty_info(ltag),
+        |f| lang_info(ltag, q.from.id, f.to_emoji(), f.to_code()),
+    );
+
+    results.push(InlineQueryResult::Article(start_article));
+
+    for (idx, new_flag) in langs.iter().enumerate() {
+        let info = lang_change_info(
+            ltag,
+            q.from.id,
+            user.lang.as_deref(),
+            new_flag,
+            idx,
+        );
+        results.push(InlineQueryResult::Article(info));
+    }
+
+    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+
     Ok(())
 }
 
@@ -614,6 +655,86 @@ fn flag_change_info(
         .args(&[("old_flag", old_flag_emoji), ("new_flag", new_flag_emoji)]);
 
     let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
+
+    InlineQueryResultArticle::new(
+        idx.to_string(),
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+    .reply_markup(markup)
+}
+
+fn lang_info(
+    ltag: LocaleTag,
+    id_user: UserId,
+    flag: &str,
+    code: &str,
+) -> InlineQueryResultArticle {
+    let caption = lng("InlineLangGoCaption", ltag)
+        .args(&[("flag", flag), ("code", code)]);
+    let desc = lng("InlineLangGoDesc", ltag);
+    let message = lng("InlineLangGoMessage", ltag)
+        .args(&[("flag", flag), ("code", code)]);
+
+    let markup = keyboards::keyboard_change_lang(ltag, id_user, "-");
+    InlineQueryResultArticle::new(
+        "50004",
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+    .reply_markup(markup)
+}
+
+fn lang_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
+    let caption = lng("InlineLangNoChangeCaption", ltag);
+    let desc = lng("InlineLangNoChangeDesc", ltag);
+    let message = lng("InlineLangNoChangeMessage", ltag);
+
+    InlineQueryResultArticle::new(
+        "50005",
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+}
+
+fn lang_change_info(
+    ltag: LocaleTag,
+    id_user: UserId,
+    old_lang_code: Option<&str>,
+    new_lang_code: &str,
+    idx: usize,
+) -> InlineQueryResultArticle {
+    let old_lang_emoji = old_lang_code
+        .map_or("-", |v| Flags::from_code(v).unwrap_or(Flags::Us).to_emoji());
+    let new_lang_emoji =
+        Flags::from_code(new_lang_code).unwrap_or(Flags::Us).to_emoji();
+
+    let caption =
+        lng("InlineLangChangeCaption", ltag).args(&[("flag", new_lang_emoji)]);
+    let desc_key = if old_lang_emoji == new_lang_emoji {
+        "InlineLangChangeDescAlready"
+    } else {
+        "InlineLangChangeDesc"
+    };
+    let desc = lng(desc_key, ltag).args(&[("code", new_lang_code)]);
+
+    let message = lng("InlineLangChangeMessage", ltag).args(&[
+        ("old_code", old_lang_code.unwrap_or("-")),
+        ("old_flag", old_lang_emoji),
+        ("new_code", new_lang_code),
+        ("new_flag", new_lang_emoji),
+    ]);
+
+    let markup = keyboards::keyboard_change_lang(ltag, id_user, new_lang_code);
 
     InlineQueryResultArticle::new(
         idx.to_string(),

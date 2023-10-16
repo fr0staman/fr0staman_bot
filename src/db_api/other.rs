@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     db::MyPool,
-    models::{Groups, InlineVoice, User, UserStatus},
+    models::{Groups, InlineVoice, UpdateGroups, User, UserStatus},
     MyResult,
 };
 
@@ -77,6 +77,21 @@ impl Other {
         Ok(())
     }
 
+    pub async fn change_user_lang(
+        &self,
+        id_user: u64,
+        status: Option<&str>,
+    ) -> MyResult<()> {
+        use crate::schema::users::dsl::*;
+        diesel::update(users)
+            .set(lang.eq(status))
+            .filter(user_id.eq(id_user))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn get_inline_voice_by_id(
         &self,
         voice_id: i16,
@@ -129,6 +144,22 @@ impl Other {
 
         diesel::insert_or_ignore_into(groups)
             .values((chat_id.eq(id_chat), date.eq(cur_datetime)))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_chat(
+        &self,
+        id_chat: i64,
+        chat_info: UpdateGroups,
+    ) -> MyResult<()> {
+        use crate::schema::groups::dsl::*;
+
+        diesel::update(groups)
+            .set(chat_info)
+            .filter(chat_id.eq(id_chat))
             .execute(&mut self.pool.get().await?)
             .await?;
 

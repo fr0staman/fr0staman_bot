@@ -4,7 +4,7 @@ use teloxide::types::ParseMode;
 use tokio::sync::Mutex;
 
 pub const BOT_PARSE_MODE: ParseMode = ParseMode::Html;
-pub const DEFAULT_LANG_TAG: &str = "ru";
+pub const DEFAULT_LANG_TAG: &str = "uk";
 pub const TOP_LIMIT: i64 = 50;
 pub const INLINE_QUERY_LIMIT: usize = 50;
 

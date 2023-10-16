@@ -143,7 +143,6 @@ impl HandPig {
             .set((
                 date.eq(data.date),
                 weight.eq(data.weight),
-                lang.eq(data.lang),
                 f_name.eq(data.f_name),
                 gifted.eq(data.gifted),
             ))

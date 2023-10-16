@@ -155,15 +155,55 @@ pub fn lng(key: &str, tag: LocaleTag) -> String {
 }
 
 pub fn get_tag_opt(from: Option<&User>) -> &str {
-    let Some(from) = from else {
-        return DEFAULT_LANG_TAG
-    };
+    let Some(from) = from else { return DEFAULT_LANG_TAG };
 
-    from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG)
+    get_tag(from)
 }
 
 pub fn get_tag(from: &User) -> &str {
     from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG)
+}
+
+/// Priority by "if exists"
+/// first tag? || second tag? || fallback_tag
+/// In bot functionality that means
+/// user forced lang || Chat forced lang || user.language_code
+pub fn tag_one_two_or(
+    first_opt_tag: Option<&str>,
+    second_opt_tag: Option<&str>,
+    fallback_tag: &str,
+) -> LocaleTag {
+    if let Some(tag) = tag_opt(first_opt_tag) {
+        return tag;
+    }
+
+    if let Some(tag) = tag_opt(second_opt_tag) {
+        return tag;
+    }
+
+    tag(fallback_tag)
+}
+
+/// Priority by "if exists"
+/// first tag? || fallback_tag
+/// In bot functionality that means
+/// user forced lang || user.language_code
+pub fn tag_one_or(
+    first_opt_tag: Option<&str>,
+    fallback_tag: &str,
+) -> LocaleTag {
+    tag_opt(first_opt_tag).unwrap_or_else(|| tag(fallback_tag))
+}
+
+pub fn tag_opt(opt_tag: Option<&str>) -> Option<LocaleTag> {
+    let tag = opt_tag?;
+
+    let s = match LANG.get() {
+        Some(s) => s,
+        None => return None,
+    };
+
+    s.langs.binary_search_by(|elem| elem.tag.as_str().cmp(tag)).ok()
 }
 
 pub fn tag(tag: &str) -> LocaleTag {

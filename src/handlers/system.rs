@@ -2,7 +2,7 @@ use crate::{
     config::BOT_CONFIG,
     db::DB,
     keyboards::keyboard_voice_check,
-    lang::{get_tag, get_tag_opt, lng, tag, InnerLang},
+    lang::{get_tag, get_tag_opt, lng, tag_one_or, InnerLang},
     models::{Groups, UserStatus},
     traits::MaybeMessageSetter,
     utils::date::get_datetime,
@@ -33,7 +33,8 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     }
 
     for user in new_chat_members {
-        let ltag = tag(get_tag(user));
+        let ltag = tag_one_or(settings.lang.as_deref(), get_tag(user));
+
         if user.id == BOT_CONFIG.me.id {
             let text = lng("ChatGreetingFirst", ltag);
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
@@ -64,8 +65,6 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let ltag = tag(get_tag(member));
-
     if member.id == BOT_CONFIG.me.id {
         log::info!("Kicked me :( in chat [{}]", m.chat.id);
         return Ok(());
@@ -79,6 +78,8 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         log::info!("Left chat member in chat [{}], but silent", m.chat.id);
         return Ok(());
     }
+
+    let ltag = tag_one_or(settings.lang.as_deref(), get_tag(member));
 
     let mention = user_mention(
         member.id.0.try_into().unwrap(),
@@ -134,8 +135,6 @@ pub async fn handle_ban_or_unban_in_private(
 }
 
 pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
-    let ltag = tag(get_tag_opt(m.from()));
-
     let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
         return Ok(());
     };
@@ -151,6 +150,8 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
         _ => "EPYC",
     };
 
+    let ltag = tag_one_or(settings.lang.as_deref(), get_tag_opt(m.from()));
+
     let text = lng(key, ltag);
     bot.send_message(m.chat.id, text)
         .reply_to_message_id(m.id)
@@ -163,7 +164,13 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(()) };
-    let ltag = tag(get_tag_opt(m.from()));
+    let Some(user) =
+        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
+    else {
+        return Ok(());
+    };
+
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from()));
     let text = lng("InlineHrukAddMessage", ltag);
 
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;

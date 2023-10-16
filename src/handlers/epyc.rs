@@ -1,6 +1,9 @@
 use crate::db::DB;
 use crate::enums::EpycCommands;
-use crate::lang::{get_tag_opt, lng, tag, InnerLang, LocaleTag};
+use crate::lang::{
+    get_langs, get_tag_opt, lng, tag, tag_one_two_or, InnerLang, LocaleTag,
+};
+use crate::models::UpdateGroups;
 use crate::traits::MaybeMessageSetter;
 use crate::{MyBot, MyResult};
 
@@ -23,7 +26,16 @@ pub async fn filter_commands(
     m: Message,
     cmd: EpycCommands,
 ) -> MyResult<()> {
-    let ltag = tag(get_tag_opt(m.from()));
+    let Some(from) = m.from() else { return Ok(()) };
+
+    let user_info = DB.other.get_user(from.id.0).await?;
+    let chat_info = DB.other.get_chat(m.chat.id.0).await?;
+
+    let ltag = tag_one_two_or(
+        user_info.and_then(|c| c.lang).as_deref(),
+        chat_info.and_then(|c| c.lang).as_deref(),
+        get_tag_opt(m.from()),
+    );
 
     if let ChatKind::Private(_) = m.chat.kind {
         let text = lng("EPYCCenterOnlyForChats", ltag);
@@ -55,7 +67,7 @@ async fn command_epyc(
     ltag: LocaleTag,
     arg: &str,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(())};
+    let Some(from) = m.from() else { return Ok(()) };
 
     let member = bot.get_chat_member(m.chat.id, from.id).await?;
 
@@ -76,10 +88,13 @@ async fn command_epyc(
     let setting = splitted.next();
 
     let function = match option {
-        "приветствие" | "привітання" | "greetings" => {
+        "привітання" | "приветствие" | "greetings" => {
             _epyc_greetings_setting(bot, m, ltag, setting).boxed()
         },
         "топ" | "top" => _epyc_top_setting(bot, m, ltag, setting).boxed(),
+        "мова" | "язык" | "lang" => {
+            _epyc_chat_lang_setting(bot, m, ltag, setting).boxed()
+        },
         _ => _epyc_function_not_exist(bot, m, ltag).boxed(),
     };
 
@@ -144,13 +159,13 @@ async fn _epyc_greetings_setting(
     ltag: LocaleTag,
     setting: Option<&str>,
 ) -> MyResult<()> {
-    if setting.is_none() {
+    let Some(setting) = setting else {
         let text = lng("OptionExistIncorrectParam", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
         return Ok(());
-    }
+    };
 
-    let key = match setting.unwrap() {
+    let key = match setting {
         "-" => (1, "GreetingsDisabled"),
         "+" => (0, "GreetingsEnabled"),
         _ => {
@@ -161,6 +176,47 @@ async fn _epyc_greetings_setting(
 
     DB.other.set_chat_settings(m.chat.id.0, key.0).await?;
     bot.send_message(m.chat.id, lng(key.1, ltag)).maybe_thread_id(&m).await?;
+
+    Ok(())
+}
+
+async fn _epyc_chat_lang_setting(
+    bot: MyBot,
+    m: Message,
+    mut ltag: LocaleTag,
+    setting: Option<&str>,
+) -> MyResult<()> {
+    let Some(setting) = setting else {
+        let text = lng("OptionExistIncorrectParam", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        return Ok(());
+    };
+
+    let Some(chat_info) = DB.other.get_chat(m.chat.id.0).await? else {
+        return Ok(());
+    };
+
+    let langs = get_langs();
+
+    let value = if langs.contains(&setting) {
+        ltag = tag(setting);
+        ("EPYCCommandLangSetSuccessMessage", Some(setting.to_string()))
+    } else if setting == "-" {
+        ("EPYCCommandLangDeleteSuccessMessage", None)
+    } else {
+        _epyc_invalid_arg(bot, m, ltag, "top10").await?;
+        return Ok(());
+    };
+
+    let update_chat_info = UpdateGroups {
+        lang: value.1,
+        settings: chat_info.settings,
+        top10_setting: chat_info.top10_setting,
+    };
+
+    DB.other.update_chat(m.chat.id.0, update_chat_info).await?;
+    let text = lng(value.0, ltag).args(&[("chat_lang", setting)]);
+    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
 
     Ok(())
 }

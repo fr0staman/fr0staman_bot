@@ -21,7 +21,7 @@ use crate::{
     db::DB,
     enums::{CbActions, Top10Variant},
     keyboards,
-    lang::{get_tag, lng, tag, InnerLang, LocaleTag},
+    lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag},
     models::{InlineUser, UpdateInlineUser, User, UserStatus},
     traits::MaybeMessageSetter,
     types::ParsedCallbackData,
@@ -40,7 +40,14 @@ pub async fn filter_callback_commands(
     q: CallbackQuery,
 ) -> MyResult<()> {
     crate::metrics::CALLBACK_COUNTER.inc();
-    let ltag = tag(get_tag(&q.from));
+    let Some(user) =
+        DB.other.maybe_get_or_insert_user(q.from.id.0, get_datetime).await?
+    else {
+        log::error!("User not exist after inserting!");
+        return Ok(());
+    };
+
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag(&q.from));
     let temp_bot = bot.clone();
 
     let decoded_data =
@@ -92,6 +99,7 @@ fn _inner_filter<'a>(
             callback_check_subscribe(bot, q, ltag, d).boxed()
         },
         CbActions::SubGift => callback_gift(bot, q, ltag, d).boxed(),
+        CbActions::ChangeLang => callback_change_lang(bot, q, ltag, d).boxed(),
     }
 }
 
@@ -711,7 +719,7 @@ async fn callback_allow_voice(
         DB.hand_pig
             .update_hrundel_date_and_size(user_id.0, final_mass, cur_date)
             .await?;
-        ltag = tag(&hrundel.0.lang);
+        ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
     let Some(user) =
         DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
@@ -758,7 +766,7 @@ async fn callback_disallow_voice(
 
     let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
     if let Some(hrundel) = hrundel {
-        ltag = tag(&hrundel.0.lang);
+        ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
 
     let text = lng("VoiceNotAcceptedMsg", ltag);
@@ -786,6 +794,43 @@ async fn callback_change_flag(
 
     let text = lng("HandPigFlagChangeResponse", ltag)
         .args(&[("flag", probably_flag.to_emoji())]);
+    bot.edit_message_text_inline(im_id, &text).await?;
+    bot.answer_callback_query(&q.id).text(text).await?;
+    Ok(())
+}
+
+async fn callback_change_lang(
+    bot: MyBot,
+    q: &CallbackQuery,
+    ltag: LocaleTag,
+    data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    if data.1 != q.from.id {
+        callback_access_denied(bot, q, ltag).await?;
+        return Ok(());
+    }
+
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
+    let probably_code = data.2;
+
+    let (text, res) = if probably_code == "-" {
+        DB.other.change_user_lang(q.from.id.0, None).await?;
+
+        let text = lng("InlineLangDeleteResponse", ltag);
+        (text, None)
+    } else {
+        let probably_flag = Flags::from_code(data.2).unwrap_or(Flags::Us);
+
+        let new_ltag = tag(probably_code);
+        let text = lng("InlineLangChangeResponse", new_ltag).args(&[
+            ("code", probably_code),
+            ("flag", probably_flag.to_emoji()),
+        ]);
+        (text, Some(probably_code))
+    };
+
+    DB.other.change_user_lang(q.from.id.0, res).await?;
+
     bot.edit_message_text_inline(im_id, &text).await?;
     bot.answer_callback_query(&q.id).text(text).await?;
     Ok(())
@@ -830,7 +875,6 @@ async fn callback_gift<'a>(
         date: hrundel.0.date,
         f_name: &q.from.first_name,
         weight: hrundel.0.weight + DAILY_GIFT_AMOUNT,
-        lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
         gifted: true,
     };
 
@@ -874,7 +918,6 @@ async fn callback_check_subscribe<'a>(
         date: hrundel.0.date,
         f_name: &q.from.first_name,
         weight: hrundel.0.weight + SUBSCRIBE_GIFT,
-        lang: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
         gifted: false,
     };
 

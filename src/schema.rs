@@ -21,6 +21,8 @@ diesel::table! {
         date -> Datetime,
         settings -> Tinyint,
         top10_setting -> Integer,
+        #[max_length = 2]
+        lang -> Nullable<Varchar>,
     }
 }
 
@@ -47,8 +49,6 @@ diesel::table! {
         f_name -> Varchar,
         weight -> Integer,
         date -> Date,
-        #[max_length = 2]
-        lang -> Varchar,
         win -> Unsigned<Smallint>,
         rout -> Unsigned<Smallint>,
         #[max_length = 64]
@@ -89,6 +89,8 @@ diesel::table! {
         supported -> Bool,
         banned -> Bool,
         created_at -> Datetime,
+        #[max_length = 2]
+        lang -> Nullable<Varchar>,
     }
 }
 
