@@ -7,7 +7,7 @@ use crate::config::BOT_CONFIG;
 use crate::consts::CHAT_PIG_START_MASS;
 use crate::db::DB;
 use crate::enums::MyCommands;
-use crate::keyboards::{keyboard_startgroup, keyboard_top50};
+use crate::keyboards;
 use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
 use crate::models::UserStatus;
 use crate::traits::MaybeMessageSetter;
@@ -114,10 +114,9 @@ async fn command_start(
 
         bot.send_message(m.chat.id, text_reg).maybe_thread_id(m).await?;
 
-        let url = BOT_CONFIG.me.tme_url();
         bot.send_message(m.chat.id, text)
             .maybe_thread_id(m)
-            .reply_markup(keyboard_startgroup(ltag, url))
+            .reply_markup(keyboards::keyboard_startgroup(ltag))
             .await?;
         return Ok(());
     } else if let ChatKind::Public(_) = m.chat.kind {
@@ -433,7 +432,7 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let text = generate_chat_top50_text(ltag, top50_pigs, 0);
 
     let is_end = pig_count < 50;
-    let markup = keyboard_top50(ltag, 1, from.id, is_end);
+    let markup = keyboards::keyboard_top50(ltag, 1, from.id, is_end);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
         .disable_web_page_preview(true)
@@ -448,9 +447,8 @@ async fn command_game(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let url = BOT_CONFIG.me.tme_url();
     let text = lng("GameAboutMessage", ltag);
-    let markup = keyboard_startgroup(ltag, url);
+    let markup = keyboards::keyboard_startgroup(ltag);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
         .maybe_thread_id(m)
@@ -512,9 +510,8 @@ async fn _game_only_for_chats(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let url = BOT_CONFIG.me.tme_url();
     let text = lng("GameOnlyForChats", ltag);
-    let markup = keyboard_startgroup(ltag, url);
+    let markup = keyboards::keyboard_startgroup(ltag);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
         .maybe_thread_id(m)
