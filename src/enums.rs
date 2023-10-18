@@ -138,6 +138,8 @@ pub enum Image {
     OCGPU,
     #[strum(serialize = "9_error_200x200.jpg")]
     Error,
+    #[strum(serialize = "10_more_info_200x200.jpg")]
+    MoreInfo,
 }
 
 #[derive(AsRefStr, EnumString, Display)]

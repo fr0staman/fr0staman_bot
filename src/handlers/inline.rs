@@ -159,6 +159,7 @@ async fn _get_hryak(
         get_start_duel(ltag, q.from.id, &info.0),
         get_top10_info(ltag, q.from.id, text, to),
         get_hryak_info(ltag, q.from.id, &info, remove_markup),
+        get_more_info(ltag),
     ];
 
     Ok(result)
@@ -206,7 +207,7 @@ async fn inline_day_pig(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let article = day_pig_info(ltag, q.from.id);
+    let article = day_pig_info(ltag, q.from.id, q.chat_type);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -548,6 +549,24 @@ fn get_hryak_info(
     }
 }
 
+fn get_more_info(ltag: LocaleTag) -> InlineQueryResultArticle {
+    let caption = lng("InlineMoreInfoCaption", ltag);
+    let message = lng("InlineMoreInfoMessage", ltag);
+
+    let desc = lng("InlineMoreInfoDesc", ltag);
+
+    InlineQueryResultArticle::new(
+        "600",
+        caption,
+        InputMessageContent::Text(
+            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+        ),
+    )
+    .description(desc)
+    .thumb_url(get_photostock(Image::MoreInfo))
+    .reply_markup(keyboards::keyboard_more_info(ltag))
+}
+
 fn name_hryak_info(ltag: LocaleTag, name: String) -> InlineQueryResultArticle {
     let caption = lng("HandPigNameGoCaption", ltag);
     let message = lng("HandPigNameGoMessage", ltag).args(&[("name", &name)]);
@@ -730,8 +749,11 @@ fn lang_change_info(
     let new_lang_emoji =
         Flags::from_code(new_lang_code).unwrap_or(Flags::Us).to_emoji();
 
-    let caption =
-        lng("InlineLangChangeCaption", ltag).args(&[("flag", new_lang_emoji)]);
+    let langed_key = format!("lang_{new_lang_code}");
+
+    let langed_name = lng(&langed_key, ltag);
+    let caption = lng("InlineLangChangeCaption", ltag)
+        .args(&[("flag", new_lang_emoji), ("lang", &langed_name)]);
     let desc_key = if old_lang_emoji == new_lang_emoji {
         "InlineLangChangeDescAlready"
     } else {

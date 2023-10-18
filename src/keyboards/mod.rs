@@ -1,7 +1,7 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
-use url::Url;
 
 use crate::{
+    config::BOT_CONFIG,
     enums::CbActions,
     lang::{lng, LocaleTag},
     utils::helpers::encode_callback_data,
@@ -94,10 +94,9 @@ pub fn keyboard_start_duel(
     InlineKeyboardMarkup::new(keyboard)
 }
 
-pub fn keyboard_startgroup(ltag: LocaleTag, url: Url) -> InlineKeyboardMarkup {
-    let text = lng("BotAddToGroup", ltag);
-    let url = url.join("?startgroup=chat").unwrap();
-    let keyboard = vec![vec![InlineKeyboardButton::url(text, url)]];
+pub fn keyboard_startgroup(ltag: LocaleTag) -> InlineKeyboardMarkup {
+    let button = _button_startgroup(ltag);
+    let keyboard = [[button]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -183,6 +182,48 @@ pub fn keyboard_change_lang(
     };
     let text = lng(button_key, ltag);
     let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
+pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
+    let chg_name_button =
+        InlineKeyboardButton::switch_inline_query_current_chat(
+            lng("InlineMenuButtonChangeHandPigName", ltag),
+            lng("InlineMenuButtonChangeHandPigNameSwitch", ltag),
+        );
+
+    let flag_button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineMenuButtonChangeFlag", ltag),
+        lng("InlineMenuButtonChangeFlagSwitch", ltag),
+    );
+    let lang_button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineMenuButtonChangeLang", ltag),
+        lng("InlineMenuButtonChangeLangSwitch", ltag),
+    );
+    let pig_day_button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineMenuButtonDayPig", ltag),
+        lng("InlineMenuButtonDayPigSwitch", ltag),
+    );
+
+    let oc_button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineMenuButtonOC", ltag),
+        lng("InlineMenuButtonOCSwitch", ltag),
+    );
+
+    let hru_button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineMenuButtonHearHruks", ltag),
+        lng("InlineMenuButtonHearHruksSwitch", ltag),
+    );
+
+    let startgroup_button = _button_startgroup(ltag);
+
+    let keyboard = [
+        vec![chg_name_button, flag_button],
+        vec![lang_button, pig_day_button],
+        vec![hru_button, oc_button],
+        vec![startgroup_button],
+    ];
 
     InlineKeyboardMarkup::new(keyboard)
 }
