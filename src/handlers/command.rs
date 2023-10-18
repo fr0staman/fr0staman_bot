@@ -120,7 +120,17 @@ async fn command_start(
             .reply_markup(keyboard_startgroup(ltag, url))
             .await?;
         return Ok(());
-    }
+    } else if let ChatKind::Public(_) = m.chat.kind {
+        // If user send bot to chat by startgroup, bot already receives update about adding him to chat
+        // So as not to send two messages at the same time, I just skip this message
+        // by checking, if its a start from startgroup deeplink
+
+        let is_from_deeplink = m.text().is_some_and(|t| t.contains("inline"));
+
+        if is_from_deeplink {
+            return Ok(());
+        }
+    };
 
     bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
 
