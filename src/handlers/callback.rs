@@ -118,7 +118,8 @@ async fn _handle_error(
 
     tokio::spawn(async move {
         {
-            if let Some(value) = DUEL_LOCKS.try_get(&key).try_unwrap() {
+            let locks = DUEL_LOCKS.try_get(&key).try_unwrap();
+            if let Some(value) = locks {
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
@@ -126,6 +127,7 @@ async fn _handle_error(
                 );
 
                 value.lock().await.retain(|&x| x != thread_identifier);
+                drop(value);
                 DUEL_LIST.retain(|&x| x != thread_identifier);
             };
         };
@@ -394,6 +396,14 @@ async fn callback_start_duel(
         return Ok(());
     }
 
+    // Preliminary check, if pig really exist
+    let hrundel = DB.hand_pig.get_hrundel(q.from.id.0).await?;
+    if hrundel.is_none() {
+        let text = lng("HandPigNoInBarn", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    };
+
     let thread_identifier = get_hash(im_id);
 
     let key = q.from.id.0;
@@ -432,19 +442,20 @@ async fn callback_start_duel(
         }
     }
 
-    let Some(new_item) = DUEL_LOCKS.try_get(&key).try_unwrap() else {
+    let some_item = DUEL_LOCKS.try_get(&key).try_unwrap();
+    let Some(new_ref_item) = some_item else {
         log::error!("User threads cleaned after insert or locked!");
         return Ok(());
     };
 
-    let mut new_item = new_item.lock().await;
+    let mut new_item = new_ref_item.lock().await;
 
     let hrundels = _start_duel_get_2_hrundels((q.from.id, data.1)).await?;
 
     let Some([first, second]) = hrundels else {
         new_item.retain(|&x| x != thread_identifier);
-        DUEL_LIST.retain(|&x| x != thread_identifier);
         drop(new_item);
+        DUEL_LIST.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
@@ -495,6 +506,7 @@ async fn callback_start_duel(
         .await?;
 
     new_item.retain(|&x| x != thread_identifier);
+    drop(new_item);
     DUEL_LIST.retain(|&x| x != thread_identifier);
 
     log::info!(
