@@ -29,10 +29,22 @@ pub fn keyboard_day_pig(
 ) -> InlineKeyboardMarkup {
     let coded_data = encode_callback_data(CbActions::FindHryak, id_user, "");
 
-    let keyboard = vec![vec![InlineKeyboardButton::callback(
+    let button = InlineKeyboardButton::callback(
         lng("InlineDayPigButton", ltag),
         coded_data,
-    )]];
+    );
+    let keyboard = [[button]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
+pub fn keyboard_day_pig_to_inline(ltag: LocaleTag) -> InlineKeyboardMarkup {
+    let button = InlineKeyboardButton::switch_inline_query(
+        lng("InlineDayPigButton", ltag),
+        lng("InlineMenuButtonDayPigSwitch", ltag),
+    );
+
+    let keyboard = [[button]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -177,4 +189,11 @@ pub fn keyboard_change_lang(
 
 pub fn keyboard_empty() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::default()
+}
+
+fn _button_startgroup(ltag: LocaleTag) -> InlineKeyboardButton {
+    let url = BOT_CONFIG.me.tme_url();
+    let url = url.join("?startgroup=inline").unwrap();
+    let text = lng("BotAddToGroup", ltag);
+    InlineKeyboardButton::url(text, url)
 }

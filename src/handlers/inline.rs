@@ -588,11 +588,23 @@ fn rename_hryak_info(
     .thumb_url(get_photostock(Image::NameSuccess))
 }
 
-fn day_pig_info(ltag: LocaleTag, id_user: UserId) -> InlineQueryResultArticle {
+fn day_pig_info(
+    ltag: LocaleTag,
+    id_user: UserId,
+    chat_type: Option<ChatType>,
+) -> InlineQueryResultArticle {
     let caption = lng("InlineDayPigCaption", ltag);
     let message = lng("InlineDayPigMessage", ltag);
     let desc = lng("InlineDayPigDesc", ltag);
 
+    let is_public_chat = chat_type
+        .is_some_and(|v| !matches!(v, ChatType::Private | ChatType::Channel));
+
+    let markup = if is_public_chat {
+        keyboards::keyboard_day_pig(ltag, id_user)
+    } else {
+        keyboards::keyboard_day_pig_to_inline(ltag)
+    };
     InlineQueryResultArticle::new(
         "5",
         caption,
@@ -602,7 +614,7 @@ fn day_pig_info(ltag: LocaleTag, id_user: UserId) -> InlineQueryResultArticle {
     )
     .description(desc)
     .thumb_url(get_photostock(Image::DayPig))
-    .reply_markup(keyboards::keyboard_day_pig(ltag, id_user))
+    .reply_markup(markup)
 }
 
 fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
