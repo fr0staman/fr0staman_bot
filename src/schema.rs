@@ -23,6 +23,7 @@ diesel::table! {
         top10_setting -> Integer,
         #[max_length = 2]
         lang -> Nullable<Varchar>,
+        active -> Bool,
     }
 }
 

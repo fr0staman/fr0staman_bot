@@ -33,6 +33,7 @@ pub struct Groups {
     pub settings: i8,
     pub top10_setting: i32,
     pub lang: Option<String>,
+    pub active: bool,
 }
 
 #[derive(Queryable, AsChangeset)]
@@ -41,6 +42,7 @@ pub struct UpdateGroups {
     pub settings: i8,
     pub top10_setting: i32,
     pub lang: Option<String>,
+    pub active: bool,
 }
 
 #[derive(Queryable, Selectable, Debug)]

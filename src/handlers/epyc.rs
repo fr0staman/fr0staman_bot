@@ -212,6 +212,7 @@ async fn _epyc_chat_lang_setting(
         lang: value.1,
         settings: chat_info.settings,
         top10_setting: chat_info.top10_setting,
+        active: chat_info.active,
     };
 
     DB.other.update_chat(m.chat.id.0, update_chat_info).await?;

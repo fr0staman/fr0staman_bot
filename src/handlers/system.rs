@@ -3,7 +3,7 @@ use crate::{
     db::DB,
     keyboards::keyboard_voice_check,
     lang::{get_tag, get_tag_opt, lng, tag_one_or, InnerLang},
-    models::{Groups, UserStatus},
+    models::{Groups, UpdateGroups, UserStatus},
     traits::MaybeMessageSetter,
     utils::date::get_datetime,
     MyBot, MyResult,
@@ -65,14 +65,21 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    if member.id == BOT_CONFIG.me.id {
-        log::info!("Kicked me :( in chat [{}]", m.chat.id);
-        return Ok(());
-    }
-
     let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
         return Ok(());
     };
+
+    if member.id == BOT_CONFIG.me.id {
+        log::info!("Kicked me :( in chat [{}]", m.chat.id);
+        let chat_info = UpdateGroups {
+            settings: settings.settings,
+            top10_setting: settings.top10_setting,
+            lang: settings.lang,
+            active: false,
+        };
+        DB.other.update_chat(m.chat.id.0, chat_info).await?;
+        return Ok(());
+    }
 
     if settings.settings == 1 {
         log::info!("Left chat member in chat [{}], but silent", m.chat.id);
