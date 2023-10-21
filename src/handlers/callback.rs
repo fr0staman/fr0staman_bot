@@ -936,7 +936,7 @@ async fn callback_check_subscribe<'a>(
     let user_status = UserStatus {
         subscribed: true,
         banned: hrundel.1.banned,
-        started: hrundel.1.banned,
+        started: hrundel.1.started,
         supported: hrundel.1.supported,
     };
     DB.hand_pig.update_hrundel(hrundel_on_update).await?;
