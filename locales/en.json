@@ -81,7 +81,7 @@
   "HandPigNameGoDesc": "Press space and type future name of your boar!",
   "HandPigNameGoMessage": "Name of your boar: <b>{name}</b>\n\nIf you want change name of your pig, just type:\n\n@fr0staman_bot name *pig_name*",
   "HandPigNameNowIs": "🐷 Your pig is now called:\n <i>{new_name}</i>",
-  "HandPigNoInBarn": "😭 There is no pig in your barn!",
+  "HandPigNoInBarn": "😭 There is no hand pig in your barn!",
   "HandPigWeightMessage": "Weight of your piggy <b>{weight}</b> kg {emoji}{append}",
   "HelpLink": "https://telegra.ph/Help--fr0staman-bot-en-10-18",
   "HelpMessage": "Help for the bot:\n{link}",
