@@ -475,6 +475,8 @@ async fn callback_start_duel(
         data.1,
     );
 
+    crate::metrics::DUEL_NUMBERS.inc();
+
     let text = lng("InlineDuelGoingMessage", ltag).args(&[
         ("first_name", &first.0.name),
         ("secnd_name", &second.0.name),

@@ -8,7 +8,7 @@ use prometheus::{Encoder, Gauge, Opts, TextEncoder};
 use systemstat::{Platform, System};
 use tokio::time::{sleep, Duration};
 
-use crate::{config::BOT_CONFIG, consts::DUEL_LIST};
+use crate::config::BOT_CONFIG;
 // Register additional metrics of our own structs by using this registry instance.
 pub static REGISTRY: Lazy<Registry> =
     Lazy::new(|| Registry(prometheus::Registry::new()));
@@ -76,8 +76,12 @@ pub static UNHANDLED_COUNTER: Lazy<Counter> = Lazy::new(|| {
     )
 });
 
-pub static DUEL_NUMBERS: Lazy<Gauge> =
-    Lazy::new(|| Gauge::new("duel_numbers", "Active duels on time").unwrap());
+pub static DUEL_NUMBERS: Lazy<Counter> = Lazy::new(|| {
+    Counter::new(
+        "duel_numbers",
+        Opts::new("duel_numbers", "Active duels on time"),
+    )
+});
 
 static CPU_USAGE: Lazy<Gauge> = Lazy::new(|| {
     Gauge::new("cpu_usage", "Current CPU usage in percent").unwrap()
@@ -97,9 +101,9 @@ pub fn init() -> axum::Router {
         .register(&CMD_START_COUNTER)
         .register(&CMD_HELP_COUNTER)
         .register(&CMD_COUNTER)
+        .register(&DUEL_NUMBERS)
         .register_gauge(&CPU_USAGE)
         .register_gauge(&MEM_USAGE)
-        .register_gauge(&DUEL_NUMBERS)
         .build();
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
@@ -166,7 +170,6 @@ fn init_interval_listener() {
                 },
                 Err(x) => log::error!("Memory: error: {}", x),
             }
-            DUEL_NUMBERS.set(DUEL_LIST.len() as f64);
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     });
