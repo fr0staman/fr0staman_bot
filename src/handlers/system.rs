@@ -188,7 +188,7 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
         InputFile::file_id(&voice.file.id),
     )
     .caption(from.id.to_string())
-    .reply_markup(keyboard_voice_check(from.id))
+    .reply_markup(keyboards::keyboard_voice_check(from.id))
     .await?;
 
     Ok(())

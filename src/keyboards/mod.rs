@@ -15,7 +15,7 @@ pub fn keyboard_new_name(
     let coded_data =
         encode_callback_data(CbActions::GiveName, id_user, new_name);
 
-    let keyboard = vec![vec![InlineKeyboardButton::callback(
+    let keyboard = [[InlineKeyboardButton::callback(
         lng("HandPigNameChangeButton", ltag),
         coded_data,
     )]];
@@ -55,7 +55,7 @@ pub fn keyboard_add_inline_top10(
 ) -> InlineKeyboardMarkup {
     let coded_data = encode_callback_data(CbActions::AddChat, id_user, "");
 
-    let keyboard = vec![vec![InlineKeyboardButton::callback(
+    let keyboard = [[InlineKeyboardButton::callback(
         lng("InlineAddTop10ChatButton", ltag),
         coded_data,
     )]];
@@ -72,7 +72,7 @@ pub fn keyboard_in_top10(
 
     let key = to.replace("p_", "");
 
-    let keyboard = vec![vec![InlineKeyboardButton::callback(
+    let keyboard = [[InlineKeyboardButton::callback(
         lng(&format!("InlineTop10ButtonIn_{}", &key), ltag),
         coded_data,
     )]];
@@ -86,10 +86,9 @@ pub fn keyboard_start_duel(
 ) -> InlineKeyboardMarkup {
     let coded_data = encode_callback_data(CbActions::StartDuel, id_user, "");
 
-    let keyboard = vec![vec![InlineKeyboardButton::callback(
-        lng("InlineDuelStartButton", ltag),
-        coded_data,
-    )]];
+    let text = lng("InlineDuelStartButton", ltag);
+    let button = InlineKeyboardButton::callback(text, coded_data);
+    let keyboard = [[button]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -138,7 +137,7 @@ pub fn keyboard_top50(
         ));
     }
 
-    let keyboard = vec![row];
+    let keyboard = [row];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -150,7 +149,7 @@ pub fn keyboard_voice_check(id_user: UserId) -> InlineKeyboardMarkup {
         encode_callback_data(CbActions::DisallowVoice, id_user, "");
     let denied_button = InlineKeyboardButton::callback("❌", denied_data);
 
-    let keyboard = vec![vec![success_button, denied_button]];
+    let keyboard = [[success_button, denied_button]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -163,7 +162,7 @@ pub fn keyboard_change_flag(
     let data = encode_callback_data(CbActions::ChangeFlag, id_user, flag_code);
 
     let text = lng("InlineLangChangeButton", ltag);
-    let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
+    let keyboard = [[InlineKeyboardButton::callback(text, data)]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
@@ -181,46 +180,41 @@ pub fn keyboard_change_lang(
         "InlineLangChangeButton"
     };
     let text = lng(button_key, ltag);
-    let keyboard = vec![vec![InlineKeyboardButton::callback(text, data)]];
+    let keyboard = [[InlineKeyboardButton::callback(text, data)]];
 
     InlineKeyboardMarkup::new(keyboard)
 }
 
+macro_rules! make_switch_buttons {
+    ($ltag:expr, [$($input:expr),* $(,)?]) => {
+        [$({
+            let lng_key = concat!("InlineMenuButton", $input);
+            let lng_switch_key = concat!("InlineMenuButton", $input, "Switch");
+            let text = $crate::lang::lng(lng_key, $ltag);
+            let switch_query = $crate::lang::lng(lng_switch_key, $ltag);
+            teloxide::types::InlineKeyboardButton::switch_inline_query_current_chat(text, switch_query)
+        }),*]
+    };
+}
+
 pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
-    let chg_name_button =
-        InlineKeyboardButton::switch_inline_query_current_chat(
-            lng("InlineMenuButtonChangeHandPigName", ltag),
-            lng("InlineMenuButtonChangeHandPigNameSwitch", ltag),
-        );
-
-    let flag_button = InlineKeyboardButton::switch_inline_query_current_chat(
-        lng("InlineMenuButtonChangeFlag", ltag),
-        lng("InlineMenuButtonChangeFlagSwitch", ltag),
-    );
-    let lang_button = InlineKeyboardButton::switch_inline_query_current_chat(
-        lng("InlineMenuButtonChangeLang", ltag),
-        lng("InlineMenuButtonChangeLangSwitch", ltag),
-    );
-    let pig_day_button = InlineKeyboardButton::switch_inline_query_current_chat(
-        lng("InlineMenuButtonDayPig", ltag),
-        lng("InlineMenuButtonDayPigSwitch", ltag),
-    );
-
-    let oc_button = InlineKeyboardButton::switch_inline_query_current_chat(
-        lng("InlineMenuButtonOC", ltag),
-        lng("InlineMenuButtonOCSwitch", ltag),
-    );
-
-    let hru_button = InlineKeyboardButton::switch_inline_query_current_chat(
-        lng("InlineMenuButtonHearHruks", ltag),
-        lng("InlineMenuButtonHearHruksSwitch", ltag),
+    let [chg_name_button, chg_flag_button, chg_lang_button, pig_day_button, oc_button, hru_button] = make_switch_buttons!(
+        ltag,
+        [
+            "ChangeHandPigName",
+            "ChangeFlag",
+            "ChangeLang",
+            "DayPig",
+            "OC",
+            "HearHruks"
+        ]
     );
 
     let startgroup_button = _button_startgroup(ltag);
 
     let keyboard = [
-        vec![chg_name_button, flag_button],
-        vec![lang_button, pig_day_button],
+        vec![chg_name_button, chg_flag_button],
+        vec![chg_lang_button, pig_day_button],
         vec![hru_button, oc_button],
         vec![startgroup_button],
     ];
