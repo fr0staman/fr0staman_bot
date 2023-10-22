@@ -2,7 +2,7 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
 
 use crate::{
     config::BOT_CONFIG,
-    enums::CbActions,
+    enums::{CbActions, Top10Variant},
     lang::{lng, LocaleTag},
     utils::helpers::encode_callback_data,
 };
@@ -66,16 +66,18 @@ pub fn keyboard_add_inline_top10(
 pub fn keyboard_in_top10(
     ltag: LocaleTag,
     id_user: UserId,
-    to: &str,
+    to: Top10Variant,
 ) -> InlineKeyboardMarkup {
-    let coded_data = encode_callback_data(CbActions::Top10, id_user, to);
+    let coded_data =
+        encode_callback_data(CbActions::Top10, id_user, to.as_ref());
 
-    let key = to.replace("p_", "");
+    let summarized = to.summarize();
+    let key = summarized.as_ref();
 
-    let keyboard = [[InlineKeyboardButton::callback(
-        lng(&format!("InlineTop10ButtonIn_{}", &key), ltag),
-        coded_data,
-    )]];
+    let text = lng(&format!("InlineTop10ButtonIn_{}", &key), ltag);
+    let button = InlineKeyboardButton::callback(text, coded_data);
+
+    let keyboard = [[button]];
 
     InlineKeyboardMarkup::new(keyboard)
 }

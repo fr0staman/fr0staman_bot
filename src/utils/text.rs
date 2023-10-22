@@ -2,6 +2,7 @@ use teloxide::utils::html::bold;
 
 use crate::{
     consts::TOP_LIMIT,
+    enums::Top10Variant,
     lang::{lng, InnerLang, LocaleTag},
     models::{Game, InlineUser},
 };
@@ -11,21 +12,21 @@ use super::{flag::Flags, helpers};
 pub fn generate_top10_text(
     ltag: LocaleTag,
     top10_info: Vec<InlineUser>,
-    chat_type: &str,
+    chat_type: Top10Variant,
 ) -> String {
-    let chat_type = chat_type.replace("p_", "");
+    let summarized = chat_type.summarize();
+    let is_win = matches!(summarized, Top10Variant::Win);
+    let chat_type = summarized.as_ref();
 
     let text = lng(&format!("InlineTop10Header_{}", chat_type), ltag);
+
     let header = bold(&text);
+    let key = format!("InlineTop10Line_{}", chat_type);
 
     let mut result = String::with_capacity(512) + &header + "\n";
 
-    let is_win = chat_type == "win";
-
     for (index, item) in top10_info.iter().enumerate() {
         let value = if is_win { item.win as i32 } else { item.weight };
-
-        let key = format!("InlineTop10Line_{}", chat_type);
 
         let code = Flags::from_code(&item.flag).unwrap_or(Flags::Us);
         let flag = code.to_emoji();

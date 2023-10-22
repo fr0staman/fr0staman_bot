@@ -328,10 +328,10 @@ async fn top10_chat(
 
     let text = top10_chat_info.map_or_else(
         || lng("GameNoChatPigs", ltag),
-        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+        |v| generate_top10_text(ltag, v, chat_type),
     );
 
-    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to);
     bot.edit_message_text_inline(im_id, text)
         .reply_markup(markup)
         .disable_web_page_preview(true)
@@ -353,10 +353,10 @@ async fn top10_global(
 
     let text = top10_chat_info.map_or_else(
         || lng("GameNoChatPigs", ltag),
-        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+        |v| generate_top10_text(ltag, v, chat_type),
     );
 
-    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to);
 
     bot.edit_message_text_inline(im_id, text)
         .reply_markup(markup)
@@ -378,10 +378,10 @@ async fn top10_win(
 
     let text = top10_chat_info.map_or_else(
         || lng("GameNoChatPigs", ltag),
-        |v| generate_top10_text(ltag, v, chat_type.as_ref()),
+        |v| generate_top10_text(ltag, v, chat_type),
     );
 
-    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to.as_ref());
+    let markup = keyboards::keyboard_in_top10(ltag, q.from.id, to);
     bot.edit_message_text_inline(im_id, text)
         .reply_markup(markup)
         .disable_web_page_preview(true)

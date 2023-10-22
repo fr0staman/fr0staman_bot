@@ -18,7 +18,7 @@ use teloxide::{
 
 use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
-use crate::enums::{Image, InlineCommands, InlineKeywords};
+use crate::enums::{Image, InlineCommands, InlineKeywords, Top10Variant};
 use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
 use crate::models::{
     InlineGif, InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
@@ -515,7 +515,7 @@ async fn _get_biggest_chat_pig_mass(id_user: UserId) -> MyResult<i32> {
 
 async fn _get_for_top10_info(
     ltag: LocaleTag,
-    chat_type: &str,
+    chat_type: Top10Variant,
 ) -> MyResult<String> {
     let cur_date = get_date();
     let top10_chat_info = DB.hand_pig.get_top10_global(cur_date).await?;
@@ -558,7 +558,7 @@ fn get_top10_info(
     ltag: LocaleTag,
     id_user: UserId,
     text: String,
-    chat_type: &str,
+    chat_type: Top10Variant,
 ) -> InlineQueryResultArticle {
     let title = lng("Top10Caption", ltag);
     let message_text =
@@ -899,16 +899,16 @@ fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
     .thumb_url(get_photostock(Image::OCGPU))
 }
 
-fn get_accesibility_by_chattype<'a>(
+fn get_accesibility_by_chattype(
     chat_type: Option<ChatType>,
-) -> (&'a str, bool, &'a str) {
+) -> (Top10Variant, bool, Top10Variant) {
     //"chat_type, remove_markup, to"
 
     match chat_type {
         Some(ChatType::Private | ChatType::Channel) | None => {
-            ("p_global", true, "p_win")
+            (Top10Variant::PGlobal, true, Top10Variant::PWin)
         },
-        Some(_) => ("global", false, "chat"),
+        Some(_) => (Top10Variant::Global, false, Top10Variant::Chat),
     }
 }
 

@@ -120,6 +120,16 @@ pub enum Top10Variant {
     PWin,
 }
 
+impl Top10Variant {
+    pub fn summarize(self) -> Self {
+        match self {
+            Self::PGlobal => Self::Global,
+            Self::PWin => Self::Win,
+            _ => self,
+        }
+    }
+}
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(AsRefStr)]
 pub enum Image {
