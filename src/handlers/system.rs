@@ -1,7 +1,7 @@
 use crate::{
     config::BOT_CONFIG,
     db::DB,
-    keyboards::keyboard_voice_check,
+    keyboards,
     lang::{get_tag, get_tag_opt, lng, tag_one_or, InnerLang},
     models::{Groups, UpdateGroups, UserStatus},
     traits::MaybeMessageSetter,
@@ -191,6 +191,30 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
     .reply_markup(keyboards::keyboard_voice_check(from.id))
     .await?;
 
+    Ok(())
+}
+
+pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
+    let Some(from) = m.from() else { return Ok(()) };
+
+    let Some(user) =
+        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
+    else {
+        return Ok(());
+    };
+
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from()));
+    let text = lng("InlineHrukAddMessage", ltag);
+
+    bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+    let Some(animation) = m.animation() else { return Ok(()) };
+
+    let file = InputFile::file_id(&animation.file.id);
+
+    bot.send_animation(ChatId(BOT_CONFIG.content_check_channel_id), file)
+        .caption(from.id.to_string())
+        .reply_markup(keyboards::keyboard_gif_check(from.id))
+        .await?;
     Ok(())
 }
 

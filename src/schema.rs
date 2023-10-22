@@ -36,6 +36,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    inline_gifs (id) {
+        id -> Smallint,
+        #[max_length = 128]
+        file_id -> Varchar,
+        status -> Smallint,
+        uid -> Unsigned<Integer>,
+    }
+}
+
+diesel::table! {
     inline_groups (id) {
         id -> Integer,
         chat_instance -> Bigint,
@@ -98,6 +108,7 @@ diesel::table! {
 diesel::joinable!(game -> groups (group_id));
 diesel::joinable!(game -> users (uid));
 diesel::joinable!(hryak_day -> inline_users_groups (iug_id));
+diesel::joinable!(inline_gifs -> users (uid));
 diesel::joinable!(inline_users -> users (uid));
 diesel::joinable!(inline_users_groups -> inline_groups (ig_id));
 diesel::joinable!(inline_users_groups -> inline_users (iu_id));
@@ -107,6 +118,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     game,
     groups,
     hryak_day,
+    inline_gifs,
     inline_groups,
     inline_users,
     inline_users_groups,

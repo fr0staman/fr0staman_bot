@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     db::MyPool,
-    models::{Groups, InlineVoice, UpdateGroups, User, UserStatus},
+    models::{Groups, InlineGif, InlineVoice, UpdateGroups, User, UserStatus},
     MyResult,
 };
 
@@ -122,6 +122,36 @@ impl Other {
         Ok(results)
     }
 
+    pub async fn get_inline_gif_by_id(
+        &self,
+        voice_id: i16,
+    ) -> MyResult<Option<InlineGif>> {
+        use crate::schema::inline_gifs::dsl::*;
+
+        let results = inline_gifs
+            .filter(status.eq(1))
+            .filter(id.eq(voice_id))
+            .select(InlineGif::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
+
+        Ok(results)
+    }
+
+    pub async fn get_inline_gifs(&self) -> MyResult<Vec<InlineGif>> {
+        use crate::schema::inline_gifs::dsl::*;
+
+        let results = inline_gifs
+            .filter(status.eq(1))
+            .order_by(id.desc())
+            .select(InlineGif::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
     pub async fn get_chat(&self, id_chat: i64) -> MyResult<Option<Groups>> {
         use crate::schema::groups::dsl::*;
 
@@ -222,6 +252,36 @@ impl Other {
         let results = inline_voices
             .filter(uid.eq(iv_uid))
             .select(InlineVoice::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn add_gif(
+        &self,
+        iv_uid: u32,
+        new_file_id: String,
+    ) -> MyResult<()> {
+        use crate::schema::inline_gifs::dsl::*;
+
+        diesel::insert_into(inline_gifs)
+            .values((file_id.eq(new_file_id), uid.eq(iv_uid)))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_gifs_by_user(
+        &self,
+        iv_uid: u32,
+    ) -> MyResult<Vec<InlineGif>> {
+        use crate::schema::inline_gifs::dsl::*;
+
+        let results = inline_gifs
+            .filter(uid.eq(iv_uid))
+            .select(InlineGif::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
 

@@ -154,6 +154,20 @@ pub fn keyboard_voice_check(id_user: UserId) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(keyboard)
 }
 
+pub fn keyboard_gif_check(id_user: UserId) -> InlineKeyboardMarkup {
+    let success_data =
+        encode_callback_data(CbActions::GifDecision, id_user, "+");
+    let success_button = InlineKeyboardButton::callback("✅", success_data);
+
+    let denied_data =
+        encode_callback_data(CbActions::GifDecision, id_user, "-");
+    let denied_button = InlineKeyboardButton::callback("❌", denied_data);
+
+    let keyboard = [[success_button, denied_button]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
 pub fn keyboard_change_flag(
     ltag: LocaleTag,
     id_user: UserId,

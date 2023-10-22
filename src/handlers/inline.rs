@@ -4,7 +4,9 @@ use async_recursion::async_recursion;
 use futures::FutureExt;
 
 use teloxide::payloads::AnswerInlineQuerySetters;
-use teloxide::types::{ChatType, InlineQueryResultVoice, UserId};
+use teloxide::types::{
+    ChatType, InlineQueryResultCachedGif, InlineQueryResultVoice, UserId,
+};
 use teloxide::utils::html::{bold, italic};
 use teloxide::{
     requests::Requester,
@@ -19,7 +21,7 @@ use crate::db::DB;
 use crate::enums::{Image, InlineCommands, InlineKeywords};
 use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
 use crate::models::{
-    InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
+    InlineGif, InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
 };
 use crate::types::MyBot;
 use crate::utils::date::{get_date, get_datetime};
@@ -53,6 +55,9 @@ pub async fn filter_inline_commands(
                 InlineCommands::Flag => {
                     inline_flag(bot, &q, ltag, payload).boxed()
                 },
+                InlineCommands::Gif => {
+                    inline_gif(bot, &q, ltag, payload).boxed()
+                },
             },
             Err(_) => inline_hrundel(bot, &q, ltag).boxed(),
         },
@@ -66,6 +71,7 @@ pub async fn filter_inline_commands(
                 InlineKeywords::Hru => inline_hruks(bot, &q, ltag, "").boxed(),
                 InlineKeywords::Flag => inline_flag(bot, &q, ltag, "").boxed(),
                 InlineKeywords::Lang => inline_lang(bot, &q, ltag).boxed(),
+                InlineKeywords::Gif => inline_gif(bot, &q, ltag, "").boxed(),
             },
             Err(_) => inline_hrundel(bot, &q, ltag).boxed(),
         },
@@ -413,6 +419,66 @@ async fn inline_lang(
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
 
+    Ok(())
+}
+
+async fn inline_gif(
+    bot: MyBot,
+    q: &InlineQuery,
+    ltag: LocaleTag,
+    payload: &str,
+) -> MyResult<()> {
+    let gifs: Vec<InlineGif> = if payload.is_empty() {
+        DB.other.get_inline_gifs().await?
+    } else {
+        let Ok(id) = payload.parse::<i16>() else {
+            bot.answer_inline_query(
+                &q.id,
+                vec![InlineQueryResult::Article(handle_error_parse(ltag))],
+            )
+            .await?;
+            return Ok(());
+        };
+
+        let gif = DB.other.get_inline_gif_by_id(id).await?;
+        gif.into_iter().collect()
+    };
+
+    if gifs.is_empty() {
+        let result = InlineQueryResult::Article(handle_no_results(ltag));
+        bot.answer_inline_query(&q.id, vec![result]).await?;
+        return Ok(());
+    }
+
+    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
+
+    let (start_index, end_index) = {
+        const ON_PAGE: usize = INLINE_QUERY_LIMIT;
+        let start_index = ON_PAGE * number_from_offset;
+        let probably_end_index = start_index + ON_PAGE;
+
+        (start_index, probably_end_index.min(gifs.len()))
+    };
+
+    let paged_gifs = &gifs[start_index..end_index];
+    let results: Vec<InlineQueryResult> = paged_gifs
+        .iter()
+        .map(|item| {
+            InlineQueryResult::CachedGif(InlineQueryResultCachedGif::new(
+                item.id.to_string(),
+                &item.file_id,
+            ))
+        })
+        .collect();
+
+    let query = bot.answer_inline_query(&q.id, results).cache_time(30);
+
+    if end_index != gifs.len() {
+        let next_offset = (number_from_offset + 1).to_string();
+        query.next_offset(next_offset).await?;
+    } else {
+        query.await?;
+    };
     Ok(())
 }
 
@@ -837,6 +903,7 @@ fn get_accesibility_by_chattype<'a>(
     chat_type: Option<ChatType>,
 ) -> (&'a str, bool, &'a str) {
     //"chat_type, remove_markup, to"
+
     match chat_type {
         Some(ChatType::Private | ChatType::Channel) | None => {
             ("p_global", true, "p_win")

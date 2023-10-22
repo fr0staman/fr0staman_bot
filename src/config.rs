@@ -5,6 +5,8 @@ use teloxide::types::Me;
 use url::Url;
 
 pub struct Config {
+    // For some situations with props with "me"
+    pub me: &'static Me,
     pub teloxide_token: String,
     pub webhook_url: Url,
     pub webhook_port: u16,
@@ -20,9 +22,8 @@ pub struct Config {
     pub content_check_channel_name: String,
     // Bot creator for manage
     pub creator_id: u64,
-    // For some situations with props with "me"
-    pub me: &'static Me,
     pub prometheus_token: String,
+    pub gif_content_channel_id: i64,
 }
 
 fn _from_env<T: FromStr>(name: &str) -> T
@@ -36,6 +37,7 @@ where
 }
 
 pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
+    me: BOT_ME.get().expect("BOT_ME is not set!"),
     teloxide_token: _from_env("TELOXIDE_TOKEN"),
     webhook_url: _from_env("WEBHOOK_URL"),
     webhook_port: _from_env("WEBHOOK_PORT"),
@@ -46,8 +48,8 @@ pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     content_check_channel_id: _from_env("CONTENT_CHECK_CHANNEL_ID"),
     content_check_channel_name: _from_env("CONTENT_CHECK_CHANNEL_NAME"),
     creator_id: _from_env("CREATOR_ID"),
-    me: BOT_ME.get().expect("BOT_ME is not set!"),
     prometheus_token: _from_env("PROMETHEUS_TOKEN"),
+    gif_content_channel_id: _from_env("GIF_CONTENT_CHANNEL_ID"),
 });
 
 pub static BOT_ME: OnceLock<Me> = OnceLock::new();

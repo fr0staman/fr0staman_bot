@@ -4,7 +4,7 @@ use std::str::FromStr;
 use teloxide::{
     prelude::*,
     requests::Requester,
-    types::{CallbackQuery, UserId},
+    types::{CallbackQuery, InputFile, UserId},
     utils::html::user_mention,
 };
 use tokio::{
@@ -100,6 +100,9 @@ fn _inner_filter<'a>(
         },
         CbActions::SubGift => callback_gift(bot, q, ltag, d).boxed(),
         CbActions::ChangeLang => callback_change_lang(bot, q, ltag, d).boxed(),
+        CbActions::GifDecision => {
+            callback_gif_decision(bot, q, ltag, d).boxed()
+        },
     }
 }
 
@@ -109,7 +112,11 @@ async fn _handle_error(
     ltag: LocaleTag,
     err: MyError,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id.clone() else { return Ok(()) };
+    let Some(im_id) = q.inline_message_id.clone() else {
+        log::error!("Error in non-inline callback: {:?}", err);
+
+        return Ok(());
+    };
 
     log::error!("Error in callback: {:?}", err);
 
@@ -845,6 +852,128 @@ async fn callback_change_lang(
 
     bot.edit_message_text_inline(im_id, &text).await?;
     bot.answer_callback_query(&q.id).text(text).await?;
+    Ok(())
+}
+
+async fn callback_gif_decision(
+    bot: MyBot,
+    q: &CallbackQuery,
+    ltag: LocaleTag,
+    data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    match data.2 {
+        "+" => _cb_allow_gif(bot, q, ltag, data).await,
+        "-" => _cb_disallow_gif(bot, q, ltag, data).await,
+        _ => callback_empty(bot, q, ltag).await,
+    }
+}
+
+async fn _cb_allow_gif(
+    bot: MyBot,
+    q: &CallbackQuery,
+    mut ltag: LocaleTag,
+    data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    let Some(m) = &q.message else { return Ok(()) };
+    let user_id = data.1;
+
+    log::info!("Allowed gif from [{}]", user_id);
+    if q.from.id.0 != BOT_CONFIG.creator_id {
+        let text = lng("AccessDenied", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+
+    let text = lng("GifAccepted", ltag);
+    bot.answer_callback_query(&q.id).text(text).await?;
+
+    let Some(accepted_animation) = m.animation() else {
+        log::error!("Animation not exist!");
+        return Ok(());
+    };
+
+    let accepted = lng("Accepted", ltag);
+    let edited_text = format!("{} {}", accepted, user_id);
+
+    bot.edit_message_caption(m.chat.id, m.id)
+        .caption(edited_text)
+        .reply_markup(keyboards::keyboard_empty())
+        .await?;
+
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    if let Some(hrundel) = hrundel {
+        let final_mass = hrundel.0.weight + 250;
+        let cur_date = get_date();
+
+        DB.hand_pig
+            .update_hrundel_date_and_size(user_id.0, final_mass, cur_date)
+            .await?;
+        ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
+    }
+
+    let Some(user) =
+        DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
+    else {
+        log::error!("Some not working...");
+        return Ok(());
+    };
+
+    DB.other.add_gif(user.id, accepted_animation.file.id.to_string()).await?;
+
+    let gifs = DB.other.get_gifs_by_user(user.id).await?;
+    let number = gifs.last().map_or(0, |v| v.id);
+
+    let file = InputFile::file_id(&accepted_animation.file.id);
+    let res = bot
+        .send_animation(ChatId(BOT_CONFIG.gif_content_channel_id), file)
+        .caption(format!("ID: {}", number))
+        .await?;
+
+    let gif_link = res.url().unwrap_or_else(|| BOT_CONFIG.me.url());
+
+    let text = lng("GifAcceptedCongrats", ltag).args(&[
+        ("number", number.to_string()),
+        ("gif_link", gif_link.to_string()),
+    ]);
+    bot.send_message(user_id, text).maybe_thread_id(m).await?;
+
+    Ok(())
+}
+
+async fn _cb_disallow_gif(
+    bot: MyBot,
+    q: &CallbackQuery,
+    mut ltag: LocaleTag,
+    data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    let Some(m) = &q.message else { return Ok(()) };
+
+    let user_id = data.1;
+
+    log::info!("Disallowed gif from [{}]", user_id);
+
+    if q.from.id.0 != BOT_CONFIG.creator_id {
+        let text = lng("AccessDenied", ltag);
+        bot.answer_callback_query(&q.id).text(text).await?;
+        return Ok(());
+    }
+    let text = lng("GifNotAccepted", ltag);
+    bot.answer_callback_query(&q.id).text(text).await?;
+
+    let not_accepted = lng("NotAccepted", ltag);
+    let edited_text = format!("{} {}", not_accepted, user_id);
+    bot.edit_message_caption(m.chat.id, m.id)
+        .caption(edited_text)
+        .reply_markup(keyboards::keyboard_empty())
+        .await?;
+
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    if let Some(hrundel) = hrundel {
+        ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
+    }
+
+    let text = lng("GifNotAcceptedMsg", ltag);
+    bot.send_message(user_id, text).maybe_thread_id(m).await?;
     Ok(())
 }
 

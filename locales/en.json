@@ -203,5 +203,10 @@
   "InlineMenuButtonChangeLangSwitch": "lang",
   "InlineMenuButtonDayPigSwitch": "pig",
   "InlineMenuButtonOCSwitch": "oc",
-  "InlineMenuButtonHearHruksSwitch": "hru"
+  "InlineMenuButtonHearHruksSwitch": "hru",
+  "GifAcceptedCongrats": "<b>Congratulations</b>, your GIF accepted!\n<b>You</b> receive <b>+250</b> kg for your hand pig :)\n\nNumber of your gif: <b>{number}</b>\nLink to your GIF on channel: {gif_link}",
+  "GifAccepted": "✅ GIF successfully accepted 🐽💨",
+  "GifNotAcceptedMsg": "Oh, your GIF is not accepted :(",
+  "GifNotAccepted": "❌ GIF not accepted",
+  "GifAddMessage": "Thank you!\nI will be sure to let you, when your brilliant gif will be accepted!"
 }

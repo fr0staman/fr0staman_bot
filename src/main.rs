@@ -112,6 +112,12 @@ async fn run() {
                         m.voice().is_some() && m.chat.is_private()
                     })
                     .endpoint(system::handle_voice_private),
+                )
+                .branch(
+                    dptree::filter(|m: Message| {
+                        m.animation().is_some() && m.chat.is_private()
+                    })
+                    .endpoint(system::handle_animation_private),
                 ),
         )
         .branch(

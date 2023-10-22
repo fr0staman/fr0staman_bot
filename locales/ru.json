@@ -203,5 +203,10 @@
   "InlineMenuButtonChangeLangSwitch": "язык",
   "InlineMenuButtonDayPigSwitch": "свинья",
   "InlineMenuButtonOCSwitch": "ос",
-  "InlineMenuButtonHearHruksSwitch": "хрю"
+  "InlineMenuButtonHearHruksSwitch": "хрю",
+  "GifAcceptedCongrats": "<b>Поздравляем</b>, ваша GIF-ка принята!\n<b>Вы</b> получаете <b>250</b> кг для вашего ручного хряка :)\n\nНомер вашей гифки: <b>{number}</b>\nСсылка на вашу GIF-ку на канале: {gif_link}",
+  "GifAccepted": "✅ GIF-ка успешно принята 🐽💨",
+  "GifNotAcceptedMsg": "Ох, ваша GIF-ка не принята :(",
+  "GifNotAccepted": "❌ GIF-ка не принята",
+  "GifAddMessage": "Спасибо!\nЯ обязательно сообщу, когда вашу свинья.гиф будет принято!"
 }

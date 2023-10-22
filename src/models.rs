@@ -116,6 +116,15 @@ pub struct InlineVoice {
 }
 
 #[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = inline_gifs)]
+pub struct InlineGif {
+    pub id: i16,
+    pub file_id: String,
+    pub uid: u32,
+    pub status: i16,
+}
+
+#[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: u32,

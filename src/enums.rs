@@ -58,6 +58,8 @@ pub enum InlineCommands {
     Hru,
     #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
     Flag,
+    #[strum(serialize = "гіф", serialize = "гиф", serialize = "gif")]
+    Gif,
 }
 
 #[derive(Display, AsRefStr, EnumString)]
@@ -84,6 +86,8 @@ pub enum InlineKeywords {
     Flag,
     #[strum(serialize = "мова", serialize = "язык", serialize = "lang")]
     Lang,
+    #[strum(serialize = "гіф", serialize = "гиф", serialize = "gif")]
+    Gif,
 }
 
 #[derive(AsRefStr, EnumString, Display)]
@@ -103,6 +107,7 @@ pub enum CbActions {
     ChangeLang,
     SubCheck,
     SubGift,
+    GifDecision,
 }
 
 #[derive(AsRefStr, EnumString, Display)]
