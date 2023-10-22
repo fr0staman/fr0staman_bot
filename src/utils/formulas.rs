@@ -33,12 +33,18 @@ pub fn calculate_hryak_size(user_id: u64) -> i32 {
     };
 
     let modulo_by_size =
-        SECOND_STRANGE_DELIMITER + TEN * (day + (month - 8.0) * 30.0);
+        SECOND_STRANGE_DELIMITER + 10.0 * (day + (month - 8.0) * 30.0);
     let size = (timestamp / day * month / ANOTHER_STRANGE_DELIMITER + uid)
         .rem_euclid(modulo_by_size)
         / category;
 
-    size as i32
+    let casted_size = size as i32;
+
+    if casted_size == 0 {
+        1
+    } else {
+        casted_size
+    }
 }
 
 pub fn calculate_cpu_clock(hryak_size: i32, user_id: u64) -> f32 {
