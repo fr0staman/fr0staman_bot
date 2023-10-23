@@ -112,16 +112,16 @@ async fn _handle_error(
     ltag: LocaleTag,
     err: MyError,
 ) -> MyResult<()> {
-    let Some(im_id) = q.inline_message_id.clone() else {
+    let Some(im_id) = &q.inline_message_id else {
         log::error!("Error in non-inline callback: {:?}", err);
-
+        _callback_error_try_change_message(bot, q, ltag, err).await;
         return Ok(());
     };
 
     log::error!("Error in callback: {:?}", err);
 
     let key = q.from.id.0;
-    let thread_identifier = get_hash(&im_id);
+    let thread_identifier = get_hash(im_id);
 
     tokio::spawn(async move {
         {
@@ -137,32 +137,44 @@ async fn _handle_error(
                 drop(value);
                 DUEL_LIST.retain(|&x| x != thread_identifier);
             };
-        };
-
-        // Try to change message about error
-        if let MyError::RequestError(err) = err {
-            let temp_bot = bot.clone();
-
-            tokio::spawn(async move {
-                let text = if let teloxide::RequestError::RetryAfter(time) = err
-                {
-                    let _ = callback_error(&temp_bot, &q, ltag).await;
-
-                    sleep(time).await;
-                    lng("ErrorInlineTooMuchMessage", ltag)
-                } else {
-                    lng("ErrorInlineInvalidQueryMessage", ltag)
-                };
-
-                let _ = temp_bot.edit_message_text_inline(im_id, text).await;
-            });
-        } else {
-            let _ = callback_empty(bot, &q, ltag).await;
-        };
+        }
+        _callback_error_try_change_message(bot, q, ltag, err).await;
     });
 
     Ok(())
 }
+
+async fn _callback_error_try_change_message(
+    bot: MyBot,
+    q: CallbackQuery,
+    ltag: LocaleTag,
+    err: MyError,
+) {
+    // Try to change message about error
+    if let MyError::RequestError(err) = err {
+        let temp_bot = bot.clone();
+
+        tokio::spawn(async move {
+            let text = if let teloxide::RequestError::RetryAfter(time) = err {
+                let _ = callback_error(&temp_bot, &q, ltag).await;
+
+                sleep(time).await;
+                lng("ErrorInlineTooMuchMessage", ltag)
+            } else {
+                lng("ErrorInlineInvalidQueryMessage", ltag)
+            };
+
+            if let Some(im_id) = q.inline_message_id {
+                let _ = temp_bot.edit_message_text_inline(im_id, text).await;
+            } else if let Some(m) = q.message {
+                let _ = temp_bot.edit_message_text(m.chat.id, m.id, text).await;
+            }
+        });
+    } else {
+        let _ = callback_empty(bot, &q, ltag).await;
+    };
+}
+
 async fn callback_give_hand_pig_name(
     bot: MyBot,
     q: &CallbackQuery,
