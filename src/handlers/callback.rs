@@ -1,6 +1,6 @@
 use futures::{future::BoxFuture, FutureExt};
 use rand::Rng;
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 use teloxide::{
     prelude::*,
     requests::Requester,
@@ -125,17 +125,18 @@ async fn _handle_error(
 
     tokio::spawn(async move {
         {
-            let locks = DUEL_LOCKS.try_get(&key).try_unwrap();
-            if let Some(value) = locks {
+            let read_locks = DUEL_LOCKS.read().await;
+
+            if let Some(locks) = read_locks.get(&key) {
+                let cloned_locks = locks.clone();
+                drop(read_locks);
+                cloned_locks.lock().await.retain(|&x| x != thread_identifier);
+                DUEL_LIST.retain(|&x| x != thread_identifier);
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
                     key
                 );
-
-                value.lock().await.retain(|&x| x != thread_identifier);
-                drop(value);
-                DUEL_LIST.retain(|&x| x != thread_identifier);
             };
         }
         _callback_error_try_change_message(bot, q, ltag, err).await;
@@ -444,12 +445,11 @@ async fn callback_start_duel(
     }
 
     {
-        let maybe_threads = DUEL_LOCKS.try_get(&key);
-        if maybe_threads.is_locked() {
-            return Ok(());
-        }
+        let read_locked_threads = DUEL_LOCKS.read().await;
 
-        if let Some(user_threads) = maybe_threads.try_unwrap() {
+        if let Some(user_threads) = read_locked_threads.get(&key) {
+            let user_threads = user_threads.clone();
+            drop(read_locked_threads);
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
                 log::error!("Found user thread duplicate!");
@@ -457,23 +457,28 @@ async fn callback_start_duel(
             }
             locked_threads.push(thread_identifier);
         } else {
-            DUEL_LOCKS.insert(key, Mutex::new(vec![thread_identifier]));
+            drop(read_locked_threads);
+            DUEL_LOCKS
+                .write()
+                .await
+                .insert(key, Arc::new(Mutex::new(vec![thread_identifier])));
         }
     }
 
-    let some_item = DUEL_LOCKS.try_get(&key).try_unwrap();
-    let Some(new_ref_item) = some_item else {
+    let read_locked_threads = DUEL_LOCKS.read().await;
+    let Some(user_threads) = read_locked_threads.get(&key) else {
         log::error!("User threads cleaned after insert or locked!");
         return Ok(());
     };
-
-    let mut new_item = new_ref_item.lock().await;
+    let user_threads = user_threads.clone();
+    drop(read_locked_threads);
+    let mut user_locked_threads = user_threads.lock().await;
 
     let hrundels = _start_duel_get_2_hrundels((q.from.id, data.1)).await?;
 
     let Some([first, second]) = hrundels else {
-        new_item.retain(|&x| x != thread_identifier);
-        drop(new_item);
+        user_locked_threads.retain(|&x| x != thread_identifier);
+        drop(user_locked_threads);
         DUEL_LIST.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
@@ -526,8 +531,8 @@ async fn callback_start_duel(
         .disable_web_page_preview(true)
         .await?;
 
-    new_item.retain(|&x| x != thread_identifier);
-    drop(new_item);
+    user_locked_threads.retain(|&x| x != thread_identifier);
+    drop(user_locked_threads);
     DUEL_LIST.retain(|&x| x != thread_identifier);
 
     log::info!(

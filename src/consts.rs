@@ -1,7 +1,10 @@
-use dashmap::{DashMap, DashSet};
+use std::sync::Arc;
+
+use ahash::HashMap;
+use dashmap::DashSet;
 use once_cell::sync::Lazy;
 use teloxide::types::ParseMode;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 pub const BOT_PARSE_MODE: ParseMode = ParseMode::Html;
 pub const DEFAULT_LANG_TAG: &str = "uk";
@@ -13,6 +16,7 @@ pub const DAILY_GIFT_AMOUNT: i32 = 500;
 
 pub const CHAT_PIG_START_MASS: i32 = 1;
 
-pub static DUEL_LOCKS: Lazy<DashMap<u64, Mutex<Vec<u64>>>> =
-    Lazy::new(DashMap::new);
+#[allow(clippy::type_complexity)]
+pub static DUEL_LOCKS: Lazy<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
+    Lazy::new(|| RwLock::new(HashMap::default()));
 pub static DUEL_LIST: Lazy<DashSet<u64>> = Lazy::new(DashSet::new);
