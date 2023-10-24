@@ -29,62 +29,57 @@ impl Locale {
         // Load "tag".json from directory
         for entry in WalkDir::new("locales/").into_iter().filter_map(|e| e.ok())
         {
-            if entry.file_type().is_file()
-                && entry.file_name().to_string_lossy().ends_with(".json")
-            {
-                // Extract filename as tag
-                let tag = entry
-                    .file_name()
-                    .to_str()
-                    .unwrap()
-                    .split_once(".json")
-                    .unwrap()
-                    .0
-                    .to_string();
-
-                // Open file
-                if let Ok(file) = fs::File::open(entry.path()) {
-                    // Read data
-                    if let Ok(data) = serde_json::from_reader(file) {
-                        // Get as JSON object
-                        let json: serde_json::Value = data;
-                        if let Some(map) = json.as_object() {
-                            // Store
-
-                            let mut converted_map = ahash::AHashMap::default();
-                            for (key, value) in map.iter() {
-                                let value = match value {
-                                    serde_json::Value::String(value) => value,
-                                    _ => {
-                                        panic!(
-                                            "Locale::new(): only String can be passed!"
-                                        )
-                                    },
-                                };
-                                converted_map
-                                    .insert(key.to_owned(), value.to_owned());
-                            }
-                            let lang = Lang { tag, map: converted_map };
-                            langs.push(lang);
-                        } else {
-                            log::error!(
-                                "Locale::new() wrong json '{}'",
-                                entry.path().display()
-                            )
-                        }
-                    } else {
-                        log::error!(
-                            "Locale::new() read error '{}'",
-                            entry.path().display()
-                        )
-                    }
-                } else {
-                    log::error!(
-                        "Locale::new() open error '{}'",
-                        entry.path().display()
-                    )
-                }
+            if !entry.file_type().is_file() {
+                continue;
             }
+
+            let Some(file_name_parts) =
+                entry.file_name().to_str().and_then(|v| v.split_once(".json"))
+            else {
+                continue;
+            };
+
+            // Extract filename as tag
+            let tag = file_name_parts.0.to_string();
+
+            // Open file
+            let Ok(file) = fs::File::open(entry.path()) else {
+                log::error!(
+                    "Locale::new() open error '{}'",
+                    entry.path().display()
+                );
+                continue;
+            };
+
+            // Read data
+            let Ok(data) = serde_json::from_reader(file) else {
+                log::error!(
+                    "Locale::new() read error '{}'",
+                    entry.path().display()
+                );
+                continue;
+            };
+
+            // Get an json object
+            let serde_json::Value::Object(json_map) = data else {
+                log::error!(
+                    "Locale::new() wrong json '{}'",
+                    entry.path().display()
+                );
+                continue;
+            };
+
+            // Store
+            let mut map = ahash::AHashMap::default();
+            for (key, value) in json_map.into_iter() {
+                let value = match value {
+                    serde_json::Value::String(value) => value,
+                    _ => panic!("Locale::new(): only String can be passed!"),
+                };
+                map.insert(key, value);
+            }
+            let lang = Lang { tag, map };
+            langs.push(lang);
         }
 
         // Sorting for binary search
