@@ -34,6 +34,6 @@ walkdir = "2.4.0"
 [profile.release]
 lto = "thin"
 strip = true
-opt-level = "z"
+opt-level = 3
 # panic = "abort"
 codegen-units = 1
