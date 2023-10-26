@@ -106,30 +106,26 @@ pub trait InnerLang {
 }
 
 impl InnerLang for String {
-    fn args<T>(self, hash_args: &[(&str, T)]) -> String
+    fn args<T>(mut self, hash_args: &[(&str, T)]) -> String
     where
         T: std::fmt::Display,
     {
-        let mut res = self;
-
         let mut key_replace = String::with_capacity(32);
 
-        for (key, value) in hash_args.iter() {
+        for (key, value) in hash_args {
             key_replace.push('{');
             key_replace.push_str(key);
             key_replace.push('}');
-            res = res.replace(&key_replace, &value.to_string());
+            self = self.replace(&key_replace, &value.to_string());
             key_replace.clear();
         }
-        res
+        self
     }
 }
 
+#[inline]
 pub fn lng(key: &str, tag: LocaleTag) -> String {
-    let s = match LANG.get() {
-        Some(s) => s,
-        None => panic!("Lang is not set!"),
-    };
+    let s = LANG.get().expect("Lang is not set!");
 
     if tag >= s.langs.len() {
         return format!(
@@ -141,20 +137,21 @@ pub fn lng(key: &str, tag: LocaleTag) -> String {
 
     let res = &s.langs[tag].map;
 
-    let res = match res.get(key) {
-        Some(data) => data,
-        None => return format!("lang: key '{}' not found", key),
+    let Some(res) = res.get(key) else {
+        return format!("lang: key '{}' not found", key);
     };
 
     res.to_owned()
 }
 
+#[inline]
 pub fn get_tag_opt(from: Option<&User>) -> &str {
     let Some(from) = from else { return DEFAULT_LANG_TAG };
 
     get_tag(from)
 }
 
+#[inline]
 pub fn get_tag(from: &User) -> &str {
     from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG)
 }
@@ -163,6 +160,7 @@ pub fn get_tag(from: &User) -> &str {
 /// first tag? || second tag? || fallback_tag
 /// In bot functionality that means
 /// user forced lang || Chat forced lang || user.language_code
+#[inline]
 pub fn tag_one_two_or(
     first_opt_tag: Option<&str>,
     second_opt_tag: Option<&str>,
@@ -183,6 +181,7 @@ pub fn tag_one_two_or(
 /// first tag? || fallback_tag
 /// In bot functionality that means
 /// user forced lang || user.language_code
+#[inline]
 pub fn tag_one_or(
     first_opt_tag: Option<&str>,
     fallback_tag: &str,
@@ -190,22 +189,18 @@ pub fn tag_one_or(
     tag_opt(first_opt_tag).unwrap_or_else(|| tag(fallback_tag))
 }
 
+#[inline]
 pub fn tag_opt(opt_tag: Option<&str>) -> Option<LocaleTag> {
     let tag = opt_tag?;
 
-    let s = match LANG.get() {
-        Some(s) => s,
-        None => return None,
-    };
+    let s = LANG.get()?;
 
     s.langs.binary_search_by(|elem| elem.tag.as_str().cmp(tag)).ok()
 }
 
+#[inline]
 pub fn tag(tag: &str) -> LocaleTag {
-    let s = match LANG.get() {
-        Some(s) => s,
-        None => return 0,
-    };
+    let Some(s) = LANG.get() else { return 0 };
 
     s.langs
         .binary_search_by(|elem| elem.tag.as_str().cmp(tag))

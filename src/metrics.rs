@@ -187,6 +187,7 @@ impl Counter {
         Counter { inner: c, name: name.to_string() }
     }
 
+    #[inline]
     pub fn inc(&self) {
         self.inner.inc()
     }
