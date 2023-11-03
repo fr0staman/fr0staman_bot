@@ -214,7 +214,7 @@ macro_rules! make_switch_buttons {
 }
 
 pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
-    let [chg_name_button, chg_flag_button, chg_lang_button, pig_day_button, oc_button, hru_button] = make_switch_buttons!(
+    let [chg_name_button, chg_flag_button, chg_lang_button, pig_day_button, oc_button, hru_button, gifs_button] = make_switch_buttons!(
         ltag,
         [
             "ChangeHandPigName",
@@ -222,7 +222,8 @@ pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
             "ChangeLang",
             "DayPig",
             "OC",
-            "HearHruks"
+            "HearHruks",
+            "PigGifs"
         ]
     );
 
@@ -232,6 +233,7 @@ pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
         vec![chg_name_button, chg_flag_button],
         vec![chg_lang_button, pig_day_button],
         vec![hru_button, oc_button],
+        vec![gifs_button],
         vec![startgroup_button],
     ];
 
