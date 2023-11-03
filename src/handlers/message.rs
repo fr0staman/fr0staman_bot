@@ -9,7 +9,7 @@ use crate::{
 use teloxide::{
     prelude::*,
     types::{InputFile, Message},
-    utils::html::italic,
+    utils::html::{bold, italic},
 };
 
 enum Actions<'a> {
@@ -32,6 +32,7 @@ pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
 
     let maybe_action = match text_str {
         "хорни" | "horny" => Actions::Text(italic("go to horny jail.")),
+        "пацєтко" => Actions::Text(bold("пацєтко сє вродило")),
         "@fr0staman_bot" => Actions::Photo(PHOTO),
         _ => Actions::None,
     };
