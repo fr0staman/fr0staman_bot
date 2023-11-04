@@ -13,7 +13,9 @@ use teloxide::{
 };
 
 enum Actions<'a> {
+    #[allow(dead_code)]
     Text(String),
+    MaybeRText(String),
     Photo(&'a str),
     RSticker(&'a str),
     RVoice(&'a str),
@@ -31,8 +33,10 @@ pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
     let text_str = text_lower.as_str();
 
     let maybe_action = match text_str {
-        "хорни" | "horny" => Actions::Text(italic("go to horny jail.")),
-        "пацєтко" => Actions::Text(bold("пацєтко сє вродило")),
+        "хорни" | "horny" => {
+            Actions::MaybeRText(italic("go to horny jail."))
+        },
+        "пацєтко" => Actions::MaybeRText(bold("пацєтко сє вродило")),
         "@fr0staman_bot" => Actions::Photo(PHOTO),
         _ => Actions::None,
     };
@@ -67,6 +71,16 @@ async fn _maybe_send_message(
         Actions::Text(text) => {
             bot.send_message(m.chat.id, text)
                 .reply_to_message_id(m.id)
+                .maybe_thread_id(&m)
+                .await?;
+            log::info!("Handled message: chat [{}]", m.chat.id);
+            crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
+        },
+        Actions::MaybeRText(text) => {
+            bot.send_message(m.chat.id, text)
+                .reply_to_message_id(
+                    m.reply_to_message().map_or_else(|| m.id, |v| v.id),
+                )
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message: chat [{}]", m.chat.id);
