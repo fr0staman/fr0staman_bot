@@ -7,28 +7,22 @@ use teloxide::payloads::AnswerInlineQuerySetters;
 use teloxide::types::{
     ChatType, InlineQueryResultCachedGif, InlineQueryResultVoice, UserId,
 };
-use teloxide::utils::html::{bold, italic};
 use teloxide::{
     requests::Requester,
-    types::{
-        InlineQuery, InlineQueryResult, InlineQueryResultArticle,
-        InputMessageContent, InputMessageContentText,
-    },
+    types::{InlineQuery, InlineQueryResult, InlineQueryResultArticle},
 };
 
-use crate::consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
+use crate::consts::{DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
-use crate::enums::{Image, InlineCommands, InlineKeywords, Top10Variant};
+use crate::enums::{InlineCommands, InlineKeywords, Top10Variant};
 use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
-use crate::models::{
-    InlineGif, InlineUser, InlineVoice, NewInlineUser, UpdateInlineUser, User,
-};
+use crate::models::{InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
 use crate::utils::date::{get_date, get_datetime};
 use crate::utils::flag::Flags;
-use crate::utils::helpers::{get_photostock, truncate};
-use crate::utils::{formulas, helpers};
-use crate::{keyboards, MyError, MyResult};
+use crate::utils::helpers::truncate;
+use crate::utils::{formulas, helpers, iq_results};
+use crate::{MyError, MyResult};
 
 pub async fn filter_inline_commands(
     bot: MyBot,
@@ -122,7 +116,7 @@ async fn _get_hryak(
             .maybe_get_or_insert_user(q.from.id.0, get_datetime)
             .await?
         else {
-            return Ok(vec![handle_error_info(ltag)]);
+            return Ok(vec![iq_results::handle_error_info(ltag)]);
         };
 
         let hrundel = NewInlineUser {
@@ -162,10 +156,10 @@ async fn _get_hryak(
     let text = _get_for_top10_info(ltag, chat_type).await?;
 
     let result = vec![
-        get_start_duel(ltag, q.from.id, &info.0),
-        get_top10_info(ltag, q.from.id, text, to),
-        get_hryak_info(ltag, q.from.id, &info, remove_markup),
-        get_more_info(ltag),
+        iq_results::get_start_duel(ltag, q.from.id, &info.0),
+        iq_results::get_top10_info(ltag, q.from.id, text, to),
+        iq_results::get_hryak_info(ltag, q.from.id, &info, remove_markup),
+        iq_results::get_more_info(ltag),
     ];
 
     Ok(result)
@@ -177,12 +171,13 @@ async fn inline_name_hrundel(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
-        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        let results =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
         return Ok(());
     };
 
-    let article = name_hryak_info(ltag, hrundel.0.name);
+    let article = iq_results::name_hryak_info(ltag, hrundel.0.name);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -196,12 +191,18 @@ async fn inline_rename_hrundel(
     new_name: &str,
 ) -> MyResult<()> {
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
-        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        let results =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
         return Ok(());
     };
 
-    let article = rename_hryak_info(ltag, q.from.id, hrundel.0.name, new_name);
+    let article = iq_results::rename_hryak_info(
+        ltag,
+        q.from.id,
+        hrundel.0.name,
+        new_name,
+    );
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -213,7 +214,7 @@ async fn inline_day_pig(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let article = day_pig_info(ltag, q.from.id, q.chat_type);
+    let article = iq_results::day_pig_info(ltag, q.from.id, q.chat_type);
     let results = vec![InlineQueryResult::Article(article)];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -233,9 +234,9 @@ async fn inline_oc_stats(
     let gpu_hashr = formulas::calculate_gpu_hashrate(hryak_size, user_id);
 
     let results = vec![
-        InlineQueryResult::Article(cpu_oc_info(ltag, cpu_clock)),
-        InlineQueryResult::Article(ram_oc_info(ltag, ram_clock)),
-        InlineQueryResult::Article(gpu_oc_info(ltag, gpu_hashr)),
+        InlineQueryResult::Article(iq_results::cpu_oc_info(ltag, cpu_clock)),
+        InlineQueryResult::Article(iq_results::ram_oc_info(ltag, ram_clock)),
+        InlineQueryResult::Article(iq_results::gpu_oc_info(ltag, gpu_hashr)),
     ];
 
     bot.answer_inline_query(&q.id, results).cache_time(0).await?;
@@ -254,7 +255,9 @@ async fn inline_hruks(
         let Ok(id) = payload.parse::<i16>() else {
             bot.answer_inline_query(
                 &q.id,
-                vec![InlineQueryResult::Article(handle_error_parse(ltag))],
+                vec![InlineQueryResult::Article(
+                    iq_results::handle_error_parse(ltag),
+                )],
             )
             .await?;
             return Ok(());
@@ -265,7 +268,8 @@ async fn inline_hruks(
     };
 
     if voices.is_empty() {
-        let result = InlineQueryResult::Article(handle_no_results(ltag));
+        let result =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![result]).await?;
         return Ok(());
     }
@@ -315,7 +319,8 @@ async fn inline_flag(
     payload: &str,
 ) -> MyResult<()> {
     let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
-        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        let results =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
         return Ok(());
     };
@@ -324,8 +329,10 @@ async fn inline_flag(
     let mut results = Vec::with_capacity(64);
 
     if q.offset.is_empty() {
-        let start_info =
-            InlineQueryResult::Article(flag_info(ltag, old_flag.to_emoji()));
+        let start_info = InlineQueryResult::Article(iq_results::flag_info(
+            ltag,
+            old_flag.to_emoji(),
+        ));
 
         results.push(start_info);
     }
@@ -358,14 +365,15 @@ async fn inline_flag(
 
     let selected_flags = &searched_flags[start_index..end_index];
     if selected_flags.is_empty() {
-        let empty_info = flag_empty_info(ltag);
+        let empty_info = iq_results::flag_empty_info(ltag);
         results.push(InlineQueryResult::Article(empty_info));
     } else {
         for (idx, new_flag) in selected_flags.iter().enumerate() {
             let number = idx + start_index;
 
-            let info =
-                flag_change_info(ltag, q.from.id, old_flag, *new_flag, number);
+            let info = iq_results::flag_change_info(
+                ltag, q.from.id, old_flag, *new_flag, number,
+            );
             results.push(InlineQueryResult::Article(info));
         }
     }
@@ -387,7 +395,8 @@ async fn inline_lang(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(user) = DB.other.get_user(q.from.id.0).await? else {
-        let results = InlineQueryResult::Article(handle_no_results(ltag));
+        let results =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
         return Ok(());
     };
@@ -400,14 +409,14 @@ async fn inline_lang(
     let mut results = Vec::new();
 
     let start_article = current_flag.map_or_else(
-        || lang_empty_info(ltag),
-        |f| lang_info(ltag, q.from.id, f.to_emoji(), f.to_code()),
+        || iq_results::lang_empty_info(ltag),
+        |f| iq_results::lang_info(ltag, q.from.id, f.to_emoji(), f.to_code()),
     );
 
     results.push(InlineQueryResult::Article(start_article));
 
     for (idx, new_flag) in langs.iter().enumerate() {
-        let info = lang_change_info(
+        let info = iq_results::lang_change_info(
             ltag,
             q.from.id,
             user.lang.as_deref(),
@@ -434,7 +443,9 @@ async fn inline_gif(
         let Ok(id) = payload.parse::<i16>() else {
             bot.answer_inline_query(
                 &q.id,
-                vec![InlineQueryResult::Article(handle_error_parse(ltag))],
+                vec![InlineQueryResult::Article(
+                    iq_results::handle_error_parse(ltag),
+                )],
             )
             .await?;
             return Ok(());
@@ -445,7 +456,8 @@ async fn inline_gif(
     };
 
     if gifs.is_empty() {
-        let result = InlineQueryResult::Article(handle_no_results(ltag));
+        let result =
+            InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(&q.id, vec![result]).await?;
         return Ok(());
     }
@@ -489,7 +501,7 @@ async fn handle_error(
     err: MyError,
 ) {
     let error_message =
-        vec![InlineQueryResult::Article(handle_error_info(ltag))];
+        vec![InlineQueryResult::Article(iq_results::handle_error_info(ltag))];
     let _ = bot.answer_inline_query(q.id, error_message).cache_time(0).await;
     log::error!("Error in inline handler: {:?} by user [{}]", err, q.from.id);
     if let MyError::Database(diesel::result::Error::DatabaseError(
@@ -528,377 +540,6 @@ async fn _get_for_top10_info(
     Ok(text)
 }
 
-fn get_start_duel(
-    ltag: LocaleTag,
-    id_user: UserId,
-    info: &InlineUser,
-) -> InlineQueryResultArticle {
-    let winrate = _get_duel_winrate(ltag, info.win, info.rout);
-
-    let title = lng("DuelInlineCaption", ltag);
-    let text = lng("InlineDuelStartMessage", ltag).args(&[
-        ("name", &info.name),
-        ("winrate", &winrate),
-        ("weight", &info.weight.to_string()),
-    ]);
-
-    let content = InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
-
-    InlineQueryResultArticle::new(
-        "11",
-        title,
-        InputMessageContent::Text(content),
-    )
-    .description(lng("DuelInlineDesc", ltag))
-    .thumb_url(get_photostock(Image::Fight))
-    .reply_markup(keyboards::keyboard_start_duel(ltag, id_user))
-}
-
-fn get_top10_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    text: String,
-    chat_type: Top10Variant,
-) -> InlineQueryResultArticle {
-    let title = lng("Top10Caption", ltag);
-    let message_text =
-        InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
-
-    InlineQueryResultArticle::new(
-        "10",
-        title,
-        InputMessageContent::Text(message_text),
-    )
-    .description(lng("InlineTop10Desc", ltag))
-    .thumb_url(get_photostock(Image::Top))
-    .reply_markup(keyboards::keyboard_in_top10(ltag, id_user, chat_type))
-}
-
-fn get_hryak_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    info: &(InlineUser, User),
-    remove_markup: bool,
-) -> InlineQueryResultArticle {
-    let append = if info.1.supported {
-        lng("InlineSupportedDeveloping", ltag)
-    } else {
-        String::new()
-    };
-
-    let converted_mass = info.0.weight.to_string();
-
-    let caption = lng("InlineStatsCaption", ltag);
-    let message = lng("HandPigWeightMessage", ltag).args(&[
-        ("weight", converted_mass.as_str()),
-        ("emoji", formulas::get_pig_emoji(info.0.weight)),
-        ("append", append.as_str()),
-    ]);
-
-    let desc =
-        lng("InlineStatsDesc", ltag).args(&[("weight", &converted_mass)]);
-    let query_result = InlineQueryResultArticle::new(
-        "0",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .thumb_url(get_photostock(Image::TakeWeight));
-
-    if remove_markup {
-        query_result
-    } else {
-        query_result
-            .reply_markup(keyboards::keyboard_add_inline_top10(ltag, id_user))
-    }
-}
-
-fn get_more_info(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("InlineMoreInfoCaption", ltag);
-    let message = lng("InlineMoreInfoMessage", ltag);
-
-    let desc = lng("InlineMoreInfoDesc", ltag);
-
-    InlineQueryResultArticle::new(
-        "600",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .thumb_url(get_photostock(Image::MoreInfo))
-    .reply_markup(keyboards::keyboard_more_info(ltag))
-}
-
-fn name_hryak_info(ltag: LocaleTag, name: String) -> InlineQueryResultArticle {
-    let caption = lng("HandPigNameGoCaption", ltag);
-    let message = lng("HandPigNameGoMessage", ltag).args(&[("name", &name)]);
-
-    InlineQueryResultArticle::new(
-        "3",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(lng("HandPigNameGoDesc", ltag))
-    .thumb_url(get_photostock(Image::NameTyping))
-}
-
-fn rename_hryak_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    old_name: String,
-    new_name: &str,
-) -> InlineQueryResultArticle {
-    let (cutted_name, _) = truncate(new_name, 20);
-    let cutted_name = cutted_name.to_string();
-
-    let message = lng("HandPigNameChangeMessage", ltag)
-        .args(&[("past_name", &old_name), ("future_name", &cutted_name)]);
-
-    let desc = lng("HandPigNameChangeDesc", ltag);
-    InlineQueryResultArticle::new(
-        "4",
-        &cutted_name,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .reply_markup(keyboards::keyboard_new_name(ltag, id_user, cutted_name))
-    .thumb_url(get_photostock(Image::NameSuccess))
-}
-
-fn day_pig_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    chat_type: Option<ChatType>,
-) -> InlineQueryResultArticle {
-    let caption = lng("InlineDayPigCaption", ltag);
-    let message = lng("InlineDayPigMessage", ltag);
-    let desc = lng("InlineDayPigDesc", ltag);
-
-    let is_public_chat = chat_type
-        .is_some_and(|v| !matches!(v, ChatType::Private | ChatType::Channel));
-
-    let markup = if is_public_chat {
-        keyboards::keyboard_day_pig(ltag, id_user)
-    } else {
-        keyboards::keyboard_day_pig_to_inline(ltag)
-    };
-    InlineQueryResultArticle::new(
-        "5",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .thumb_url(get_photostock(Image::DayPig))
-    .reply_markup(markup)
-}
-
-fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
-    let caption = lng("HandPigFlagGoCaption", ltag).args(&[("flag", flag)]);
-    let desc = lng("HandPigFlagGoDesc", ltag);
-    let message = lng("HandPigFlagGoMessage", ltag).args(&[("flag", flag)]);
-
-    InlineQueryResultArticle::new(
-        "40004",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-}
-
-fn flag_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("HandPigNoFlagChangeCaption", ltag);
-    let desc = lng("HandPigNoFlagChangeDesc", ltag);
-    let message = lng("HandPigNoFlagChangeMessage", ltag);
-
-    InlineQueryResultArticle::new(
-        "40005",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-}
-
-fn flag_change_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    old_flag: Flags,
-    new_flag: Flags,
-    idx: usize,
-) -> InlineQueryResultArticle {
-    let old_flag_emoji = old_flag.to_emoji();
-    let new_flag_emoji = new_flag.to_emoji();
-    let new_flag_code = new_flag.to_code();
-
-    let caption =
-        lng("HandPigFlagChangeCaption", ltag).args(&[("flag", new_flag_emoji)]);
-    let desc =
-        lng("HandPigFlagChangeDesc", ltag).args(&[("code", new_flag_code)]);
-
-    let message = lng("HandPigFlagChangeMessage", ltag)
-        .args(&[("old_flag", old_flag_emoji), ("new_flag", new_flag_emoji)]);
-
-    let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
-
-    InlineQueryResultArticle::new(
-        idx.to_string(),
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .reply_markup(markup)
-}
-
-fn lang_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    flag: &str,
-    code: &str,
-) -> InlineQueryResultArticle {
-    let caption = lng("InlineLangGoCaption", ltag)
-        .args(&[("flag", flag), ("code", code)]);
-    let desc = lng("InlineLangGoDesc", ltag);
-    let message = lng("InlineLangGoMessage", ltag)
-        .args(&[("flag", flag), ("code", code)]);
-
-    let markup = keyboards::keyboard_change_lang(ltag, id_user, "-");
-    InlineQueryResultArticle::new(
-        "50004",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .reply_markup(markup)
-}
-
-fn lang_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("InlineLangNoChangeCaption", ltag);
-    let desc = lng("InlineLangNoChangeDesc", ltag);
-    let message = lng("InlineLangNoChangeMessage", ltag);
-
-    InlineQueryResultArticle::new(
-        "50005",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-}
-
-fn lang_change_info(
-    ltag: LocaleTag,
-    id_user: UserId,
-    old_lang_code: Option<&str>,
-    new_lang_code: &str,
-    idx: usize,
-) -> InlineQueryResultArticle {
-    let old_lang_emoji = old_lang_code
-        .map_or("-", |v| Flags::from_code(v).unwrap_or(Flags::Us).to_emoji());
-    let new_lang_emoji =
-        Flags::from_code(new_lang_code).unwrap_or(Flags::Us).to_emoji();
-
-    let langed_key = format!("lang_{new_lang_code}");
-
-    let langed_name = lng(&langed_key, ltag);
-    let caption = lng("InlineLangChangeCaption", ltag)
-        .args(&[("flag", new_lang_emoji), ("lang", &langed_name)]);
-    let desc_key = if old_lang_emoji == new_lang_emoji {
-        "InlineLangChangeDescAlready"
-    } else {
-        "InlineLangChangeDesc"
-    };
-    let desc = lng(desc_key, ltag).args(&[("code", new_lang_code)]);
-
-    let message = lng("InlineLangChangeMessage", ltag).args(&[
-        ("old_code", old_lang_code.unwrap_or("-")),
-        ("old_flag", old_lang_emoji),
-        ("new_code", new_lang_code),
-        ("new_flag", new_lang_emoji),
-    ]);
-
-    let markup = keyboards::keyboard_change_lang(ltag, id_user, new_lang_code);
-
-    InlineQueryResultArticle::new(
-        idx.to_string(),
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .reply_markup(markup)
-}
-
-fn cpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
-    let caption = lng("InlineOcCPUCaption", ltag);
-
-    let message = lng("InlineOcCPUMessage", ltag).args(&[
-        ("cpu_clock", mass.to_string().as_str()),
-        ("cpu_emoji", formulas::get_oc_cpu_emoji(mass)),
-    ]);
-
-    InlineQueryResultArticle::new(
-        "6",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .thumb_url(get_photostock(Image::OCCPU))
-}
-
-fn ram_oc_info(ltag: LocaleTag, mass: u32) -> InlineQueryResultArticle {
-    let caption = lng("InlineOcRAMCaption", ltag);
-    let message = lng("InlineOcRAMMessage", ltag).args(&[
-        ("ram_clock", mass.to_string().as_str()),
-        ("ram_emoji", formulas::get_oc_ram_emoji(mass)),
-    ]);
-
-    InlineQueryResultArticle::new(
-        "7",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .thumb_url(get_photostock(Image::OCRAM))
-}
-
-fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
-    let caption = lng("InlineOcGPUCaption", ltag);
-    let message = lng("InlineOcGPUMessage", ltag).args(&[
-        ("gpu_hashrate", mass.to_string().as_str()),
-        ("gpu_emoji", formulas::get_oc_gpu_emoji(mass)),
-    ]);
-
-    InlineQueryResultArticle::new(
-        "8",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .thumb_url(get_photostock(Image::OCGPU))
-}
-
 fn get_accesibility_by_chattype(
     chat_type: Option<ChatType>,
 ) -> (Top10Variant, bool, Top10Variant) {
@@ -910,62 +551,4 @@ fn get_accesibility_by_chattype(
         },
         Some(_) => (Top10Variant::Global, false, Top10Variant::Chat),
     }
-}
-
-fn handle_error_info(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("Error", ltag);
-    let message = lng("InlineTechDesc", ltag);
-    let desc = lng("InlineTechCaption", ltag);
-
-    InlineQueryResultArticle::new(
-        "500",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-    .thumb_url(get_photostock(Image::Error))
-}
-
-fn handle_error_parse(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("ErrorParseInlineNumberCaption", ltag);
-    let desc = lng("ErrorParseInlineNumberDesc", ltag);
-
-    let message = format!("{}\n\n{}", &caption, &desc);
-
-    InlineQueryResultArticle::new(
-        "5001",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-}
-
-fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
-    let caption = lng("ErrorNoResultsCaption", ltag);
-    let desc = lng("ErrorNoResultsDesc", ltag);
-
-    let message = format!("{}\n\n{}", &caption, &desc);
-
-    InlineQueryResultArticle::new(
-        "5002",
-        caption,
-        InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
-        ),
-    )
-    .description(desc)
-}
-
-fn _get_duel_winrate(ltag: LocaleTag, win: u16, rout: u16) -> String {
-    if rout == 0 || win == 0 {
-        return italic(&lng("InlineDuelNotEnoughBattles", ltag));
-    }
-
-    let percent_winrate = 100.0 / ((win as f32 + rout as f32) / win as f32);
-
-    bold(&format!("{} %", percent_winrate as u32))
 }
