@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use std::str::FromStr;
+
 use strum::{AsRefStr, Display, EnumString};
 use teloxide::macros::BotCommands;
 
@@ -163,4 +165,60 @@ pub enum PigGrowthStatus {
     Lost,
     Maintained,
     Gained,
+}
+
+#[derive(AsRefStr, EnumString, Display)]
+#[strum(serialize_all = "snake_case")]
+pub enum InlineResults {
+    GetStartDuel,
+    GetTop10Info,
+    GetHryakInfo,
+    GetMoreInfo,
+    NameHryakInfo,
+    RenameHryakInfo,
+    DayPigInfo,
+    FlagInfo,
+    FlagEmptyInfo,
+    FlagChangeInfo(usize),
+    LangInfo,
+    LangEmptyInfo,
+    LangChangeInfo(usize),
+    CpuOcInfo,
+    RamOcInfo,
+    GpuOcInfo,
+    ErrorInfo,
+    ErrorParse,
+    NoResults,
+}
+
+// Created due to strum crate limitations to parse and make enum with arguments.
+impl InlineResults {
+    pub const DELIMITER: char = '|';
+
+    pub fn from_str_with_args(value: &str) -> Option<InlineResults> {
+        let (key, maybe_value) = value.split_once(Self::DELIMITER)?;
+        let enum_result = InlineResults::from_str(key).ok()?;
+
+        match enum_result {
+            Self::FlagChangeInfo(_) => {
+                Self::FlagChangeInfo(maybe_value.parse().ok()?)
+            },
+            Self::LangChangeInfo(_) => {
+                Self::LangChangeInfo(maybe_value.parse().ok()?)
+            },
+            v => v,
+        }
+        .into()
+    }
+
+    pub fn to_string_with_args(&self) -> String {
+        let key = self.to_string();
+
+        match self {
+            Self::FlagChangeInfo(v) | Self::LangChangeInfo(v) => {
+                format!("{key}{}{v}", Self::DELIMITER)
+            },
+            _ => format!("{key}{}", Self::DELIMITER),
+        }
+    }
 }

@@ -5,7 +5,7 @@ use teloxide::types::{
 use teloxide::utils::html::{bold, italic};
 
 use crate::consts::BOT_PARSE_MODE;
-use crate::enums::{Image, Top10Variant};
+use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
 use crate::lang::{lng, InnerLang, LocaleTag};
 use crate::models::{InlineUser, User};
@@ -30,7 +30,7 @@ pub fn get_start_duel(
     let content = InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
 
     InlineQueryResultArticle::new(
-        "11",
+        InlineResults::GetStartDuel.to_string_with_args(),
         title,
         InputMessageContent::Text(content),
     )
@@ -50,7 +50,7 @@ pub fn get_top10_info(
         InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
 
     InlineQueryResultArticle::new(
-        "10",
+        InlineResults::GetTop10Info.to_string_with_args(),
         title,
         InputMessageContent::Text(message_text),
     )
@@ -83,7 +83,7 @@ pub fn get_hryak_info(
     let desc =
         lng("InlineStatsDesc", ltag).args(&[("weight", &converted_mass)]);
     let query_result = InlineQueryResultArticle::new(
-        "0",
+        InlineResults::GetHryakInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -107,7 +107,7 @@ pub fn get_more_info(ltag: LocaleTag) -> InlineQueryResultArticle {
     let desc = lng("InlineMoreInfoDesc", ltag);
 
     InlineQueryResultArticle::new(
-        "600",
+        InlineResults::GetMoreInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -126,7 +126,7 @@ pub fn name_hryak_info(
     let message = lng("HandPigNameGoMessage", ltag).args(&[("name", &name)]);
 
     InlineQueryResultArticle::new(
-        "3",
+        InlineResults::NameHryakInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -150,7 +150,7 @@ pub fn rename_hryak_info(
 
     let desc = lng("HandPigNameChangeDesc", ltag);
     InlineQueryResultArticle::new(
-        "4",
+        InlineResults::RenameHryakInfo.to_string_with_args(),
         &cutted_name,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -179,7 +179,7 @@ pub fn day_pig_info(
         keyboards::keyboard_day_pig_to_inline(ltag)
     };
     InlineQueryResultArticle::new(
-        "5",
+        InlineResults::DayPigInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -196,7 +196,7 @@ pub fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
     let message = lng("HandPigFlagGoMessage", ltag).args(&[("flag", flag)]);
 
     InlineQueryResultArticle::new(
-        "40004",
+        InlineResults::FlagInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -211,7 +211,7 @@ pub fn flag_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
     let message = lng("HandPigNoFlagChangeMessage", ltag);
 
     InlineQueryResultArticle::new(
-        "40005",
+        InlineResults::FlagEmptyInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -242,7 +242,7 @@ pub fn flag_change_info(
     let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
 
     InlineQueryResultArticle::new(
-        idx.to_string(),
+        InlineResults::FlagChangeInfo(idx).to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -266,7 +266,7 @@ pub fn lang_info(
 
     let markup = keyboards::keyboard_change_lang(ltag, id_user, "-");
     InlineQueryResultArticle::new(
-        "50004",
+        InlineResults::LangInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -282,7 +282,7 @@ pub fn lang_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
     let message = lng("InlineLangNoChangeMessage", ltag);
 
     InlineQueryResultArticle::new(
-        "50005",
+        InlineResults::LangEmptyInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -325,7 +325,7 @@ pub fn lang_change_info(
     let markup = keyboards::keyboard_change_lang(ltag, id_user, new_lang_code);
 
     InlineQueryResultArticle::new(
-        idx.to_string(),
+        InlineResults::LangChangeInfo(idx).to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -344,7 +344,7 @@ pub fn cpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
     ]);
 
     InlineQueryResultArticle::new(
-        "6",
+        InlineResults::CpuOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -361,7 +361,7 @@ pub fn ram_oc_info(ltag: LocaleTag, mass: u32) -> InlineQueryResultArticle {
     ]);
 
     InlineQueryResultArticle::new(
-        "7",
+        InlineResults::RamOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -378,7 +378,7 @@ pub fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
     ]);
 
     InlineQueryResultArticle::new(
-        "8",
+        InlineResults::GpuOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -393,7 +393,7 @@ pub fn handle_error_info(ltag: LocaleTag) -> InlineQueryResultArticle {
     let desc = lng("InlineTechCaption", ltag);
 
     InlineQueryResultArticle::new(
-        "500",
+        InlineResults::ErrorInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -410,7 +410,7 @@ pub fn handle_error_parse(ltag: LocaleTag) -> InlineQueryResultArticle {
     let message = format!("{}\n\n{}", &caption, &desc);
 
     InlineQueryResultArticle::new(
-        "5001",
+        InlineResults::ErrorParse.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -426,7 +426,7 @@ pub fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
     let message = format!("{}\n\n{}", &caption, &desc);
 
     InlineQueryResultArticle::new(
-        "5002",
+        InlineResults::NoResults.to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
