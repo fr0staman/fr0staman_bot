@@ -1,4 +1,5 @@
 pub mod date;
+pub mod decode;
 pub mod flag;
 pub mod formulas;
 pub mod helpers;
