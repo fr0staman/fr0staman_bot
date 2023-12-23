@@ -182,6 +182,11 @@ async fn callback_give_hand_pig_name(
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
+    if data.1 != q.from.id {
+        callback_access_denied(bot, q, ltag).await?;
+        return Ok(());
+    }
+
     let new_name = data.2;
 
     DB.hand_pig.update_hrundel_name(q.from.id.0, new_name).await?;
