@@ -7,6 +7,7 @@
   "/print_desc": "almost anonymous email to chat",
   "/help_desc": "the help you deserve",
   "/game_desc": "about the game «Grow the Boar»",
+  "/louder_desc": "make your grunt /louder <ratio>",
   "Accepted": "принято",
   "NotAccepted": "не принято",
   "AccessDenied": "tikay s sela - it's not your button",
@@ -210,5 +211,13 @@
   "GifAccepted": "✅ GIF successfully accepted 🐽💨",
   "GifNotAcceptedMsg": "Oh, your GIF is not accepted :(",
   "GifNotAccepted": "❌ GIF not accepted",
-  "GifAddMessage": "Thank you!\nI will be sure to let you, when your brilliant gif will be accepted!"
+  "GifAddMessage": "Thank you!\nI will be sure to let you, when your brilliant gif will be accepted!",
+  "CmdLouderNoReply": "🦻 There is no reply with voice",
+  "CmdLouderNoVoice": "🦻 There is no voice in reply",
+  "CmdLouderLimitPremium": "❌ Your voice message exceeds limit.",
+  "CmdLouderLimitDefault": "❌ Your voice message exceeds the 1 minute limit.\n\nFor longer voice messages, support bot as «Support»",
+  "CmdLouderErrorFileDownload": "❌ Could not download your voice message.\n\nPlease try again or later",
+  "CmdLouderParseError": "❌ Invalid ratio, check.\n\nExamples:\n/louder 3\n/louder 1.5",
+  "CmdLouderFailedProcess": "❌ Your voice message could not be processed, please try another one",
+  "CmdLouderFailedSend": "❌ Error sending voice :(\n\n Please try again or later"
 }

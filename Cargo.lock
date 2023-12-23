@@ -106,6 +106,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "audiopus"
+version = "0.3.0-rc.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab55eb0e56d7c6de3d59f544e5db122d7725ec33be6a276ee8241f3be6473955"
+dependencies = [
+ "audiopus_sys",
+]
+
+[[package]]
+name = "audiopus_sys"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62314a1546a2064e033665d658e88c620a62904be945f8147e6b16c3db9f8651"
+dependencies = [
+ "cmake",
+ "log",
+ "pkg-config",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -839,6 +859,7 @@ dependencies = [
  "axum",
  "axum-prometheus",
  "base64",
+ "bytes",
  "chrono",
  "dashmap",
  "diesel",
@@ -846,6 +867,7 @@ dependencies = [
  "dotenvy",
  "futures",
  "log",
+ "ogg-opus",
  "once_cell",
  "packed_struct",
  "pretty_env_logger",
@@ -1721,6 +1743,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9cf5f9dd3933bd50a9e1f149ec995f39ae2c496d31fd772c1fd45ebc27e902b0"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "ogg"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5477016638150530ba21dec7caac835b29ef69b20865751d2973fce6be386cf1"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "ogg-opus"
+version = "0.1.2"
+source = "git+https://github.com/fr0staman/ogg-opus#2181cea24a6c644c8dc1ef44da0d15aacd750cd1"
+dependencies = [
+ "audiopus",
+ "byteorder",
+ "ogg",
+ "rand",
+ "thiserror",
 ]
 
 [[package]]

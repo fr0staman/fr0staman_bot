@@ -1,19 +1,21 @@
 use futures::FutureExt;
 use teloxide::prelude::*;
-use teloxide::types::ChatKind;
+use teloxide::types::{ChatKind, InputFile};
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
-use crate::consts::CHAT_PIG_START_MASS;
+use crate::consts::LOUDER_DEFAULT_VOICE_LIMIT;
+use crate::consts::LOUDER_PREMIUM_VOICE_LIMIT;
+use crate::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards;
 use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
 use crate::models::UserStatus;
-use crate::traits::MaybeMessageSetter;
+use crate::traits::{MaybeMessageSetter, MaybeVoiceSetter};
 use crate::utils::date::{get_datetime, get_timediff};
 use crate::utils::formulas::calculate_chat_pig_grow;
-use crate::utils::helpers::{escape, plural, truncate};
+use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
 use crate::utils::text::generate_chat_top50_text;
 use crate::{MyBot, MyResult};
 
@@ -52,6 +54,7 @@ pub async fn filter_commands(
         MyCommands::Game => command_game(bot, &m, ltag).boxed(),
         MyCommands::Lang => command_lang(bot, &m, ltag).boxed(),
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
+        MyCommands::Louder => command_louder(bot, &m, ltag).boxed(),
     };
 
     let response = function.await;
@@ -505,6 +508,115 @@ async fn command_id(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let text = lng("UserCommandIdMessage", ltag).args(&[("id", user.id)]);
     bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     Ok(())
+}
+
+async fn command_louder(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    let Some(reply) = m.reply_to_message() else {
+        let text = lng("CmdLouderNoReply", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+
+    let Some(voice) = reply.voice() else {
+        let text = lng("CmdLouderNoVoice", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+
+    let Some(from) = m.from() else { return Ok(()) };
+    let Ok(Some(user)) =
+        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await
+    else {
+        return Ok(());
+    };
+
+    if user.supported && voice.duration > LOUDER_PREMIUM_VOICE_LIMIT {
+        let text = lng("CmdLouderLimitPremium", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    } else if voice.duration > LOUDER_DEFAULT_VOICE_LIMIT {
+        let text = lng("CmdLouderLimitDefault", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+
+    let splitted = m.text().unwrap_or("").split_once(' ');
+
+    let volume_factor = if let Some((_, volume)) = splitted {
+        match volume.parse() {
+            Ok(value) => value,
+            _ => {
+                let text = lng("CmdLouderParseError", ltag);
+                bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+                return Ok(());
+            },
+        }
+    } else {
+        LOUDER_DEFAULT_RATIO
+    };
+
+    let Ok(as_file) = bot.get_file(&voice.file.id).await else {
+        let text = lng("CmdLouderErrorFileDownload", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+    let Some(voice_content) = get_file_from_stream(&bot, &as_file).await else {
+        let text = lng("CmdLouderErrorFileDownload", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+
+    let m = m.clone();
+
+    let Some(new_voice) = increase_sound(voice_content, volume_factor).await
+    else {
+        let text = lng("CmdLouderFailedProcess", ltag);
+        let _ = bot.send_message(m.chat.id, text).maybe_thread_id(&m).await;
+        return Ok(());
+    };
+
+    let res = bot
+        .send_voice(m.chat.id, InputFile::memory(new_voice))
+        .maybe_thread_id(&m)
+        .await;
+
+    if res.is_err() {
+        let text = lng("CmdLouderFailedSend", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+    };
+
+    Ok(())
+}
+
+async fn increase_sound(
+    input_data: bytes::Bytes,
+    volume_factor: f32,
+) -> Option<Vec<u8>> {
+    let mut raw = tokio::task::spawn_blocking(move || {
+        let (raw, _header) =
+            ogg_opus::decode::<_, 48000>(std::io::Cursor::new(input_data))
+                .ok()?;
+        Some(raw)
+    })
+    .await
+    .ok()??;
+
+    let raw = tokio::task::spawn_blocking(move || {
+        for num in &mut raw {
+            *num = (*num as f32 * volume_factor) as i16;
+        }
+        raw
+    })
+    .await
+    .ok()?;
+
+    tokio::task::spawn_blocking(move || ogg_opus::encode::<48000, 1>(&raw).ok())
+        .await
+        .ok()?
 }
 
 async fn _game_only_for_chats(

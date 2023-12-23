@@ -26,6 +26,7 @@ pub enum MyCommands {
     Top,
     Game,
     Lang,
+    Louder,
 }
 
 #[derive(BotCommands, Clone, Debug)]

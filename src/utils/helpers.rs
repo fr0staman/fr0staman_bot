@@ -1,6 +1,8 @@
 use diesel::{debug_query, mysql::Mysql, query_builder::DebugQuery};
+use futures::TryStreamExt;
 use std::iter;
 use teloxide::{
+    net::Download,
     types::{ChatKind, PublicChatKind, UserId},
     utils::html,
 };
@@ -14,6 +16,7 @@ use crate::{
     enums::{CbActions, Image},
     models::User,
     types::ParsedCallbackData,
+    MyBot,
 };
 
 const SEPARATOR: char = ':';
@@ -125,4 +128,15 @@ pub fn mass_addition_on_status(user: &User) -> i32 {
     } else {
         0
     }
+}
+
+pub async fn get_file_from_stream(
+    bot: &MyBot,
+    file: &teloxide::types::File,
+) -> Option<bytes::Bytes> {
+    bot.download_file_stream(&file.path)
+        .try_collect()
+        .await
+        .map(bytes::BytesMut::freeze)
+        .ok()
 }
