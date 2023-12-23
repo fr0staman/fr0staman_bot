@@ -534,10 +534,12 @@ async fn command_louder(
         return Ok(());
     };
 
-    if user.supported && voice.duration > LOUDER_PREMIUM_VOICE_LIMIT {
-        let text = lng("CmdLouderLimitPremium", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
-        return Ok(());
+    if user.supported {
+        if voice.duration > LOUDER_PREMIUM_VOICE_LIMIT {
+            let text = lng("CmdLouderLimitPremium", ltag);
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            return Ok(());
+        }
     } else if voice.duration > LOUDER_DEFAULT_VOICE_LIMIT {
         let text = lng("CmdLouderLimitDefault", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
