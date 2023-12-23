@@ -156,13 +156,15 @@ async fn command_pidor(
     let chat_id = m.chat.id;
     let m_id = m.id;
 
-    if let Some(reply) = m.reply_to_message().cloned() {
+    if let Some(reply_id) = m.reply_to_message().map(|mr| mr.id) {
         let bot = bot.clone();
+        let m = m.clone();
         tokio::spawn(async move {
             let text = lng("YouPidor", ltag);
             let _ = bot
                 .send_message(chat_id, text)
-                .reply_to_message_id(reply.id)
+                .reply_to_message_id(reply_id)
+                .maybe_thread_id(&m)
                 .await;
         });
     }
