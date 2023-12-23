@@ -27,7 +27,7 @@ use teloxide::{
 
 use crate::{
     config::{BOT_CONFIG, BOT_ME},
-    consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG},
+    consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, IGNORED_COMMANDS},
     db::Database,
     enums::{AdminCommands, EpycCommands, MyCommands},
     handlers::{admin, callback, command, epyc, inline, message, system},
@@ -194,8 +194,6 @@ async fn setup_db() {
     // I just try check database, thats not bad
     let _ = Database::new();
 }
-
-const IGNORED_COMMANDS: &[&str] = &["/lang", "/p", "/start", "/id"];
 
 async fn setup_commands(bot: &MyBot) {
     let langs = get_langs();

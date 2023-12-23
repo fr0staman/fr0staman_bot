@@ -15,6 +15,8 @@ pub const SUBSCRIBE_GIFT: i32 = 100;
 pub const DAILY_GIFT_AMOUNT: i32 = 500;
 
 pub const CHAT_PIG_START_MASS: i32 = 1;
+// I'm too lazy to do this properly
+pub const IGNORED_COMMANDS: [&str; 4] = ["/lang", "/p", "/start", "/id"];
 
 #[allow(clippy::type_complexity)]
 pub static DUEL_LOCKS: Lazy<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
