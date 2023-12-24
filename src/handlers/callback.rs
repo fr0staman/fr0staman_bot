@@ -515,13 +515,19 @@ async fn callback_start_duel(
 
     let ((winner, looser), damage, status) = _duel_get_winner(&first, &second);
 
-    let lng_key = &format!("InlineDuelMessage_{}", &status);
+    let stats = lng("InlineDuelFinalStats", ltag).args(&[
+        ("winner_name", &winner.0.name),
+        ("looser_name", &looser.0.name),
+        ("winner_weight", &(winner.0.weight + damage).to_string()),
+        ("looser_weight", &(looser.0.weight - damage).to_string()),
+    ]);
+
+    let lng_key = &format!("InlineDuelMessage_{}", status.as_ref());
     let text = lng(lng_key, ltag).args(&[
         ("winner_name", &winner.0.name),
         ("looser_name", &looser.0.name),
         ("diff", &damage.to_string()),
-        ("winner_weight", &(winner.0.weight + damage).to_string()),
-        ("looser_weight", &(looser.0.weight - damage).to_string()),
+        ("stats", &stats),
     ]);
 
     let winner_id = winner.1.user_id;
@@ -532,9 +538,16 @@ async fn callback_start_duel(
     DB.hand_pig.update_hrundel_duel(winner_id, damage, true).await?;
     DB.hand_pig.update_hrundel_duel(looser_id, damage, looser_is_win).await?;
 
-    bot.edit_message_text_inline(im_id, text)
-        .disable_web_page_preview(true)
-        .await?;
+    let mut request = bot
+        .edit_message_text_inline(im_id, text)
+        .disable_web_page_preview(true);
+
+    if status == DuelResult::Knockout {
+        let keyboard = keyboards::keyboard_link_to_chat(ltag);
+        request = request.reply_markup(keyboard);
+    };
+
+    request.await?;
 
     user_locked_threads.retain(|&x| x != thread_identifier);
     drop(user_locked_threads);
