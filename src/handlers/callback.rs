@@ -1,6 +1,6 @@
 use futures::{future::BoxFuture, FutureExt};
 use rand::Rng;
-use std::{str::FromStr, sync::Arc};
+use std::{cmp::Ordering, str::FromStr, sync::Arc};
 use teloxide::{
     prelude::*,
     requests::Requester,
@@ -19,7 +19,7 @@ use crate::{
         SUBSCRIBE_GIFT, TOP_LIMIT,
     },
     db::DB,
-    enums::{CbActions, Top10Variant},
+    enums::{CbActions, DuelResult, Top10Variant},
     keyboards,
     lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag},
     models::{InlineUser, UpdateInlineUser, User, UserStatus},
@@ -513,7 +513,7 @@ async fn callback_start_duel(
 
     sleep(Duration::from_secs(3)).await;
 
-    let ((winner, looser), damage, status) = _duel_get_winner(&first, &second);
+    let ((winner, looser), damage, status) = _duel_get_status(&first, &second);
 
     let stats = lng("InlineDuelFinalStats", ltag).args(&[
         ("winner_name", &winner.0.name),
@@ -533,7 +533,7 @@ async fn callback_start_duel(
     let winner_id = winner.1.user_id;
     let looser_id = looser.1.user_id;
 
-    let looser_is_win = status == 0;
+    let looser_is_win = status == DuelResult::Draw;
 
     DB.hand_pig.update_hrundel_duel(winner_id, damage, true).await?;
     DB.hand_pig.update_hrundel_duel(looser_id, damage, looser_is_win).await?;
@@ -615,10 +615,10 @@ async fn callback_change_top(
 
 type Hrundel = (InlineUser, User);
 
-fn _duel_get_winner<'a>(
+fn _duel_get_status<'a>(
     first: &'a Hrundel,
     second: &'a Hrundel,
-) -> ((&'a Hrundel, &'a Hrundel), i32, i32) {
+) -> ((&'a Hrundel, &'a Hrundel), i32, DuelResult) {
     let mut first_chance = first.0.weight;
     let mut second_chance = second.0.weight;
 
@@ -631,35 +631,27 @@ fn _duel_get_winner<'a>(
     let first_random = rand::thread_rng().gen_range(0..first_chance);
     let second_random = rand::thread_rng().gen_range(0..second_chance);
 
-    let mut status = 0;
-    let (mut winner, mut looser) = (first, second);
+    let duel_win_variant = |random, weight| match random {
+        r if r >= (weight * 99) / 100 => DuelResult::Knockout,
+        r if r >= (weight * 90) / 100 => DuelResult::Critical,
+        _ => DuelResult::Win,
+    };
 
-    #[allow(clippy::comparison_chain)]
-    if first_random > second_random {
-        status = 1;
-        if first_random >= (first.0.weight * 95) / 100 {
-            status = 3;
-            if first_random >= (first.0.weight * 95) / 100 {
-                status = 5;
-            }
-        }
-    } else if second_random > first_random {
-        status = 2;
-        if second_random >= (second.0.weight * 95) / 100 {
-            status = 4;
-            if second_random >= (second.0.weight * 95) / 100 {
-                status = 6;
-            }
-        }
-        winner = second;
-        looser = first;
-    }
+    let (status, winner, looser) = match first_random.cmp(&second_random) {
+        Ordering::Greater => {
+            (duel_win_variant(first_random, first.0.weight), first, second)
+        },
+        Ordering::Less => {
+            (duel_win_variant(second_random, second.0.weight), second, first)
+        },
+        Ordering::Equal => (DuelResult::Draw, first, second),
+    };
 
     let damage = match status {
-        1 | 2 => looser.0.weight / 8,
-        3 | 4 => looser.0.weight / 3,
-        5 | 6 => (looser.0.weight as f32 / 1.5) as i32,
-        _ => std::cmp::max(first.0.weight, second.0.weight) / 8,
+        DuelResult::Win => looser.0.weight / 8,
+        DuelResult::Critical => looser.0.weight / 3,
+        DuelResult::Knockout => (looser.0.weight as f32 / 1.5) as i32,
+        DuelResult::Draw => looser.0.weight.max(winner.0.weight) / 8,
     };
 
     ((winner, looser), damage, status)

@@ -223,3 +223,11 @@ impl InlineResults {
         }
     }
 }
+
+#[derive(PartialEq, AsRefStr)]
+pub enum DuelResult {
+    Draw,
+    Win,
+    Critical,
+    Knockout,
+}

@@ -244,6 +244,15 @@ pub fn keyboard_empty() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::default()
 }
 
+pub fn keyboard_link_to_chat(ltag: LocaleTag) -> InlineKeyboardMarkup {
+    let text = lng("InlineDuelChatButton", ltag);
+    let chat_url =
+        format!("https://t.me/{}", &BOT_CONFIG.chat_link).parse().unwrap();
+    let button = InlineKeyboardButton::url(text, chat_url);
+
+    InlineKeyboardMarkup::new([[button]])
+}
+
 fn _button_startgroup(ltag: LocaleTag) -> InlineKeyboardButton {
     let url = BOT_CONFIG.me.tme_url();
     let url = url.join("?startgroup=inline").unwrap();

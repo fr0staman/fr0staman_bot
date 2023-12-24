@@ -24,6 +24,7 @@ pub struct Config {
     pub creator_id: u64,
     pub prometheus_token: String,
     pub gif_content_channel_id: i64,
+    pub chat_link: String,
 }
 
 fn _from_env<T: FromStr>(name: &str) -> T
@@ -50,6 +51,7 @@ pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     creator_id: _from_env("CREATOR_ID"),
     prometheus_token: _from_env("PROMETHEUS_TOKEN"),
     gif_content_channel_id: _from_env("GIF_CONTENT_CHANNEL_ID"),
+    chat_link: _from_env("CHAT_LINK"),
 });
 
 pub static BOT_ME: OnceLock<Me> = OnceLock::new();
