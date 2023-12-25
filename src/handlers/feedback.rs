@@ -7,6 +7,8 @@ use crate::db::DB;
 use crate::enums::InlineResults;
 use crate::lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag};
 use crate::types::MyBot;
+use crate::utils::date::get_date;
+use crate::utils::decode::decode_inline_message_id;
 use crate::utils::flag::Flags;
 use crate::utils::helpers;
 use crate::{MyError, MyResult};
@@ -40,6 +42,7 @@ pub async fn filter_inline_feedback_commands(
         InlineResults::LangChangeInfo(v) => {
             chosen_change_lang(bot, &q, ltag, v).boxed()
         },
+        InlineResults::DayPigInfo => chosen_day_pig(bot, &q, ltag).boxed(),
         _ => {
             chosen_unhandled(bot, &q).await?;
             return Ok(());
@@ -124,6 +127,49 @@ async fn chosen_change_lang(
 
     Ok(())
 }
+
+async fn chosen_day_pig(
+    bot: MyBot,
+    q: &ChosenInlineResult,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    let Some(im_id) = &q.inline_message_id else { return Ok(()) };
+    let Some(mut chat_info) = decode_inline_message_id(im_id) else {
+        log::error!("inline_message_id [{}] not decoded", im_id);
+        return Ok(());
+    };
+
+    chat_info.normalize();
+
+    let Some(day_pig_info) = DB.other.get_chat(chat_info.chat_id).await? else {
+        return Ok(());
+    };
+
+    let Some(ig_id) = day_pig_info.ig_id else { return Ok(()) };
+
+    let Some(inline_group_info) =
+        DB.hand_pig.get_inline_group_by_id(ig_id).await?
+    else {
+        return Ok(());
+    };
+
+    let cur_date = get_date();
+    let chat_instance = inline_group_info.chat_instance.to_string();
+
+    let Some(day_pig) =
+        DB.hand_pig.get_hryak_day_in_chat(&chat_instance, cur_date).await?
+    else {
+        // That means, day pig was not found, so, just preserve the mystery of pressing a button for the user - don't change the message
+        return Ok(());
+    };
+
+    let text =
+        lng("DayPigAlreadyFound", ltag).args(&[("name", day_pig.2.f_name)]);
+    bot.edit_message_text_inline(im_id, text).await?;
+
+    Ok(())
+}
+
 async fn chosen_unhandled(_bot: MyBot, q: &ChosenInlineResult) -> MyResult<()> {
     log::info!(
         "Unhandled chosen inline: [{}] user: [{}]",

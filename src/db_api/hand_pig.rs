@@ -234,6 +234,22 @@ impl HandPig {
         Ok(results)
     }
 
+    pub async fn get_inline_group_by_id(
+        &self,
+        primary_id: i32,
+    ) -> MyResult<Option<InlineGroup>> {
+        use crate::schema::inline_groups::dsl::*;
+
+        let results = inline_groups
+            .filter(id.eq(primary_id))
+            .select(InlineGroup::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
+
+        Ok(results)
+    }
+
     pub async fn add_inline_group(
         &self,
         instance_chat: &str,
