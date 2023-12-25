@@ -180,10 +180,10 @@ pub enum InlineResults {
     DayPigInfo,
     FlagInfo,
     FlagEmptyInfo,
-    FlagChangeInfo(usize),
+    FlagChangeInfo(String),
     LangInfo,
     LangEmptyInfo,
-    LangChangeInfo(usize),
+    LangChangeInfo(String),
     CpuOcInfo,
     RamOcInfo,
     GpuOcInfo,
@@ -213,14 +213,18 @@ impl InlineResults {
     }
 
     pub fn to_string_with_args(&self) -> String {
-        let key = self.to_string();
-
         match self {
-            Self::FlagChangeInfo(v) | Self::LangChangeInfo(v) => {
-                format!("{key}{}{v}", Self::DELIMITER)
-            },
-            _ => format!("{key}{}", Self::DELIMITER),
+            Self::LangChangeInfo(v) => self._format(v),
+            Self::FlagChangeInfo(v) => self._format(v),
+            _ => self._format(""),
         }
+    }
+
+    fn _format<T>(&self, value: T) -> String
+    where
+        T: std::fmt::Display,
+    {
+        format!("{}{}{}", self.as_ref(), Self::DELIMITER, value)
     }
 }
 

@@ -368,11 +368,9 @@ async fn inline_flag(
         let empty_info = iq_results::flag_empty_info(ltag);
         results.push(InlineQueryResult::Article(empty_info));
     } else {
-        for (idx, new_flag) in selected_flags.iter().enumerate() {
-            let number = idx + start_index;
-
+        for new_flag in selected_flags {
             let info = iq_results::flag_change_info(
-                ltag, q.from.id, old_flag, *new_flag, number,
+                ltag, q.from.id, old_flag, *new_flag,
             );
             results.push(InlineQueryResult::Article(info));
         }
@@ -415,13 +413,12 @@ async fn inline_lang(
 
     results.push(InlineQueryResult::Article(start_article));
 
-    for (idx, new_flag) in langs.iter().enumerate() {
+    for new_flag in langs {
         let info = iq_results::lang_change_info(
             ltag,
             q.from.id,
             user.lang.as_deref(),
             new_flag,
-            idx,
         );
         results.push(InlineQueryResult::Article(info));
     }

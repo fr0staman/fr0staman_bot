@@ -4,7 +4,7 @@ use teloxide::types::{
 };
 use teloxide::utils::html::{bold, italic};
 
-use crate::consts::BOT_PARSE_MODE;
+use crate::consts::{BOT_PARSE_MODE, INLINE_NAME_SET_LIMIT};
 use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
 use crate::lang::{lng, InnerLang, LocaleTag};
@@ -142,7 +142,7 @@ pub fn rename_hryak_info(
     old_name: String,
     new_name: &str,
 ) -> InlineQueryResultArticle {
-    let (cutted_name, _) = truncate(new_name, 20);
+    let (cutted_name, _) = truncate(new_name, INLINE_NAME_SET_LIMIT);
     let cutted_name = cutted_name.to_string();
 
     let message = lng("HandPigNameChangeMessage", ltag)
@@ -225,24 +225,23 @@ pub fn flag_change_info(
     id_user: UserId,
     old_flag: Flags,
     new_flag: Flags,
-    idx: usize,
 ) -> InlineQueryResultArticle {
     let old_flag_emoji = old_flag.to_emoji();
     let new_flag_emoji = new_flag.to_emoji();
-    let new_flag_code = new_flag.to_code();
+    let new_flag_code = new_flag.to_code().to_string();
 
     let caption =
         lng("HandPigFlagChangeCaption", ltag).args(&[("flag", new_flag_emoji)]);
     let desc =
-        lng("HandPigFlagChangeDesc", ltag).args(&[("code", new_flag_code)]);
+        lng("HandPigFlagChangeDesc", ltag).args(&[("code", &new_flag_code)]);
 
     let message = lng("HandPigFlagChangeMessage", ltag)
         .args(&[("old_flag", old_flag_emoji), ("new_flag", new_flag_emoji)]);
 
-    let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
+    let markup = keyboards::keyboard_change_flag(ltag, id_user, &new_flag_code);
 
     InlineQueryResultArticle::new(
-        InlineResults::FlagChangeInfo(idx).to_string_with_args(),
+        InlineResults::FlagChangeInfo(new_flag_code).to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
@@ -296,7 +295,6 @@ pub fn lang_change_info(
     id_user: UserId,
     old_lang_code: Option<&str>,
     new_lang_code: &str,
-    idx: usize,
 ) -> InlineQueryResultArticle {
     let old_lang_emoji = old_lang_code
         .map_or("-", |v| Flags::from_code(v).unwrap_or(Flags::Us).to_emoji());
@@ -325,7 +323,8 @@ pub fn lang_change_info(
     let markup = keyboards::keyboard_change_lang(ltag, id_user, new_lang_code);
 
     InlineQueryResultArticle::new(
-        InlineResults::LangChangeInfo(idx).to_string_with_args(),
+        InlineResults::LangChangeInfo(new_lang_code.to_owned())
+            .to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),

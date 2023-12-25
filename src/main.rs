@@ -30,7 +30,9 @@ use crate::{
     consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, IGNORED_COMMANDS},
     db::Database,
     enums::{AdminCommands, EpycCommands, MyCommands},
-    handlers::{admin, callback, command, epyc, inline, message, system},
+    handlers::{
+        admin, callback, command, epyc, feedback, inline, message, system,
+    },
     lang::{get_langs, lng},
     utils::helpers::get_chat_kind,
 };
@@ -132,6 +134,10 @@ async fn run() {
             Update::filter_my_chat_member()
                 .filter(|u: Update| u.chat().is_some_and(|c| c.is_private()))
                 .endpoint(system::handle_ban_or_unban_in_private),
+        )
+        .branch(
+            Update::filter_chosen_inline_result()
+                .endpoint(feedback::filter_inline_feedback_commands),
         );
 
     Dispatcher::builder(bot, handler)

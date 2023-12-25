@@ -20,6 +20,7 @@ pub const IGNORED_COMMANDS: [&str; 4] = ["/lang", "/p", "/start", "/id"];
 pub const LOUDER_DEFAULT_VOICE_LIMIT: u32 = 60;
 pub const LOUDER_PREMIUM_VOICE_LIMIT: u32 = 1200;
 pub const LOUDER_DEFAULT_RATIO: f32 = 2.0;
+pub const INLINE_NAME_SET_LIMIT: usize = 20;
 
 #[allow(clippy::type_complexity)]
 pub static DUEL_LOCKS: Lazy<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
