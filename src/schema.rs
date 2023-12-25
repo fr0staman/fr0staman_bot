@@ -24,6 +24,7 @@ diesel::table! {
         #[max_length = 2]
         lang -> Nullable<Varchar>,
         active -> Bool,
+        ig_id -> Nullable<Integer>,
     }
 }
 
@@ -107,6 +108,7 @@ diesel::table! {
 
 diesel::joinable!(game -> groups (group_id));
 diesel::joinable!(game -> users (uid));
+diesel::joinable!(groups -> inline_groups (ig_id));
 diesel::joinable!(hryak_day -> inline_users_groups (iug_id));
 diesel::joinable!(inline_gifs -> users (uid));
 diesel::joinable!(inline_users -> users (uid));

@@ -27,6 +27,7 @@ use crate::{
     types::ParsedCallbackData,
     utils::{
         date::{get_date, get_datetime},
+        decode::decode_inline_message_id,
         flag::Flags,
         formulas,
         helpers::{self, get_hash},
@@ -40,6 +41,13 @@ pub async fn filter_callback_commands(
     q: CallbackQuery,
 ) -> MyResult<()> {
     crate::metrics::CALLBACK_COUNTER.inc();
+
+    // Temporary groups -> inline_groups "collector"
+    let res = _try_join_groups_with_inline(&q).await;
+    if let Err(err) = res {
+        _on_error_join_groups_with_inline(&q, err);
+    }
+
     let Some(user) =
         DB.other.maybe_get_or_insert_user(q.from.id.0, get_datetime).await?
     else {
@@ -1140,4 +1148,65 @@ async fn _check_or_insert_user_or_chat(
     }
 
     Ok(())
+}
+
+async fn _try_join_groups_with_inline(q: &CallbackQuery) -> MyResult<()> {
+    let Some(chat_id) = _maybe_get_chat_id(q) else {
+        // In theory, thats impossible but I'll not ignore it
+        log::error!("Chat_id is not exist");
+        return Ok(());
+    };
+
+    let Some(chat_info) = DB.other.get_chat(chat_id).await? else {
+        log::warn!("No chat info [{}]", chat_id);
+        return Ok(());
+    };
+
+    if chat_info.ig_id.is_some() {
+        log::warn!(
+            "Groups [{}] -> inline_groups [{}] already joined",
+            chat_id,
+            chat_info.ig_id.unwrap_or(0)
+        );
+        return Ok(());
+    }
+
+    let Some(ig_info) = DB.hand_pig.get_inline_group(&q.chat_instance).await?
+    else {
+        log::warn!("No inline group with instance [{}]", &q.chat_instance);
+
+        return Ok(());
+    };
+
+    DB.other.update_chat_ig_id(chat_id, Some(ig_info.id)).await?;
+    log::info!(
+        "Successfully joined group [{}] -> inline group [{}]",
+        chat_id,
+        &q.chat_instance
+    );
+
+    Ok(())
+}
+
+fn _on_error_join_groups_with_inline(q: &CallbackQuery, err: MyError) {
+    let possible_id = _maybe_get_chat_id(q).unwrap_or(0);
+
+    log::error!(
+        "Error with joining group [{}] -> inline_group [{}]: {:?}",
+        possible_id,
+        q.chat_instance,
+        err
+    )
+}
+
+fn _maybe_get_chat_id(q: &CallbackQuery) -> Option<i64> {
+    if let Some(m) = &q.message {
+        Some(m.chat.id.0)
+    } else if let Some(im_id) = &q.inline_message_id {
+        let mut decoded = decode_inline_message_id(im_id)?;
+        decoded.normalize();
+        Some(decoded.chat_id)
+    } else {
+        None
+    }
 }

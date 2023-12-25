@@ -304,6 +304,22 @@ impl Other {
         Ok(())
     }
 
+    pub async fn update_chat_ig_id(
+        &self,
+        id_chat: i64,
+        my_ig_id: Option<i32>,
+    ) -> MyResult<()> {
+        use crate::schema::groups::dsl::*;
+
+        diesel::update(groups)
+            .filter(chat_id.eq(id_chat))
+            .set(ig_id.eq(my_ig_id))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn maybe_get_or_insert_user(
         &self,
         user_id: u64,

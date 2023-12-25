@@ -34,6 +34,7 @@ pub struct Groups {
     pub top10_setting: i32,
     pub lang: Option<String>,
     pub active: bool,
+    pub ig_id: Option<i32>,
 }
 
 #[derive(Queryable, AsChangeset)]
