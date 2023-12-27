@@ -196,6 +196,7 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(()) };
+    let Some(animation) = m.animation() else { return Ok(()) };
 
     let Some(user) =
         DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
@@ -204,10 +205,19 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
     };
 
     let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from()));
+
+    let maybe_gif_with_same_id =
+        DB.other.get_gif_by_file_unique_id(&animation.file.unique_id).await?;
+
+    if maybe_gif_with_same_id.is_some() {
+        let text = lng("InlineGifAlreadyExist", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        return Ok(());
+    }
+
     let text = lng("InlineHrukAddMessage", ltag);
 
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
-    let Some(animation) = m.animation() else { return Ok(()) };
 
     let file = InputFile::file_id(&animation.file.id);
 

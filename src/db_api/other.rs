@@ -262,11 +262,16 @@ impl Other {
         &self,
         iv_uid: u32,
         new_file_id: String,
+        new_file_unique_id: String,
     ) -> MyResult<()> {
         use crate::schema::inline_gifs::dsl::*;
 
         diesel::insert_into(inline_gifs)
-            .values((file_id.eq(new_file_id), uid.eq(iv_uid)))
+            .values((
+                file_id.eq(new_file_id),
+                file_unique_id.eq(new_file_unique_id),
+                uid.eq(iv_uid),
+            ))
             .execute(&mut self.pool.get().await?)
             .await?;
 
@@ -284,6 +289,22 @@ impl Other {
             .select(InlineGif::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_gif_by_file_unique_id(
+        &self,
+        id_file_unique: &str,
+    ) -> MyResult<Option<InlineGif>> {
+        use crate::schema::inline_gifs::dsl::*;
+
+        let results = inline_gifs
+            .filter(file_unique_id.eq(id_file_unique))
+            .select(InlineGif::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
 
         Ok(results)
     }

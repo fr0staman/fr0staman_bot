@@ -121,6 +121,7 @@ pub struct InlineVoice {
 pub struct InlineGif {
     pub id: i16,
     pub file_id: String,
+    pub file_unique_id: String,
     pub uid: u32,
     pub status: i16,
 }

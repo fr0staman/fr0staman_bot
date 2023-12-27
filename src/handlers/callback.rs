@@ -955,7 +955,13 @@ async fn _cb_allow_gif(
         return Ok(());
     };
 
-    DB.other.add_gif(user.id, accepted_animation.file.id.to_string()).await?;
+    DB.other
+        .add_gif(
+            user.id,
+            accepted_animation.file.id.to_string(),
+            accepted_animation.file.unique_id.to_string(),
+        )
+        .await?;
 
     let gifs = DB.other.get_gifs_by_user(user.id).await?;
     let number = gifs.last().map_or(0, |v| v.id);

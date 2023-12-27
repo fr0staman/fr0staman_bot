@@ -218,5 +218,6 @@
   "CmdLouderErrorFileDownload": "❌ Could not download your voice message.\n\nPlease try again or later",
   "CmdLouderParseError": "❌ Invalid ratio, check.\n\nExamples:\n/louder 3\n/louder 1.5",
   "CmdLouderFailedProcess": "❌ Your voice message could not be processed, please try another one",
-  "CmdLouderFailedSend": "❌ Error sending voice :(\n\n Please try again or later"
+  "CmdLouderFailedSend": "❌ Error sending voice :(\n\n Please try again or later",
+  "InlineGifAlreadyExist": "🤜 I already have this beautiful gif.\n\nTry another!"
 }

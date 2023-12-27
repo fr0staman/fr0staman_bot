@@ -43,6 +43,8 @@ diesel::table! {
         file_id -> Varchar,
         status -> Smallint,
         uid -> Unsigned<Integer>,
+        #[max_length = 64]
+        file_unique_id -> Varchar,
     }
 }
 
