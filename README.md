@@ -5,7 +5,7 @@
   </p>
   <p>
 
-![MSRV](https://img.shields.io/badge/rustc-1.70+-ab6000.svg)
+![MSRV](https://img.shields.io/badge/rustc-1.72+-ab6000.svg)
 [![](https://img.shields.io/badge/Telegram-bot-blue?logo=telegram)](https://t.me/fr0staman_bot)
 [![](https://img.shields.io/badge/Telegram-chat-blue?logo=telegram)](https://t.me/fr0staman_chat)
 
