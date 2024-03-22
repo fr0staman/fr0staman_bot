@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.8"
-async-recursion = "1.0.5"
 axum = "0.6.20"
 axum-prometheus = "0.4.0"
 base64 = "0.21.7"

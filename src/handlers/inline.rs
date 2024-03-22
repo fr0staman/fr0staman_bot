@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use async_recursion::async_recursion;
 use futures::FutureExt;
 
 use teloxide::payloads::AnswerInlineQuerySetters;
@@ -98,7 +97,6 @@ async fn inline_hrundel(
     Ok(())
 }
 
-#[async_recursion]
 async fn _get_hryak(
     q: &InlineQuery,
     ltag: LocaleTag,
@@ -128,7 +126,7 @@ async fn _get_hryak(
             name: truncated_f_name.0,
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
-        return _get_hryak(q, ltag).await;
+        return Box::pin(_get_hryak(q, ltag)).await;
     };
 
     if info.0.date != cur_date {
@@ -148,7 +146,7 @@ async fn _get_hryak(
         };
 
         DB.hand_pig.update_hrundel(update_data).await?;
-        return _get_hryak(q, ltag).await;
+        return Box::pin(_get_hryak(q, ltag)).await;
     }
 
     let (chat_type, remove_markup, to) =
