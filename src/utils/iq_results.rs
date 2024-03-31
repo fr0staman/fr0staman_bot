@@ -27,7 +27,9 @@ pub fn get_start_duel(
         ("weight", &info.weight.to_string()),
     ]);
 
-    let content = InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
+    let content = InputMessageContentText::new(text)
+        .parse_mode(BOT_PARSE_MODE)
+        .disable_web_page_preview(true);
 
     InlineQueryResultArticle::new(
         InlineResults::GetStartDuel.to_string_with_args(),
@@ -46,8 +48,9 @@ pub fn get_top10_info(
     chat_type: Top10Variant,
 ) -> InlineQueryResultArticle {
     let title = lng("Top10Caption", ltag);
-    let message_text =
-        InputMessageContentText::new(text).parse_mode(BOT_PARSE_MODE);
+    let message_text = InputMessageContentText::new(text)
+        .parse_mode(BOT_PARSE_MODE)
+        .disable_web_page_preview(true);
 
     InlineQueryResultArticle::new(
         InlineResults::GetTop10Info.to_string_with_args(),
@@ -86,7 +89,9 @@ pub fn get_hryak_info(
         InlineResults::GetHryakInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -110,7 +115,9 @@ pub fn get_more_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::GetMoreInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -129,7 +136,9 @@ pub fn name_hryak_info(
         InlineResults::NameHryakInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(lng("HandPigNameGoDesc", ltag))
@@ -153,7 +162,9 @@ pub fn rename_hryak_info(
         InlineResults::RenameHryakInfo.to_string_with_args(),
         &cutted_name,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -182,7 +193,9 @@ pub fn day_pig_info(
         InlineResults::DayPigInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -199,7 +212,9 @@ pub fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
         InlineResults::FlagInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -214,7 +229,9 @@ pub fn flag_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::FlagEmptyInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -244,7 +261,9 @@ pub fn flag_change_info(
         InlineResults::FlagChangeInfo(new_flag_code).to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -268,7 +287,9 @@ pub fn lang_info(
         InlineResults::LangInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -284,7 +305,9 @@ pub fn lang_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::LangEmptyInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -327,7 +350,9 @@ pub fn lang_change_info(
             .to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -346,7 +371,9 @@ pub fn cpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
         InlineResults::CpuOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .thumb_url(get_photostock(Image::OCCPU))
@@ -363,7 +390,9 @@ pub fn ram_oc_info(ltag: LocaleTag, mass: u32) -> InlineQueryResultArticle {
         InlineResults::RamOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .thumb_url(get_photostock(Image::OCRAM))
@@ -380,7 +409,9 @@ pub fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
         InlineResults::GpuOcInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .thumb_url(get_photostock(Image::OCGPU))
@@ -395,7 +426,9 @@ pub fn handle_error_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::ErrorInfo.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -412,7 +445,9 @@ pub fn handle_error_parse(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::ErrorParse.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
@@ -428,7 +463,9 @@ pub fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
         InlineResults::NoResults.to_string_with_args(),
         caption,
         InputMessageContent::Text(
-            InputMessageContentText::new(message).parse_mode(BOT_PARSE_MODE),
+            InputMessageContentText::new(message)
+                .parse_mode(BOT_PARSE_MODE)
+                .disable_web_page_preview(true),
         ),
     )
     .description(desc)
