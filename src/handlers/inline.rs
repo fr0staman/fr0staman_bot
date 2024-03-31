@@ -197,6 +197,9 @@ async fn inline_rename_hrundel(
 
     let new_name = escape(new_name);
 
+    let new_name =
+        if new_name.is_empty() { lng("UnnamedPig", ltag) } else { new_name };
+
     let article = iq_results::rename_hryak_info(
         ltag,
         q.from.id,
