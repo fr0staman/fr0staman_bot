@@ -19,7 +19,7 @@ use crate::models::{InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
 use crate::utils::date::{get_date, get_datetime};
 use crate::utils::flag::Flags;
-use crate::utils::helpers::truncate;
+use crate::utils::helpers::{escape, truncate};
 use crate::utils::{formulas, helpers, iq_results};
 use crate::{MyError, MyResult};
 
@@ -195,11 +195,13 @@ async fn inline_rename_hrundel(
         return Ok(());
     };
 
+    let new_name = escape(new_name);
+
     let article = iq_results::rename_hryak_info(
         ltag,
         q.from.id,
         hrundel.0.name,
-        new_name,
+        &new_name,
     );
     let results = vec![InlineQueryResult::Article(article)];
 
