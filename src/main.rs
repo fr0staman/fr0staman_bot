@@ -13,6 +13,7 @@ mod traits;
 mod types;
 mod utils;
 pub use types::{MyBot, MyError, MyResult};
+pub use utils::mylog;
 
 use axum::Router;
 use std::sync::Arc;
@@ -26,7 +27,7 @@ use teloxide::{
 };
 
 use crate::{
-    config::{BOT_CONFIG, BOT_ME},
+    config::{BOT_CONFIG, BOT_ME, BOT_STATIC},
     consts::{BOT_PARSE_MODE, DEFAULT_LANG_TAG, IGNORED_COMMANDS},
     db::Database,
     enums::{AdminCommands, EpycCommands, MyCommands},
@@ -144,7 +145,7 @@ async fn run() {
         .default_handler(default_log_handler)
         .enable_ctrlc_handler()
         .build()
-        .dispatch_with_listener(listener, LoggingErrorHandler::new())
+        .dispatch_with_listener(listener, mylog::MyErrorHandler::new())
         .await;
 }
 
@@ -194,6 +195,7 @@ fn setup_lang() {
 async fn setup_me(bot: &MyBot) {
     let me = bot.get_me().await.unwrap();
     BOT_ME.set(me).unwrap();
+    BOT_STATIC.set(bot.clone()).unwrap()
 }
 
 async fn setup_db() {

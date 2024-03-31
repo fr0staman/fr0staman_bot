@@ -52,7 +52,7 @@ pub async fn filter_commands(
     let response = function.await;
 
     if let Err(err) = response {
-        log::error!("Error {:?} in command: !{}", err, cmd.to_string());
+        crate::myerr!("Error {:?} in command: !{}", err, cmd.to_string());
     } else {
         log::info!("Handled command !{}", cmd.to_string());
     }

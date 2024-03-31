@@ -51,7 +51,7 @@ pub async fn filter_callback_commands(
     let Some(user) =
         DB.other.maybe_get_or_insert_user(q.from.id.0, get_datetime).await?
     else {
-        log::error!("User not exist after inserting!");
+        crate::myerr!("User not exist after inserting!");
         return Ok(());
     };
 
@@ -121,12 +121,12 @@ async fn _handle_error(
     err: MyError,
 ) -> MyResult<()> {
     let Some(im_id) = &q.inline_message_id else {
-        log::error!("Error in non-inline callback: {:?}", err);
+        crate::myerr!("Error in non-inline callback: {:?}", err);
         _callback_error_try_change_message(bot, q, ltag, err).await;
         return Ok(());
     };
 
-    log::error!("Error in callback: {:?}", err);
+    crate::myerr!("Error in callback: {:?}", err);
 
     let key = q.from.id.0;
     let thread_identifier = get_hash(im_id);
@@ -465,7 +465,7 @@ async fn callback_start_duel(
             drop(read_locked_threads);
             let mut locked_threads = user_threads.lock().await;
             if locked_threads.contains(&thread_identifier) {
-                log::error!("Found user thread duplicate!");
+                crate::myerr!("Found user thread duplicate!");
                 return Ok(());
             }
             locked_threads.push(thread_identifier);
@@ -480,7 +480,7 @@ async fn callback_start_duel(
 
     let read_locked_threads = DUEL_LOCKS.read().await;
     let Some(user_threads) = read_locked_threads.get(&key) else {
-        log::error!("User threads cleaned after insert or locked!");
+        crate::myerr!("User threads cleaned after insert or locked!");
         return Ok(());
     };
     let user_threads = user_threads.clone();
@@ -721,7 +721,7 @@ async fn callback_error(
     let text = lng("ErrorInlineTooMuchResponse", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
     let user_id = q.from.id;
-    log::error!("Empty callback from user [{}]", user_id);
+    crate::myerr!("Empty callback from user [{}]", user_id);
 
     Ok(())
 }
@@ -734,7 +734,7 @@ async fn callback_empty(
     let text = lng("ErrorUndefCallbackResponse", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
     let user_id = q.from.id;
-    log::error!("Empty callback from user [{}]", user_id);
+    crate::myerr!("Empty callback from user [{}]", user_id);
 
     Ok(())
 }
@@ -925,7 +925,7 @@ async fn _cb_allow_gif(
     bot.answer_callback_query(&q.id).text(text).await?;
 
     let Some(accepted_animation) = m.animation() else {
-        log::error!("Animation not exist!");
+        crate::myerr!("Animation not exist!");
         return Ok(());
     };
 
@@ -951,7 +951,7 @@ async fn _cb_allow_gif(
     let Some(user) =
         DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
     else {
-        log::error!("Some not working...");
+        crate::myerr!("Some not working...");
         return Ok(());
     };
 
@@ -1159,7 +1159,7 @@ async fn _check_or_insert_user_or_chat(
 async fn _try_join_groups_with_inline(q: &CallbackQuery) -> MyResult<()> {
     let Some(chat_id) = _maybe_get_chat_id(q) else {
         // In theory, thats impossible but I'll not ignore it
-        log::error!("Chat_id is not exist");
+        crate::myerr!("Chat_id is not exist");
         return Ok(());
     };
 
@@ -1197,7 +1197,7 @@ async fn _try_join_groups_with_inline(q: &CallbackQuery) -> MyResult<()> {
 fn _on_error_join_groups_with_inline(q: &CallbackQuery, err: MyError) {
     let possible_id = _maybe_get_chat_id(q).unwrap_or(0);
 
-    log::error!(
+    crate::myerr!(
         "Error with joining group [{}] -> inline_group [{}]: {:?}",
         possible_id,
         q.chat_instance,

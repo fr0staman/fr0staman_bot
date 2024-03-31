@@ -19,7 +19,7 @@ use tokio::time::{sleep, Duration};
 
 pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(new_chat_members) = m.new_chat_members() else {
-        log::error!("No chat member in new chat members, wtf?");
+        crate::myerr!("No chat member in new chat members, wtf?");
         return Ok(());
     };
 
@@ -61,7 +61,7 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(member) = m.left_chat_member() else {
-        log::error!("No left chat member in left chat members, wtf?");
+        crate::myerr!("No left chat member in left chat members, wtf?");
         return Ok(());
     };
 
@@ -120,7 +120,7 @@ pub async fn handle_ban_or_unban_in_private(
         )
         .await?
     else {
-        log::error!("User not inserted!");
+        crate::myerr!("User not inserted!");
         return Ok(());
     };
 

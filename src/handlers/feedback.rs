@@ -18,7 +18,7 @@ pub async fn filter_inline_feedback_commands(
     q: ChosenInlineResult,
 ) -> MyResult<()> {
     let Some(result) = InlineResults::from_str_with_args(&q.result_id) else {
-        log::error!(
+        crate::myerr!(
             "Undefined chosen inline: [{}] user: [{}]",
             q.result_id,
             q.from.id
@@ -135,7 +135,7 @@ async fn chosen_day_pig(
 ) -> MyResult<()> {
     let Some(im_id) = &q.inline_message_id else { return Ok(()) };
     let Some(mut chat_info) = decode_inline_message_id(im_id) else {
-        log::error!("inline_message_id [{}] not decoded", im_id);
+        crate::myerr!("inline_message_id [{}] not decoded", im_id);
         return Ok(());
     };
 

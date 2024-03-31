@@ -4,9 +4,12 @@ use once_cell::sync::Lazy;
 use teloxide::types::Me;
 use url::Url;
 
+use crate::MyBot;
+
 pub struct Config {
     // For some situations with props with "me"
     pub me: &'static Me,
+    pub bot: &'static MyBot,
     pub teloxide_token: String,
     pub webhook_url: Url,
     pub webhook_port: u16,
@@ -25,6 +28,7 @@ pub struct Config {
     pub prometheus_token: String,
     pub gif_content_channel_id: i64,
     pub chat_link: String,
+    pub log_group_id: i64,
 }
 
 fn _from_env<T: FromStr>(name: &str) -> T
@@ -39,6 +43,7 @@ where
 
 pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     me: BOT_ME.get().expect("BOT_ME is not set!"),
+    bot: BOT_STATIC.get().expect("BOT_STATIC is not set!"),
     teloxide_token: _from_env("TELOXIDE_TOKEN"),
     webhook_url: _from_env("WEBHOOK_URL"),
     webhook_port: _from_env("WEBHOOK_PORT"),
@@ -52,6 +57,8 @@ pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     prometheus_token: _from_env("PROMETHEUS_TOKEN"),
     gif_content_channel_id: _from_env("GIF_CONTENT_CHANNEL_ID"),
     chat_link: _from_env("CHAT_LINK"),
+    log_group_id: _from_env("LOG_GROUP_ID"),
 });
 
 pub static BOT_ME: OnceLock<Me> = OnceLock::new();
+pub static BOT_STATIC: OnceLock<MyBot> = OnceLock::new();

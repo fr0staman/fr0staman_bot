@@ -32,7 +32,7 @@ pub async fn filter_admin_commands(
     let user_id = m.from().map_or(0, |u| u.id.0);
 
     if let Err(err) = response {
-        log::error!(
+        crate::myerr!(
             "Error {:?}: admin command /{:?}: user [{}] in chat [{}]",
             err,
             cmd,

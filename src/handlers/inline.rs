@@ -498,14 +498,14 @@ async fn handle_error(
     let error_message =
         vec![InlineQueryResult::Article(iq_results::handle_error_info(ltag))];
     let _ = bot.answer_inline_query(q.id, error_message).cache_time(0).await;
-    log::error!("Error in inline handler: {:?} by user [{}]", err, q.from.id);
+    crate::myerr!("Error in inline handler: {:?} by user [{}]", err, q.from.id);
     if let MyError::Database(diesel::result::Error::DatabaseError(
         _,
         err_info,
     )) = err
     {
         let message = err_info.message();
-        log::error!("Error with database: {}", message);
+        crate::myerr!("Error with database: {}", message);
     }
 }
 
