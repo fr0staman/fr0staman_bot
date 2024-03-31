@@ -343,12 +343,7 @@ async fn inline_flag(
         Flags::FLAGS
             .into_iter()
             .filter(|i| {
-                if i.to_code().contains(payload)
-                    || i.to_emoji().contains(payload)
-                {
-                    return true;
-                }
-                false
+                i.to_code().contains(payload) || i.to_emoji().contains(payload)
             })
             .collect()
     };
