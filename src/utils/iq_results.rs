@@ -1,8 +1,10 @@
-use teloxide::types::{ChatType, UserId};
 use teloxide::types::{
-    InlineQueryResultArticle, InputMessageContent, InputMessageContentText,
+    ChatType, InlineQueryResultArticle, InlineQueryResultCachedGif,
+    InlineQueryResultVoice, InputMessageContent, InputMessageContentText,
+    UserId,
 };
 use teloxide::utils::html::{bold, italic};
+use url::Url;
 
 use crate::consts::{BOT_PARSE_MODE, INLINE_NAME_SET_LIMIT};
 use crate::enums::{Image, InlineResults, Top10Variant};
@@ -415,6 +417,25 @@ pub fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
         ),
     )
     .thumb_url(get_photostock(Image::OCGPU))
+}
+
+pub fn hru_voice_info(
+    id: i16,
+    voice_url: Url,
+    caption: String,
+) -> InlineQueryResultVoice {
+    InlineQueryResultVoice::new(
+        InlineResults::HruVoice(id).to_string_with_args(),
+        voice_url,
+        caption,
+    )
+}
+
+pub fn gif_pig_info(id: i16, file_id: String) -> InlineQueryResultCachedGif {
+    InlineQueryResultCachedGif::new(
+        InlineResults::PigGif(id).to_string_with_args(),
+        file_id,
+    )
 }
 
 pub fn handle_error_info(ltag: LocaleTag) -> InlineQueryResultArticle {

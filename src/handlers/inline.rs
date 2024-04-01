@@ -3,12 +3,12 @@ use std::str::FromStr;
 use futures::FutureExt;
 
 use teloxide::payloads::AnswerInlineQuerySetters;
-use teloxide::types::{
-    ChatType, InlineQueryResultCachedGif, InlineQueryResultVoice, UserId,
-};
 use teloxide::{
     requests::Requester,
-    types::{InlineQuery, InlineQueryResult, InlineQueryResultArticle},
+    types::{
+        ChatType, InlineQuery, InlineQueryResult, InlineQueryResultArticle,
+        UserId,
+    },
 };
 
 use crate::consts::{DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
@@ -290,16 +290,15 @@ async fn inline_hruks(
     let url = "https://t.me".parse::<url::Url>().unwrap();
 
     let paged_voices = &voices[start_index..end_index];
-    let results: Vec<InlineQueryResult> = paged_voices
+    let results: Vec<_> = paged_voices
         .iter()
         .map(|item| {
             let caption = lng("InlineHrukCaptionNumber", ltag)
                 .args(&[("number", &item.id.to_string())]);
             let voice_url = url.join(&item.url).unwrap_or_else(|_| url.clone());
-            InlineQueryResult::Voice(InlineQueryResultVoice::new(
-                item.id.to_string(),
-                voice_url,
-                caption,
+
+            InlineQueryResult::Voice(iq_results::hru_voice_info(
+                item.id, voice_url, caption,
             ))
         })
         .collect();
@@ -468,12 +467,12 @@ async fn inline_gif(
     };
 
     let paged_gifs = &gifs[start_index..end_index];
-    let results: Vec<InlineQueryResult> = paged_gifs
+    let results: Vec<_> = paged_gifs
         .iter()
         .map(|item| {
-            InlineQueryResult::CachedGif(InlineQueryResultCachedGif::new(
-                item.id.to_string(),
-                &item.file_id,
+            InlineQueryResult::CachedGif(iq_results::gif_pig_info(
+                item.id,
+                item.file_id.clone(),
             ))
         })
         .collect();

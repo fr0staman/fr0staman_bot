@@ -187,26 +187,27 @@ pub enum InlineResults {
     CpuOcInfo,
     RamOcInfo,
     GpuOcInfo,
+    HruVoice(i16),
+    PigGif(i16),
     ErrorInfo,
     ErrorParse,
     NoResults,
 }
 
 // Created due to strum crate limitations to parse and make enum with arguments.
+// TODO: proc macro
 impl InlineResults {
     pub const DELIMITER: char = '|';
 
     pub fn from_str_with_args(value: &str) -> Option<InlineResults> {
-        let (key, maybe_value) = value.split_once(Self::DELIMITER)?;
+        let (key, v) = value.split_once(Self::DELIMITER)?;
         let enum_result = InlineResults::from_str(key).ok()?;
 
         match enum_result {
-            Self::FlagChangeInfo(_) => {
-                Self::FlagChangeInfo(maybe_value.parse().ok()?)
-            },
-            Self::LangChangeInfo(_) => {
-                Self::LangChangeInfo(maybe_value.parse().ok()?)
-            },
+            Self::FlagChangeInfo(_) => Self::FlagChangeInfo(v.parse().ok()?),
+            Self::LangChangeInfo(_) => Self::LangChangeInfo(v.parse().ok()?),
+            Self::HruVoice(_) => Self::HruVoice(v.parse().ok()?),
+            Self::PigGif(_) => Self::PigGif(v.parse().ok()?),
             v => v,
         }
         .into()
@@ -216,6 +217,8 @@ impl InlineResults {
         match self {
             Self::LangChangeInfo(v) => self._format(v),
             Self::FlagChangeInfo(v) => self._format(v),
+            Self::HruVoice(v) => self._format(v),
+            Self::PigGif(v) => self._format(v),
             _ => self._format(""),
         }
     }
