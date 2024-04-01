@@ -34,7 +34,7 @@ pub fn generate_top10_text(
         let line = lng(&key, ltag).args(&[
             ("number", (index + 1).to_string()),
             ("flag", flag.to_string()),
-            ("name", helpers::escape(&item.name)),
+            ("name", helpers::escape_links(&item.name)),
             ("value", value.to_string()),
         ]);
 
@@ -60,7 +60,7 @@ pub fn generate_chat_top50_text(
 
         let line = lng("GameTop50Line", ltag).args(&[
             ("number", (index + 1).to_string()),
-            ("name", helpers::escape(&item.name)),
+            ("name", helpers::escape_links(&item.name)),
             ("value", value.to_string()),
         ]);
 

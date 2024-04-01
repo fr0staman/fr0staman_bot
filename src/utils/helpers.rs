@@ -101,10 +101,14 @@ where
 }
 
 pub fn escape(s: &str) -> String {
-    html::escape(s)
-        .replace(['@', '\'', '\"'], "")
-        .replace("t.me", "")
+    escape_links(&html::escape(s).replace('@', ""))
+}
+
+pub fn escape_links(s: &str) -> String {
+    s.replace("t.me", "")
         .replace("telegram.me", "")
+        .replace("http://", "")
+        .replace("https://", "")
 }
 
 // Plural rule for languages, may some inaccurate - but it works!
