@@ -1,7 +1,7 @@
 use teloxide::payloads::{
     SendMessageSetters, SendPhotoSetters, SendStickerSetters, SendVoiceSetters,
 };
-use teloxide::types::{ChatKind, Message, PublicChatKind};
+use teloxide::types::{ChatKind, Message, MessageKind, PublicChatKind};
 
 macro_rules! define_maybe_setter {
     ($setter:ident, $trait:ident) => {
@@ -11,23 +11,29 @@ macro_rules! define_maybe_setter {
 
         impl<T: $setter> $trait for T {
             fn maybe_thread_id(self, m: &Message) -> Self {
-                if let Some(thread_id) = m.thread_id {
-                    let is_forum = match &m.chat.kind {
-                        ChatKind::Public(p) => match &p.kind {
-                            PublicChatKind::Supergroup(s) => s.is_forum,
-                            _ => false,
-                        },
+                let is_topic_message = match &m.kind {
+                    MessageKind::Common(mc) => mc.is_topic_message,
+                    _ => false,
+                };
+
+                let is_forum = match &m.chat.kind {
+                    ChatKind::Public(p) => match &p.kind {
+                        PublicChatKind::Supergroup(s) => s.is_forum,
                         _ => false,
-                    };
-                    if is_forum {
-                        self.message_thread_id(thread_id)
-                            .allow_sending_without_reply(true)
-                    } else {
-                        self
-                    }
-                } else {
-                    self
+                    },
+                    _ => false,
+                };
+
+                if !is_topic_message || !is_forum {
+                    return self;
                 }
+
+                let Some(thread_id) = m.thread_id else {
+                    return self;
+                };
+
+                self.message_thread_id(thread_id)
+                    .allow_sending_without_reply(true)
             }
         }
     };
