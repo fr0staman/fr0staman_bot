@@ -165,7 +165,13 @@ async fn _callback_error_try_change_message(
 
         tokio::spawn(async move {
             let text = if let teloxide::RequestError::RetryAfter(time) = err {
-                let _ = callback_error(&temp_bot, &q, ltag).await;
+                let _ = callback_error(
+                    &temp_bot,
+                    &q,
+                    ltag,
+                    MyError::RequestError(err),
+                )
+                .await;
 
                 sleep(time).await;
                 lng("ErrorInlineTooMuchMessage", ltag)
@@ -717,11 +723,12 @@ async fn callback_error(
     bot: &MyBot,
     q: &CallbackQuery,
     ltag: LocaleTag,
+    err: MyError,
 ) -> MyResult<()> {
     let text = lng("ErrorInlineTooMuchResponse", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
     let user_id = q.from.id;
-    crate::myerr!("Empty callback from user [{}]", user_id);
+    crate::myerr!("Error in callback {:?} from user [{}]", err, user_id);
 
     Ok(())
 }
