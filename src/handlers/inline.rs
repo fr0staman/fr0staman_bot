@@ -105,10 +105,6 @@ async fn _get_hryak(
     let cur_date = get_date();
 
     let Some(info) = hrundel_info else {
-        let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
-
-        let size = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
-        let truncated_f_name = truncate(&q.from.first_name, 64);
         let Some(user) = DB
             .other
             .maybe_get_or_insert_user(q.from.id.0, get_datetime)
@@ -117,13 +113,19 @@ async fn _get_hryak(
             return Ok(vec![iq_results::handle_error_info(ltag)]);
         };
 
+        let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
+
+        let weight = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
+        let escaped_f_name = escape(&q.from.first_name);
+        let f_name = truncate(&escaped_f_name, 64).0;
+
         let hrundel = NewInlineUser {
             uid: user.id,
-            f_name: truncated_f_name.0,
-            weight: size,
+            weight,
+            f_name,
+            name: f_name,
             date: cur_date,
             flag: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-            name: truncated_f_name.0,
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
         return Box::pin(_get_hryak(q, ltag)).await;
@@ -131,16 +133,17 @@ async fn _get_hryak(
 
     if info.0.date != cur_date {
         // Pig exist, but not "today", just recreate that!
-        let size = formulas::calculate_hryak_size(q.from.id.0);
+        let weight = formulas::calculate_hryak_size(q.from.id.0);
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
         let add = biggest_mass + helpers::mass_addition_on_status(&info.1);
 
-        let truncated_f_name = truncate(&q.from.first_name, 64).0;
+        let escaped_f_name = escape(&q.from.first_name);
+        let f_name = truncate(&escaped_f_name, 64).0;
 
         let update_data = UpdateInlineUser {
             id: info.0.id,
-            f_name: truncated_f_name,
-            weight: size + add,
+            f_name,
+            weight: weight + add,
             date: cur_date,
             gifted: false,
         };
