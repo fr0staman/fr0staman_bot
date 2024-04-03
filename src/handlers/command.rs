@@ -253,12 +253,13 @@ async fn command_grow(
             return Ok(());
         };
 
-        let truncated_f_name = truncate(&from.first_name, 64).0;
+        let escaped_f_name = escape(&from.first_name);
+        let f_name = truncate(&escaped_f_name, 64).0;
         DB.chat_pig
             .create_chat_pig(
                 user.id,
                 chat_info.id,
-                truncated_f_name,
+                f_name,
                 cur_date,
                 CHAT_PIG_START_MASS,
             )
