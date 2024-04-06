@@ -36,7 +36,8 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
         let ltag = tag_one_or(settings.lang.as_deref(), get_tag(user));
 
         if user.id == BOT_CONFIG.me.id {
-            let text = lng("ChatGreetingFirst", ltag);
+            let text = lng("ChatGreetingFirst", ltag)
+                .args(&[("channel", &BOT_CONFIG.channel_name)]);
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
             log::info!("Bot added to chat [{}]", m.chat.id);
         } else {
@@ -45,8 +46,11 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
                 &escape(&user.first_name),
             );
             let chat_title = bold(&escape(m.chat.title().unwrap_or("chat")));
-            let args = &[("mention", mention), ("chat_title", chat_title)];
-            let text = lng("ChatGreeting", ltag).args(args);
+            let text = lng("ChatGreeting", ltag).args(&[
+                ("mention", &mention),
+                ("chat_title", &chat_title),
+                ("channel", &BOT_CONFIG.channel_name),
+            ]);
             bot.send_message(m.chat.id, text)
                 .reply_to_message_id(m.id)
                 .maybe_thread_id(&m)

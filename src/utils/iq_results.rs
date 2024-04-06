@@ -6,6 +6,7 @@ use teloxide::types::{
 use teloxide::utils::html::{bold, italic};
 use url::Url;
 
+use crate::config::BOT_CONFIG;
 use crate::consts::{BOT_PARSE_MODE, INLINE_NAME_SET_LIMIT};
 use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
@@ -33,12 +34,15 @@ pub fn get_start_duel(
         .parse_mode(BOT_PARSE_MODE)
         .disable_web_page_preview(true);
 
+    let desc = lng("DuelInlineDesc", ltag)
+        .args(&[("chat_name", &BOT_CONFIG.chat_link)]);
+
     InlineQueryResultArticle::new(
         InlineResults::GetStartDuel.to_string_with_args(),
         title,
         InputMessageContent::Text(content),
     )
-    .description(lng("DuelInlineDesc", ltag))
+    .description(desc)
     .thumb_url(get_photostock(Image::Fight))
     .reply_markup(keyboards::keyboard_start_duel(ltag, id_user))
 }
@@ -132,7 +136,8 @@ pub fn name_hryak_info(
     name: String,
 ) -> InlineQueryResultArticle {
     let caption = lng("HandPigNameGoCaption", ltag);
-    let message = lng("HandPigNameGoMessage", ltag).args(&[("name", &name)]);
+    let message = lng("HandPigNameGoMessage", ltag)
+        .args(&[("name", &*name), ("bot_name", BOT_CONFIG.me.username())]);
 
     InlineQueryResultArticle::new(
         InlineResults::NameHryakInfo.to_string_with_args(),
@@ -208,7 +213,8 @@ pub fn day_pig_info(
 pub fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
     let caption = lng("HandPigFlagGoCaption", ltag).args(&[("flag", flag)]);
     let desc = lng("HandPigFlagGoDesc", ltag);
-    let message = lng("HandPigFlagGoMessage", ltag).args(&[("flag", flag)]);
+    let message = lng("HandPigFlagGoMessage", ltag)
+        .args(&[("flag", flag), ("bot_name", BOT_CONFIG.me.username())]);
 
     InlineQueryResultArticle::new(
         InlineResults::FlagInfo.to_string_with_args(),
@@ -281,8 +287,11 @@ pub fn lang_info(
     let caption = lng("InlineLangGoCaption", ltag)
         .args(&[("flag", flag), ("code", code)]);
     let desc = lng("InlineLangGoDesc", ltag);
-    let message = lng("InlineLangGoMessage", ltag)
-        .args(&[("flag", flag), ("code", code)]);
+    let message = lng("InlineLangGoMessage", ltag).args(&[
+        ("flag", flag),
+        ("code", code),
+        ("bot_name", BOT_CONFIG.me.username()),
+    ]);
 
     let markup = keyboards::keyboard_change_lang(ltag, id_user, "-");
     InlineQueryResultArticle::new(

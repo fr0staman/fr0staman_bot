@@ -90,7 +90,8 @@ async fn command_start(
     let Some(from) = m.from() else { return Ok(()) };
     crate::metrics::CMD_START_COUNTER.inc();
 
-    let text = lng("ChatGreetingFirst", ltag);
+    let text = lng("ChatGreetingFirst", ltag)
+        .args(&[("channel", &BOT_CONFIG.channel_name)]);
 
     if let ChatKind::Private(_) = m.chat.kind {
         let is_channel_member =
@@ -100,7 +101,10 @@ async fn command_start(
         } else {
             "AdSubscribeChannel"
         };
-        let text_reg = lng(key, ltag).args(&[("amount", SUBSCRIBE_GIFT)]);
+        let text_reg = lng(key, ltag).args(&[
+            ("amount", &SUBSCRIBE_GIFT.to_string()),
+            ("channel", &BOT_CONFIG.channel_name),
+        ]);
 
         let probably_user = DB.other.get_user(from.id.0).await?;
         if let Some(user) = probably_user {
