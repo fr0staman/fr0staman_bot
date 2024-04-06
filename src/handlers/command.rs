@@ -16,6 +16,7 @@ use crate::traits::{MaybeMessageSetter, MaybeVoiceSetter};
 use crate::utils::date::{get_datetime, get_timediff};
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
+use crate::utils::ogg::increase_sound;
 use crate::utils::text::generate_chat_top50_text;
 use crate::{MyBot, MyResult};
 
@@ -593,33 +594,6 @@ async fn command_louder(
     };
 
     Ok(())
-}
-
-async fn increase_sound(
-    input_data: bytes::Bytes,
-    volume_factor: f32,
-) -> Option<Vec<u8>> {
-    let mut raw = tokio::task::spawn_blocking(move || {
-        let (raw, _header) =
-            ogg_opus::decode::<_, 48000>(std::io::Cursor::new(input_data))
-                .ok()?;
-        Some(raw)
-    })
-    .await
-    .ok()??;
-
-    let raw = tokio::task::spawn_blocking(move || {
-        for num in &mut raw {
-            *num = (*num as f32 * volume_factor) as i16;
-        }
-        raw
-    })
-    .await
-    .ok()?;
-
-    tokio::task::spawn_blocking(move || ogg_opus::encode::<48000, 1>(&raw).ok())
-        .await
-        .ok()?
 }
 
 async fn _game_only_for_chats(
