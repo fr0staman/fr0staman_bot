@@ -795,7 +795,8 @@ async fn callback_allow_voice(
     let voices = DB.other.get_voices_by_user(user.id).await?;
     let number = voices.last().map_or(0, |v| v.id);
 
-    let text = lng("VoiceAcceptedCongrats", ltag).args(&[("number", number)]);
+    let text = lng("VoiceAcceptedCongrats", ltag)
+        .args(&[("number", number as i32), ("amount", INLINE_VOICE_REWARD_KG)]);
     bot.send_message(user_id, text).maybe_thread_id(m).await?;
 
     Ok(())
@@ -985,6 +986,7 @@ async fn _cb_allow_gif(
     let text = lng("GifAcceptedCongrats", ltag).args(&[
         ("number", number.to_string()),
         ("gif_link", gif_link.to_string()),
+        ("amount", INLINE_GIF_REWARD_KG.to_string()),
     ]);
     bot.send_message(user_id, text).maybe_thread_id(m).await?;
 
@@ -1072,7 +1074,8 @@ async fn callback_gift<'a>(
 
     DB.hand_pig.update_hrundel(hrundel_on_update).await?;
 
-    let text = lng("GiftThanksReceive500", ltag);
+    let text = lng("GiftThanksReceive500", ltag)
+        .args(&[("amount", DAILY_GIFT_AMOUNT)]);
     bot.answer_callback_query(&q.id).text(text).await?;
 
     Ok(())
@@ -1122,7 +1125,8 @@ async fn callback_check_subscribe<'a>(
     DB.hand_pig.update_hrundel(hrundel_on_update).await?;
     DB.other.change_user_status(q.from.id.0, user_status).await?;
 
-    let text = lng("GiftThanksReceive100", ltag);
+    let text =
+        lng("GiftThanksReceive100", ltag).args(&[("amount", SUBSCRIBE_GIFT)]);
     bot.answer_callback_query(&q.id).text(text).await?;
 
     Ok(())

@@ -4,9 +4,9 @@ use teloxide::types::{ChatKind, InputFile};
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
-use crate::consts::LOUDER_DEFAULT_VOICE_LIMIT;
 use crate::consts::LOUDER_PREMIUM_VOICE_LIMIT;
 use crate::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
+use crate::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
 use crate::db::DB;
 use crate::enums::MyCommands;
 use crate::keyboards;
@@ -100,7 +100,7 @@ async fn command_start(
         } else {
             "AdSubscribeChannel"
         };
-        let text_reg = lng(key, ltag);
+        let text_reg = lng(key, ltag).args(&[("amount", SUBSCRIBE_GIFT)]);
 
         let probably_user = DB.other.get_user(from.id.0).await?;
         if let Some(user) = probably_user {
