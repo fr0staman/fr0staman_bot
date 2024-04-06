@@ -49,17 +49,30 @@ pub fn calculate_hryak_size(user_id: u64) -> i32 {
 }
 
 pub fn calculate_cpu_clock(hryak_size: i32, user_id: u64) -> f32 {
-    ((hryak_size as u64 + user_id).rem_euclid(42) + 19) as f32 / 10.0
+    const MIN_CLOCK: u64 = 19;
+    const MAX_TOP_ON_MIN_CLOCK: u64 = 42;
+
+    ((hryak_size as u64 + user_id).rem_euclid(MAX_TOP_ON_MIN_CLOCK) + MIN_CLOCK)
+        as f32
+        / 10.0
 }
 
 pub fn calculate_ram_clock(hryak_size: i32, user_id: u64) -> u32 {
-    let ram_clock =
-        ((hryak_size as u64 + user_id).rem_euclid(4533) + 1333) as u32;
-    ram_clock + (266.67 - (ram_clock as f32).rem_euclid(266.67)) as u32
+    const STEP: f32 = 266.67;
+    const MIN_CLOCK: u64 = 1333;
+    const MAX_TOP_ON_MIN_CLOCK: u64 = 4533;
+
+    let ram_clock = ((hryak_size as u64 + user_id)
+        .rem_euclid(MAX_TOP_ON_MIN_CLOCK)
+        + MIN_CLOCK) as u32;
+
+    ram_clock + (STEP - (ram_clock as f32).rem_euclid(STEP)) as u32
 }
 
 pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: u64) -> f32 {
-    ((hryak_size as u64 + user_id).rem_euclid(12800)) as f32 / 100.0
+    const MAX_HASHRATE: u64 = 12800;
+
+    ((hryak_size as u64 + user_id).rem_euclid(MAX_HASHRATE)) as f32 / 100.0
 }
 
 pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {

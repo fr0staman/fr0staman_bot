@@ -16,7 +16,8 @@ use crate::{
     config::BOT_CONFIG,
     consts::{
         DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
-        SUBSCRIBE_GIFT, TOP_LIMIT,
+        INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
+        TOP_LIMIT,
     },
     db::DB,
     enums::{CbActions, DuelResult, Top10Variant},
@@ -776,7 +777,7 @@ async fn callback_allow_voice(
 
     let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
     if let Some(hrundel) = hrundel {
-        let final_mass = hrundel.0.weight + 250;
+        let final_mass = hrundel.0.weight + INLINE_VOICE_REWARD_KG;
         let cur_date = get_date();
 
         DB.hand_pig
@@ -946,7 +947,7 @@ async fn _cb_allow_gif(
 
     let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
     if let Some(hrundel) = hrundel {
-        let final_mass = hrundel.0.weight + 250;
+        let final_mass = hrundel.0.weight + INLINE_GIF_REWARD_KG;
         let cur_date = get_date();
 
         DB.hand_pig
