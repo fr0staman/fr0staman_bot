@@ -764,7 +764,7 @@ async fn callback_allow_voice(
     let text = lng("VoiceAccepted", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
     let probably_url =
-        BOT_CONFIG.content_check_channel_name.clone() + "/" + &m.id.to_string();
+        format!("{}/{}", &BOT_CONFIG.content_check_channel_name, &m.id);
 
     let accepted = lng("Accepted", ltag);
     let edited_text = format!("{} {}", accepted, user_id);

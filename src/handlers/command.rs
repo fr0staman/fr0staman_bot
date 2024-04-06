@@ -172,9 +172,11 @@ async fn command_pidor(
                 .await;
         });
     }
+
     tokio::spawn(async move {
         let _ = bot.delete_message(chat_id, m_id).await;
     });
+
     Ok(())
 }
 
@@ -265,17 +267,18 @@ async fn command_grow(
                 CHAT_PIG_START_MASS,
             )
             .await?;
-        let maybe_new_pig =
-            DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
-        if let Some(new_pig) = maybe_new_pig {
-            skip_date_check = true;
-            let text =
-                lng("GameStartGreeting", ltag).args(&[("mention", &mention)]);
-            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
-            new_pig
-        } else {
+
+        let Some(new_pig) =
+            DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?
+        else {
             return Ok(());
-        }
+        };
+
+        skip_date_check = true;
+        let text =
+            lng("GameStartGreeting", ltag).args(&[("mention", &mention)]);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        new_pig
     };
 
     if (!skip_date_check) && (pig.date == cur_date) {
@@ -574,23 +577,21 @@ async fn command_louder(
         return Ok(());
     };
 
-    let m = m.clone();
-
     let Some(new_voice) = increase_sound(voice_content, volume_factor).await
     else {
         let text = lng("CmdLouderFailedProcess", ltag);
-        let _ = bot.send_message(m.chat.id, text).maybe_thread_id(&m).await;
+        let _ = bot.send_message(m.chat.id, text).maybe_thread_id(m).await;
         return Ok(());
     };
 
     let res = bot
         .send_voice(m.chat.id, InputFile::memory(new_voice))
-        .maybe_thread_id(&m)
+        .maybe_thread_id(m)
         .await;
 
     if res.is_err() {
         let text = lng("CmdLouderFailedSend", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     };
 
     Ok(())
