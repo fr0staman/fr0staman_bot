@@ -164,7 +164,7 @@
   "AdminCommandPromoteSuccess": "🍰 User has been successfully assigned the «Support»",
   "AdminCommandPromoteAlready": "👾🍰 User already assigned the «Support»",
   "AdminCommandPromoteError": "👺🍰 User has been successfully assigned the «Support», but the message did not reach the user.",
-  "AdminCommandPromoteUserMessage": "🎉 Congratulations, you have been awarded the status «Support»\n\nYou're awarded +500 kg for hand pig <b>everyday</b> and special inscription!\n\n<b>Thank you for bot support </b> 🐽",
+  "AdminCommandPromoteUserMessage": "🎉 Congratulations, you have been awarded the status «Support»\n\nYou're awarded +{amount} kg for hand pig <b>everyday</b> and special inscription!\n\n<b>Thank you for bot support </b> 🐽",
   "UserCommandIdMessage": "<b>Your id:</b> <code>{id}</code>",
   "UserCommandLangPublicMessage": "<b>Language of yout chat:</b> {chat_lang}",
   "UserCommandLangMessage": "<b>Your language setting:</b> {user_lang}\n<b>Language of your client:</b> {client_lang}",

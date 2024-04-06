@@ -164,7 +164,7 @@
   "AdminCommandPromoteSuccess": "🍰 Користувачу успішно нарахований статус «Підтримки»",
   "AdminCommandPromoteAlready": "👾🍰 Користувачу вже був нарахований статус «Підтримки»",
   "AdminCommandPromoteError": "👺🍰 Користувачу успішно нарахований статус «Підтримки», але повідомлення про це йому не дійшло в особисті.",
-  "AdminCommandPromoteUserMessage": "🎉 Вітаю, вам надано статус <b>«Підтримки»</b>\n\nВам нараховується +500 кг до ручного хряка <b>щоденно</b> та спеціальний підпис!\n\n<b>Щиро дякую вам за підтримку бота</b> 🐽",
+  "AdminCommandPromoteUserMessage": "🎉 Вітаю, вам надано статус <b>«Підтримки»</b>\n\nВам нараховується +{amount} кг до ручного хряка <b>щоденно</b> та спеціальний підпис!\n\n<b>Щиро дякую вам за підтримку бота</b> 🐽",
   "UserCommandIdMessage": "<b>Ваш id:</b> <code>{id}</code>",
   "UserCommandLangPublicMessage": "<b>Мова вашого чату:</b> {chat_lang}",
   "UserCommandLangMessage": "<b>Мова виставлена вами:</b> {user_lang}\n<b>Мова вашого клієнта:</b> {client_lang}",

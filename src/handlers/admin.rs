@@ -2,9 +2,10 @@ use futures::FutureExt;
 use teloxide::prelude::*;
 
 use crate::{
+    consts::HAND_PIG_ADDITION_ON_SUPPORTED,
     db::DB,
     enums::AdminCommands,
-    lang::{get_tag, lng, tag_one_or, LocaleTag},
+    lang::{get_tag, lng, tag_one_or, InnerLang, LocaleTag},
     models::UserStatus,
     traits::MaybeMessageSetter,
     utils::{date::get_date, formulas::calculate_hryak_size, helpers},
@@ -102,7 +103,8 @@ async fn admin_command_promote(
         .await?;
 
     // TODO: get lang from user
-    let text = lng("AdminCommandPromoteUserMessage", ltag);
+    let text = lng("AdminCommandPromoteUserMessage", ltag)
+        .args(&[("amount", HAND_PIG_ADDITION_ON_SUPPORTED)]);
     let res =
         bot.send_message(UserId(user.user_id), text).maybe_thread_id(m).await;
 

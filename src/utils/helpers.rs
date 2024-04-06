@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::{
     config::BOT_CONFIG,
+    consts::{HAND_PIG_ADDITION_ON_SUBSCRIBED, HAND_PIG_ADDITION_ON_SUPPORTED},
     enums::{CbActions, Image},
     models::User,
     types::ParsedCallbackData,
@@ -129,9 +130,9 @@ pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Mysql> {
 
 pub fn mass_addition_on_status(user: &User) -> i32 {
     if user.supported {
-        500
+        HAND_PIG_ADDITION_ON_SUPPORTED
     } else if user.subscribed {
-        100
+        HAND_PIG_ADDITION_ON_SUBSCRIBED
     } else {
         0
     }
