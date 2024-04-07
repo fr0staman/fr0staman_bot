@@ -27,6 +27,7 @@ pub fn get_fixed_timestamp(expected_datetime: NaiveDateTime) -> i64 {
         .unwrap()
         .with_minute(FIXED_MINUTE)
         .unwrap()
+        .and_utc()
         .timestamp()
 }
 
