@@ -22,7 +22,7 @@ impl Other {
 
     pub async fn register_user(&self, new_user: NewUser<'_>) -> MyResult<()> {
         use crate::schema::users::dsl::*;
-        diesel::insert_or_ignore_into(users)
+        diesel::insert_into(users)
             .values(new_user)
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -161,7 +161,7 @@ impl Other {
     pub async fn add_chat(&self, new_group: NewGroup<'_>) -> MyResult<()> {
         use crate::schema::groups::dsl::*;
 
-        diesel::insert_or_ignore_into(groups)
+        diesel::insert_into(groups)
             .values(new_group)
             .execute(&mut self.pool.get().await?)
             .await?;
