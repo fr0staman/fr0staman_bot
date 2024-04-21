@@ -51,10 +51,33 @@ pub struct Groups {
 #[derive(Queryable, AsChangeset)]
 #[diesel(table_name = groups)]
 pub struct UpdateGroups {
+    // chat_id can be changed during migration to supergroup
+    pub chat_id: i64,
     pub settings: i8,
     pub top10_setting: i32,
     pub lang: Option<String>,
     pub active: bool,
+    // Dynamic linking to inline groups
+    pub ig_id: Option<i32>,
+    pub username: Option<String>,
+    pub title: String,
+}
+
+// TODO: split models
+impl Groups {
+    #[allow(clippy::wrong_self_convention)]
+    pub fn to_update(self) -> UpdateGroups {
+        UpdateGroups {
+            chat_id: self.chat_id,
+            settings: self.settings,
+            top10_setting: self.top10_setting,
+            lang: self.lang,
+            active: self.active,
+            ig_id: self.ig_id,
+            username: self.username,
+            title: self.title,
+        }
+    }
 }
 
 #[derive(Queryable, Selectable, Debug)]
@@ -162,6 +185,36 @@ pub struct User {
     pub username: Option<String>,
     pub first_name: String,
     pub last_name: Option<String>,
+}
+
+#[derive(Queryable, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UpdateUser {
+    pub started: bool,
+    pub banned: bool,
+    pub supported: bool,
+    pub subscribed: bool,
+    pub lang: Option<String>,
+    pub username: Option<String>,
+    pub first_name: String,
+    pub last_name: Option<String>,
+}
+
+// TODO: split models
+impl User {
+    #[allow(clippy::wrong_self_convention)]
+    pub fn to_update(self) -> UpdateUser {
+        UpdateUser {
+            started: self.started,
+            banned: self.banned,
+            supported: self.supported,
+            subscribed: self.subscribed,
+            lang: self.lang,
+            username: self.username,
+            first_name: self.first_name,
+            last_name: self.last_name,
+        }
+    }
 }
 
 #[derive(Queryable, AsChangeset)]

@@ -4,8 +4,8 @@ use diesel_async::RunQueryDsl;
 use crate::{
     db::MyPool,
     models::{
-        Groups, InlineGif, InlineVoice, NewGroup, NewUser, UpdateGroups, User,
-        UserStatus,
+        Groups, InlineGif, InlineVoice, NewGroup, NewUser, UpdateGroups,
+        UpdateUser, User, UserStatus,
     },
     MyResult,
 };
@@ -324,6 +324,22 @@ impl Other {
         diesel::update(groups)
             .filter(chat_id.eq(id_chat))
             .set(ig_id.eq(my_ig_id))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_user(
+        &self,
+        id_user: u64,
+        chat_info: UpdateUser,
+    ) -> MyResult<()> {
+        use crate::schema::users::dsl::*;
+
+        diesel::update(users)
+            .set(chat_info)
+            .filter(user_id.eq(id_user))
             .execute(&mut self.pool.get().await?)
             .await?;
 

@@ -29,7 +29,7 @@ pub async fn filter_commands(
     crate::metrics::CMD_COUNTER.inc();
 
     let user_info = if let Some(from) = m.from() {
-        DB.other.get_user(from.id.0).await?
+        db_shortcuts::maybe_get_or_insert_user(from, false).await?
     } else {
         None
     };

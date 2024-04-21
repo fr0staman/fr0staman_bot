@@ -208,12 +208,8 @@ async fn _epyc_chat_lang_setting(
         return Ok(());
     };
 
-    let update_chat_info = UpdateGroups {
-        lang: value.1,
-        settings: chat_info.settings,
-        top10_setting: chat_info.top10_setting,
-        active: chat_info.active,
-    };
+    let update_chat_info =
+        UpdateGroups { lang: value.1, ..chat_info.to_update() };
 
     DB.other.update_chat(m.chat.id.0, update_chat_info).await?;
     let text = lng(value.0, ltag).args(&[("chat_lang", setting)]);

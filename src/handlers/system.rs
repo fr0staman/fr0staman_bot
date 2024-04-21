@@ -79,12 +79,7 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
 
     if member.id == BOT_CONFIG.me.id {
         log::info!("Kicked me :( in chat [{}]", m.chat.id);
-        let chat_info = UpdateGroups {
-            settings: settings.settings,
-            top10_setting: settings.top10_setting,
-            lang: settings.lang,
-            active: false,
-        };
+        let chat_info = UpdateGroups { active: false, ..settings.to_update() };
         DB.other.update_chat(m.chat.id.0, chat_info).await?;
         return Ok(());
     }

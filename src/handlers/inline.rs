@@ -28,7 +28,7 @@ pub async fn filter_inline_commands(
     q: InlineQuery,
 ) -> MyResult<()> {
     crate::metrics::INLINE_COUNTER.inc();
-    let user = DB.other.get_user(q.from.id.0).await?;
+    let user = db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?;
     let ltag =
         tag_one_or(user.and_then(|u| u.lang).as_deref(), get_tag(&q.from));
 
