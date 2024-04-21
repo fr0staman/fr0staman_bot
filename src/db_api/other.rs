@@ -1,10 +1,12 @@
-use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
     db::MyPool,
-    models::{Groups, InlineGif, InlineVoice, UpdateGroups, User, UserStatus},
+    models::{
+        Groups, InlineGif, InlineVoice, NewGroup, NewUser, UpdateGroups, User,
+        UserStatus,
+    },
     MyResult,
 };
 
@@ -18,19 +20,10 @@ impl Other {
         Self { pool }
     }
 
-    pub async fn register_user(
-        &self,
-        id_user: u64,
-        is_started: bool,
-        cur_datetime: NaiveDateTime,
-    ) -> MyResult<()> {
+    pub async fn register_user(&self, new_user: NewUser<'_>) -> MyResult<()> {
         use crate::schema::users::dsl::*;
         diesel::insert_or_ignore_into(users)
-            .values((
-                user_id.eq(id_user),
-                started.eq(is_started),
-                created_at.eq(cur_datetime),
-            ))
+            .values(new_user)
             .execute(&mut self.pool.get().await?)
             .await?;
         Ok(())
@@ -165,15 +158,11 @@ impl Other {
         Ok(results)
     }
 
-    pub async fn add_chat(
-        &self,
-        id_chat: i64,
-        cur_datetime: NaiveDateTime,
-    ) -> MyResult<()> {
+    pub async fn add_chat(&self, new_group: NewGroup<'_>) -> MyResult<()> {
         use crate::schema::groups::dsl::*;
 
         diesel::insert_or_ignore_into(groups)
-            .values((chat_id.eq(id_chat), date.eq(cur_datetime)))
+            .values(new_group)
             .execute(&mut self.pool.get().await?)
             .await?;
 
@@ -339,22 +328,5 @@ impl Other {
             .await?;
 
         Ok(())
-    }
-
-    pub async fn maybe_get_or_insert_user(
-        &self,
-        user_id: u64,
-        generate_datetime: fn() -> NaiveDateTime,
-    ) -> MyResult<Option<User>> {
-        let user = Self::get_user(self, user_id).await?;
-
-        if user.is_some() {
-            return Ok(user);
-        }
-
-        let cur_datetime = generate_datetime();
-        Self::register_user(self, user_id, false, cur_datetime).await?;
-
-        Self::get_user(self, user_id).await
     }
 }

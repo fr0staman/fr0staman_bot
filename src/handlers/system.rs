@@ -3,9 +3,9 @@ use crate::{
     db::DB,
     keyboards,
     lang::{get_tag, get_tag_opt, lng, tag_one_or, InnerLang},
-    models::{Groups, UpdateGroups, UserStatus},
+    models::{UpdateGroups, UserStatus},
     traits::MaybeMessageSetter,
-    utils::date::get_datetime,
+    utils::db_shortcuts,
     MyBot, MyResult,
 };
 use teloxide::{
@@ -23,7 +23,9 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
+    let Some(settings) =
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
         return Ok(());
     };
 
@@ -69,7 +71,9 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
+    let Some(settings) =
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
         return Ok(());
     };
 
@@ -116,13 +120,12 @@ pub async fn handle_ban_or_unban_in_private(
     let UpdateKind::MyChatMember(member) = u.kind else { return Ok(()) };
 
     let is_banned = member.new_chat_member.is_banned();
-    let Some(user) = DB
-        .other
-        .maybe_get_or_insert_user(
-            member.new_chat_member.user.id.0,
-            get_datetime,
-        )
-        .await?
+
+    let Some(user) = db_shortcuts::maybe_get_or_insert_user(
+        &member.new_chat_member.user,
+        true,
+    )
+    .await?
     else {
         crate::myerr!("User not inserted!");
         return Ok(());
@@ -146,7 +149,9 @@ pub async fn handle_ban_or_unban_in_private(
 }
 
 pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
-    let Some(settings) = _get_or_insert_chat(m.chat.id).await? else {
+    let Some(settings) =
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
         return Ok(());
     };
 
@@ -175,8 +180,7 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(()) };
-    let Some(user) =
-        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
+    let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
     else {
         return Ok(());
     };
@@ -202,8 +206,7 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = m.from() else { return Ok(()) };
     let Some(animation) = m.animation() else { return Ok(()) };
 
-    let Some(user) =
-        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
+    let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
     else {
         return Ok(());
     };
@@ -238,16 +241,4 @@ pub async fn handle_chat_migration(_bot: MyBot, m: Message) -> MyResult<()> {
     DB.other.update_chat_id(m.chat.id.0, to.0).await?;
 
     Ok(())
-}
-
-async fn _get_or_insert_chat(chat_id: ChatId) -> MyResult<Option<Groups>> {
-    let settings = DB.other.get_chat(chat_id.0).await?;
-    match settings {
-        Some(s) => Ok(Some(s)),
-        None => {
-            let cur_datetime = get_datetime();
-            DB.other.add_chat(chat_id.0, cur_datetime).await?;
-            DB.other.get_chat(chat_id.0).await
-        },
-    }
 }

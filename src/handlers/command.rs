@@ -14,6 +14,7 @@ use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
 use crate::models::UserStatus;
 use crate::traits::{MaybeMessageSetter, MaybeVoiceSetter};
 use crate::utils::date::{get_datetime, get_timediff};
+use crate::utils::db_shortcuts;
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
 use crate::utils::ogg::increase_sound;
@@ -116,8 +117,7 @@ async fn command_start(
             };
             DB.other.change_user_status(from.id.0, user_status).await?;
         } else {
-            let cur_datetime = get_datetime();
-            DB.other.register_user(from.id.0, true, cur_datetime).await?;
+            db_shortcuts::maybe_get_or_insert_user(from, true).await?;
         };
 
         bot.send_message(m.chat.id, text_reg).maybe_thread_id(m).await?;
@@ -248,14 +248,14 @@ async fn command_grow(
     let pig = if let Some(pig) = pig {
         pig
     } else {
-        DB.other.add_chat(m.chat.id.0, get_datetime()).await?;
-
-        let Some(chat_info) = DB.other.get_chat(m.chat.id.0).await? else {
+        let Some(chat_info) =
+            db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+        else {
             return Ok(());
         };
 
         let Some(user) =
-            DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await?
+            db_shortcuts::maybe_get_or_insert_user(from, false).await?
         else {
             return Ok(());
         };
@@ -416,18 +416,10 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     }
 
-    let chat_settings = DB.other.get_chat(m.chat.id.0).await?;
-
-    let chat_settings = if let Some(chat_settings) = chat_settings {
-        chat_settings
-    } else {
-        let cur_datetime = get_datetime();
-        DB.other.add_chat(m.chat.id.0, cur_datetime).await?;
-        let chat_settings = DB.other.get_chat(m.chat.id.0).await?;
-        let Some(chat_settings) = chat_settings else {
-            return Ok(());
-        };
-        chat_settings
+    let Some(chat_settings) =
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
+        return Ok(());
     };
 
     let limit = chat_settings.top10_setting;
@@ -538,7 +530,7 @@ async fn command_louder(
 
     let Some(from) = m.from() else { return Ok(()) };
     let Ok(Some(user)) =
-        DB.other.maybe_get_or_insert_user(from.id.0, get_datetime).await
+        db_shortcuts::maybe_get_or_insert_user(from, false).await
     else {
         return Ok(());
     };

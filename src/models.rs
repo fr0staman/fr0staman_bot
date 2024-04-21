@@ -24,6 +24,15 @@ pub struct Game {
     pub f_name: String,
 }
 
+#[derive(Insertable, Debug)]
+#[diesel(table_name = groups)]
+pub struct NewGroup<'a> {
+    pub chat_id: i64,
+    pub date: NaiveDateTime,
+    pub username: Option<&'a str>,
+    pub title: &'a str,
+}
+
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = groups)]
 pub struct Groups {
@@ -35,6 +44,8 @@ pub struct Groups {
     pub lang: Option<String>,
     pub active: bool,
     pub ig_id: Option<i32>,
+    pub username: Option<String>,
+    pub title: String,
 }
 
 #[derive(Queryable, AsChangeset)]
@@ -126,6 +137,17 @@ pub struct InlineGif {
     pub status: i16,
 }
 
+#[derive(Insertable, Debug)]
+#[diesel(table_name = users)]
+pub struct NewUser<'a> {
+    pub user_id: u64,
+    pub started: bool,
+    pub created_at: NaiveDateTime,
+    pub username: Option<&'a str>,
+    pub first_name: &'a str,
+    pub last_name: Option<&'a str>,
+}
+
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = users)]
 pub struct User {
@@ -137,6 +159,9 @@ pub struct User {
     pub subscribed: bool,
     pub created_at: NaiveDateTime,
     pub lang: Option<String>,
+    pub username: Option<String>,
+    pub first_name: String,
+    pub last_name: Option<String>,
 }
 
 #[derive(Queryable, AsChangeset)]

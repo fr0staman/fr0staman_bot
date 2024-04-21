@@ -25,6 +25,10 @@ diesel::table! {
         lang -> Nullable<Varchar>,
         active -> Bool,
         ig_id -> Nullable<Integer>,
+        #[max_length = 64]
+        username -> Nullable<Varchar>,
+        #[max_length = 128]
+        title -> Varchar,
     }
 }
 
@@ -105,6 +109,12 @@ diesel::table! {
         created_at -> Datetime,
         #[max_length = 2]
         lang -> Nullable<Varchar>,
+        #[max_length = 64]
+        username -> Nullable<Varchar>,
+        #[max_length = 64]
+        last_name -> Nullable<Varchar>,
+        #[max_length = 64]
+        first_name -> Varchar,
     }
 }
 

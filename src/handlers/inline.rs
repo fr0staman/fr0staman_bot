@@ -17,10 +17,10 @@ use crate::enums::{InlineCommands, InlineKeywords, Top10Variant};
 use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
 use crate::models::{InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
-use crate::utils::date::{get_date, get_datetime};
+use crate::utils::date::get_date;
 use crate::utils::flag::Flags;
 use crate::utils::helpers::{escape, truncate};
-use crate::utils::{formulas, helpers, iq_results};
+use crate::utils::{db_shortcuts, formulas, helpers, iq_results};
 use crate::{MyError, MyResult};
 
 pub async fn filter_inline_commands(
@@ -105,10 +105,8 @@ async fn _get_hryak(
     let cur_date = get_date();
 
     let Some(info) = hrundel_info else {
-        let Some(user) = DB
-            .other
-            .maybe_get_or_insert_user(q.from.id.0, get_datetime)
-            .await?
+        let Some(user) =
+            db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?
         else {
             return Ok(vec![iq_results::handle_error_info(ltag)]);
         };

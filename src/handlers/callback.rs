@@ -28,6 +28,7 @@ use crate::{
     types::ParsedCallbackData,
     utils::{
         date::{get_date, get_datetime},
+        db_shortcuts,
         decode::decode_inline_message_id,
         flag::Flags,
         formulas,
@@ -50,7 +51,7 @@ pub async fn filter_callback_commands(
     }
 
     let Some(user) =
-        DB.other.maybe_get_or_insert_user(q.from.id.0, get_datetime).await?
+        db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?
     else {
         crate::myerr!("User not exist after inserting!");
         return Ok(());
@@ -587,18 +588,10 @@ async fn callback_change_top(
     let Some(m) = &q.message else { return Ok(()) };
     let Some(from) = m.from() else { return Ok(()) };
 
-    let chat_info = DB.other.get_chat(m.chat.id.0).await?;
-
-    let chat_info = if let Some(chat_info) = chat_info {
-        chat_info
-    } else {
-        let cur_datetime = get_datetime();
-        DB.other.add_chat(m.chat.id.0, cur_datetime).await?;
-        let chat_info = DB.other.get_chat(m.chat.id.0).await?;
-        let Some(chat_info) = chat_info else {
-            return Ok(());
-        };
-        chat_info
+    let Some(chat_info) =
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
+        return Ok(());
     };
 
     let limit = chat_info.top10_setting;
@@ -785,11 +778,11 @@ async fn callback_allow_voice(
             .await?;
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
-    let Some(user) =
-        DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
-    else {
+
+    let Some(user) = DB.other.get_user(user_id.0).await? else {
         return Ok(());
     };
+
     DB.other.add_voice(user.id, probably_url).await?;
 
     let voices = DB.other.get_voices_by_user(user.id).await?;
@@ -957,9 +950,7 @@ async fn _cb_allow_gif(
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
 
-    let Some(user) =
-        DB.other.maybe_get_or_insert_user(user_id.0, get_datetime).await?
-    else {
+    let Some(user) = DB.other.get_user(user_id.0).await? else {
         crate::myerr!("Some not working...");
         return Ok(());
     };
