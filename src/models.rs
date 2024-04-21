@@ -21,7 +21,6 @@ pub struct Game {
     pub mass: i32,
     pub date: NaiveDate,
     pub name: String,
-    pub f_name: String,
 }
 
 #[derive(Insertable, Debug)]
@@ -101,7 +100,6 @@ pub struct InlineGroup {
 pub struct InlineUser {
     pub id: i32,
     pub uid: u32,
-    pub f_name: String,
     pub weight: i32,
     pub date: NaiveDate,
     pub flag: String,
@@ -123,7 +121,6 @@ pub struct InlineUsersGroup {
 #[diesel(table_name = inline_users)]
 pub struct NewInlineUser<'a> {
     pub uid: u32,
-    pub f_name: &'a str,
     pub weight: i32,
     pub date: NaiveDate,
     pub flag: &'a str,
@@ -132,9 +129,8 @@ pub struct NewInlineUser<'a> {
 
 #[derive(Queryable)]
 #[diesel(table_name = inline_users)]
-pub struct UpdateInlineUser<'a> {
+pub struct UpdateInlineUser {
     pub id: i32,
-    pub f_name: &'a str,
     pub weight: i32,
     pub date: NaiveDate,
     pub gifted: bool,

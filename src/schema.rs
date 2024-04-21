@@ -8,8 +8,6 @@ diesel::table! {
         date -> Date,
         #[max_length = 64]
         name -> Varchar,
-        #[max_length = 64]
-        f_name -> Varchar,
         uid -> Unsigned<Integer>,
     }
 }
@@ -63,8 +61,6 @@ diesel::table! {
 diesel::table! {
     inline_users (id) {
         id -> Integer,
-        #[max_length = 64]
-        f_name -> Varchar,
         weight -> Integer,
         date -> Date,
         win -> Unsigned<Smallint>,

@@ -133,17 +133,13 @@ impl HandPig {
         Ok(())
     }
 
-    pub async fn update_hrundel(
-        &self,
-        data: UpdateInlineUser<'_>,
-    ) -> MyResult<()> {
+    pub async fn update_hrundel(&self, data: UpdateInlineUser) -> MyResult<()> {
         use crate::schema::inline_users::dsl::*;
 
         diesel::update(inline_users.find(data.id))
             .set((
                 date.eq(data.date),
                 weight.eq(data.weight),
-                f_name.eq(data.f_name),
                 gifted.eq(data.gifted),
             ))
             .execute(&mut self.pool.get().await?)

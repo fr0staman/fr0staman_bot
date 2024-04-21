@@ -120,7 +120,6 @@ async fn _get_hryak(
         let hrundel = NewInlineUser {
             uid: user.id,
             weight,
-            f_name,
             name: f_name,
             date: cur_date,
             flag: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
@@ -135,12 +134,8 @@ async fn _get_hryak(
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
         let add = biggest_mass + helpers::mass_addition_on_status(&info.1);
 
-        let escaped_f_name = escape(&q.from.first_name);
-        let f_name = truncate(&escaped_f_name, 64).0;
-
         let update_data = UpdateInlineUser {
             id: info.0.id,
-            f_name,
             weight: weight + add,
             date: cur_date,
             gifted: false,

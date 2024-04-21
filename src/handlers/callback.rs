@@ -235,7 +235,7 @@ async fn callback_find_day_pig(
 
     if let Some(hryak_today) = result {
         let text = lng("DayPigAlreadyFound", ltag)
-            .args(&[("name", hryak_today.2.f_name)]);
+            .args(&[("name", hryak_today.3.first_name)]);
         bot.answer_callback_query(&q.id).await?;
         bot.edit_message_text_inline(im_id, text).await?;
         return Ok(());
@@ -258,7 +258,7 @@ async fn callback_find_day_pig(
 
             let mention = user_mention(
                 i64::try_from(current_chat.3.user_id).unwrap(),
-                &current_chat.2.f_name,
+                &current_chat.3.first_name,
             );
 
             let text1 = lng("DayPigLabel1", ltag);
@@ -1058,7 +1058,6 @@ async fn callback_gift<'a>(
     let hrundel_on_update = UpdateInlineUser {
         id: hrundel.0.id,
         date: hrundel.0.date,
-        f_name: &q.from.first_name,
         weight: hrundel.0.weight + DAILY_GIFT_AMOUNT,
         gifted: true,
     };
@@ -1102,7 +1101,6 @@ async fn callback_check_subscribe<'a>(
     let hrundel_on_update = UpdateInlineUser {
         id: hrundel.0.id,
         date: hrundel.0.date,
-        f_name: &q.from.first_name,
         weight: hrundel.0.weight + SUBSCRIBE_GIFT,
         gifted: false,
     };

@@ -164,7 +164,7 @@ async fn chosen_day_pig(
     };
 
     let text =
-        lng("DayPigAlreadyFound", ltag).args(&[("name", day_pig.2.f_name)]);
+        lng("DayPigAlreadyFound", ltag).args(&[("name", day_pig.3.first_name)]);
     bot.edit_message_text_inline(im_id, text).await?;
 
     Ok(())

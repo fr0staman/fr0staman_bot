@@ -136,7 +136,6 @@ impl ChatPig {
                 uid.eq(id_user),
                 group_id.eq(id_group),
                 name.eq(cur_name),
-                f_name.eq(cur_name),
                 date.eq(cur_date),
                 mass.eq(start_mass),
             ))
