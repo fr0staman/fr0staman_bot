@@ -34,7 +34,11 @@ pub async fn filter_commands(
         None
     };
 
-    let chat_info = DB.other.get_chat(m.chat.id.0).await?;
+    let chat_info = if let ChatKind::Public(_) = &m.chat.kind {
+        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    } else {
+        None
+    };
 
     let ltag = tag_one_two_or(
         user_info.and_then(|c| c.lang).as_deref(),
