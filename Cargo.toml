@@ -11,9 +11,9 @@ axum = "0.6.20"
 axum-prometheus = "0.4.0"
 base64 = "0.22.0"
 bytes = "1.6.0"
-chrono = { version = "0.4.37" }
+chrono = { version = "0.4.38" }
 dashmap = "5.5.3"
-diesel = { version = "2.1.5", features = ["chrono"] }
+diesel = { version = "2.1.6", features = ["chrono"] }
 diesel-async = { version = "0.4.1", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.30"
@@ -25,11 +25,11 @@ pretty_env_logger = "0.5"
 prometheus = "0.13.3"
 rand = "0.8.5"
 rayon = "1.10.0"
-serde_json = "1.0.115"
+serde_json = "1.0.116"
 strum = { version = "0.26.2", features = ["derive"] }
 systemstat = "0.2.3"
 teloxide = { version = "0.12.2", features = ["macros", "webhooks-axum"] }
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.1.11"
 url = "2.5.0"
