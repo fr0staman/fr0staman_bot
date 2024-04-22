@@ -73,10 +73,16 @@ pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {
             update = true;
         }
 
+        // Сheck "active" chat status from db for accuracy and update
+        if !group_info.active {
+            update = true
+        }
+
         if update {
             let update_group = UpdateGroups {
                 title: title.to_string(),
                 username: username.map(|v| v.to_string()),
+                active: true,
                 ..group_info.to_update()
             };
             DB.other.update_chat(chat.id.0, update_group).await?;
