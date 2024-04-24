@@ -23,17 +23,23 @@
 
 **@fr0staman_bot** is a multifunctional game-like bot written in [Rust](https://www.rust-lang.org/), using [teloxide](https://github.com/teloxide/teloxide).
 Bot uses much from Telegram Bot API and solves many (non) classic tasks, so in the code you can see:
-- Multilingualism
-- Message/Inline/Callback filter and handling
-- New/left user greetings
+- Multilingualism (with user or chat settings!)
+- Message/Inline/Callback/Chosen filter and handling
+- Optional new/left user reaction
+- Handling chat_migration from chat to supergroup
 - Other Telegram events (video_chat, chat_migration)
 - Telegram channel subscription check
-- Callback event locking
+- Receive from user, moderating gif and voice bot inline content
+- Storing and updating basic information about users and chats
+- [Decode inline_message_id](https://github.com/fr0staman/fr0staman_bot/blob/master/src/utils/decode.rs) and [join inline chats with supergroups](https://github.com/fr0staman/fr0staman_bot/blob/master/src/handlers/callback.rs#L1160)
+- Callback chained locking per user
+- Increase voice message volume with `libopus`
 - Quite detailed logging
+- Sending bot errors directly to Telegram log group
 - Metrics with [Prometheus](https://prometheus.io/)
 
 ## Deployment
-1. Install `diesel_cli`
+1. Install `diesel_cli` (`--no-default-features --features=mysql`)
 2. Install and create `mysql` database
 3. Copy and fill `.env` from `.env.example`
 4. Setup diesel migrations by `diesel migration run`
