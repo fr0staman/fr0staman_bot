@@ -233,7 +233,7 @@ bidirectional_str_enum!(Flags, {
     Re => "re" => "🇷🇪",
     Ro => "ro" => "🇷🇴",
     Rs => "rs" => "🇷🇸",
-    Ru => "ru" => "🇷🇺",
+    Ru => "ru" => "🚩",
     Rw => "rw" => "🇷🇼",
     Sa => "sa" => "🇸🇦",
     Sb => "sb" => "🇸🇧",
