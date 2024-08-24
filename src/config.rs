@@ -1,6 +1,8 @@
-use std::{env, str::FromStr, sync::OnceLock};
-
-use once_cell::sync::Lazy;
+use std::{
+    env,
+    str::FromStr,
+    sync::{LazyLock, OnceLock},
+};
 use teloxide::types::Me;
 use url::Url;
 
@@ -41,7 +43,7 @@ where
         .unwrap_or_else(|_| panic!("{} is not valid!", name))
 }
 
-pub static BOT_CONFIG: Lazy<Config> = Lazy::new(|| Config {
+pub static BOT_CONFIG: LazyLock<Config> = LazyLock::new(|| Config {
     me: BOT_ME.get().expect("BOT_ME is not set!"),
     bot: BOT_STATIC.get().expect("BOT_STATIC is not set!"),
     teloxide_token: _from_env("TELOXIDE_TOKEN"),

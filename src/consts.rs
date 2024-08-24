@@ -1,8 +1,7 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use ahash::HashMap;
 use dashmap::DashSet;
-use once_cell::sync::Lazy;
 use teloxide::types::ParseMode;
 use tokio::sync::{Mutex, RwLock};
 
@@ -27,6 +26,6 @@ pub const HAND_PIG_ADDITION_ON_SUPPORTED: i32 = 500;
 pub const HAND_PIG_ADDITION_ON_SUBSCRIBED: i32 = 100;
 
 #[allow(clippy::type_complexity)]
-pub static DUEL_LOCKS: Lazy<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
-    Lazy::new(|| RwLock::new(HashMap::default()));
-pub static DUEL_LIST: Lazy<DashSet<u64>> = Lazy::new(DashSet::new);
+pub static DUEL_LOCKS: LazyLock<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::default()));
+pub static DUEL_LIST: LazyLock<DashSet<u64>> = LazyLock::new(DashSet::new);

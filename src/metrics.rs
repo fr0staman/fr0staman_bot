@@ -3,18 +3,18 @@
 
 use axum::{body::Body, http::Request, routing::get};
 use axum_prometheus::PrometheusMetricLayer;
-use once_cell::sync::Lazy;
 use prometheus::{Encoder, Gauge, Opts, TextEncoder};
+use std::sync::LazyLock;
 use systemstat::{Platform, System};
 use tokio::time::{sleep, Duration};
 
 use crate::config::BOT_CONFIG;
 // Register additional metrics of our own structs by using this registry instance.
-pub static REGISTRY: Lazy<Registry> =
-    Lazy::new(|| Registry(prometheus::Registry::new()));
+pub static REGISTRY: LazyLock<Registry> =
+    LazyLock::new(|| Registry(prometheus::Registry::new()));
 
 // Export special preconstructed counters for Teloxide's handlers.
-pub static INLINE_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static INLINE_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "inline",
         Opts::new(
@@ -24,11 +24,11 @@ pub static INLINE_COUNTER: Lazy<Counter> = Lazy::new(|| {
     )
 });
 
-pub static CALLBACK_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static CALLBACK_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new("callback", Opts::new("callback_total", "count of callbacks"))
 });
 
-pub static MESSAGE_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static MESSAGE_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "message",
         Opts::new(
@@ -38,7 +38,7 @@ pub static MESSAGE_COUNTER: Lazy<Counter> = Lazy::new(|| {
     )
 });
 
-pub static MESSAGE_HANDLED_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static MESSAGE_HANDLED_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "message",
         Opts::new(
@@ -48,46 +48,46 @@ pub static MESSAGE_HANDLED_COUNTER: Lazy<Counter> = Lazy::new(|| {
     )
 });
 
-pub static CMD_START_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static CMD_START_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "command_start",
         Opts::new("command_start_usage_total", "count of /start invocations"),
     )
 });
 
-pub static CMD_HELP_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static CMD_HELP_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "command_help",
         Opts::new("command_help_usage_total", "count of /help invocations"),
     )
 });
 
-pub static CMD_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static CMD_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "commands_all",
         Opts::new("command_all_usage", "count of commands invocations"),
     )
 });
 
-pub static UNHANDLED_COUNTER: Lazy<Counter> = Lazy::new(|| {
+pub static UNHANDLED_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "unhandled",
         Opts::new("unhandled", "count of unhandled updates"),
     )
 });
 
-pub static DUEL_NUMBERS: Lazy<Counter> = Lazy::new(|| {
+pub static DUEL_NUMBERS: LazyLock<Counter> = LazyLock::new(|| {
     Counter::new(
         "duel_numbers",
         Opts::new("duel_numbers", "Active duels on time"),
     )
 });
 
-static CPU_USAGE: Lazy<Gauge> = Lazy::new(|| {
+static CPU_USAGE: LazyLock<Gauge> = LazyLock::new(|| {
     Gauge::new("cpu_usage", "Current CPU usage in percent").unwrap()
 });
 
-static MEM_USAGE: Lazy<Gauge> = Lazy::new(|| {
+static MEM_USAGE: LazyLock<Gauge> = LazyLock::new(|| {
     Gauge::new("mem_usage", "Current memory usage in percent").unwrap()
 });
 

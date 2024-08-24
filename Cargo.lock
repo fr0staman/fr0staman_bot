@@ -794,7 +794,6 @@ dependencies = [
  "futures",
  "log",
  "ogg-opus",
- "once_cell",
  "packed_struct",
  "pretty_env_logger",
  "prometheus",

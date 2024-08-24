@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 use diesel_async::pooled_connection::{
     deadpool::Pool, AsyncDieselConnectionManager,
 };
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 use crate::config::BOT_CONFIG;
 use crate::db_api::{chat_pig::ChatPig, hand_pig::HandPig, other::Other};
@@ -11,7 +11,7 @@ use crate::db_api::{chat_pig::ChatPig, hand_pig::HandPig, other::Other};
 pub type DbConn = diesel_async::AsyncMysqlConnection;
 pub type MyPool = Pool<DbConn>;
 
-pub static DB: Lazy<DBScheme> = Lazy::new(|| DBScheme {
+pub static DB: LazyLock<DBScheme> = LazyLock::new(|| DBScheme {
     hand_pig: HandPig::new(Database::get_or_init_pool()),
     chat_pig: ChatPig::new(Database::get_or_init_pool()),
     other: Other::new(Database::get_or_init_pool()),
