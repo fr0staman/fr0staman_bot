@@ -1,8 +1,9 @@
 use chrono::{prelude::*, Duration};
 
+const GMT: i32 = 2;
 const FIXED_HOUR: u32 = 12;
 const FIXED_MINUTE: u32 = 36;
-const FIXED_OFFSET_IN_SECONDS: i32 = -3 * 3600;
+const FIXED_OFFSET_IN_SECONDS: i32 = -GMT * 3600;
 const FIXED_OFFSET: FixedOffset =
     match FixedOffset::east_opt(FIXED_OFFSET_IN_SECONDS) {
         Some(offset) => offset,
