@@ -1,6 +1,8 @@
 use futures::FutureExt;
 use teloxide::prelude::*;
-use teloxide::types::{ChatKind, InputFile};
+use teloxide::types::{
+    ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds,
+};
 use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::BOT_CONFIG;
@@ -12,7 +14,9 @@ use crate::enums::MyCommands;
 use crate::keyboards;
 use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
 use crate::models::UserStatus;
-use crate::traits::{MaybeMessageSetter, MaybeVoiceSetter};
+use crate::traits::{
+    MaybeMessageSetter, MaybeVoiceSetter, SimpleDisableWebPagePreview,
+};
 use crate::utils::date::{get_datetime, get_timediff};
 use crate::utils::db_shortcuts;
 use crate::utils::formulas::calculate_chat_pig_grow;
@@ -28,7 +32,7 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     crate::metrics::CMD_COUNTER.inc();
 
-    let user_info = if let Some(from) = m.from() {
+    let user_info = if let Some(from) = &m.from {
         db_shortcuts::maybe_get_or_insert_user(from, false).await?
     } else {
         None
@@ -43,7 +47,7 @@ pub async fn filter_commands(
     let ltag = tag_one_two_or(
         user_info.and_then(|c| c.lang).as_deref(),
         chat_info.and_then(|c| c.lang).as_deref(),
-        get_tag_opt(m.from()),
+        get_tag_opt(m.from.as_ref()),
     );
 
     let function = match &cmd {
@@ -65,7 +69,7 @@ pub async fn filter_commands(
 
     let response = function.await;
 
-    let user_id = m.from().map_or(0, |u| u.id.0);
+    let user_id = m.from.map_or(0, |u| u.id.0);
 
     if let Err(err) = response {
         crate::myerr!(
@@ -92,7 +96,7 @@ async fn command_start(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     crate::metrics::CMD_START_COUNTER.inc();
 
     let text = lng("ChatGreetingFirst", ltag)
@@ -175,7 +179,7 @@ async fn command_pidor(
             let text = lng("YouPidor", ltag);
             let _ = bot
                 .send_message(chat_id, text)
-                .reply_to_message_id(reply_id)
+                .reply_parameters(ReplyParameters::new(reply_id))
                 .maybe_thread_id(&m)
                 .await;
         });
@@ -202,12 +206,12 @@ async fn command_print(
         let text = italic(truncated.0);
         let request = if let Some(reply) = m.reply_to_message() {
             bot.send_message(m.chat.id, text)
-                .disable_web_page_preview(true)
-                .reply_to_message_id(reply.id)
+                .link_preview_options(LinkPreviewOptions::disable(true))
+                .reply_parameters(ReplyParameters::new(reply.id))
                 .maybe_thread_id(m)
         } else {
             bot.send_message(m.chat.id, text)
-                .disable_web_page_preview(true)
+                .link_preview_options(LinkPreviewOptions::disable(true))
                 .maybe_thread_id(m)
         };
 
@@ -233,7 +237,7 @@ async fn command_grow(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -242,10 +246,7 @@ async fn command_grow(
 
     let cur_datetime = get_datetime();
     let cur_date = cur_datetime.date();
-    let mention = user_mention(
-        i64::try_from(from.id.0).unwrap_or_default(),
-        &from.first_name,
-    );
+    let mention = user_mention(from.id, &from.first_name);
 
     let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
     let mut skip_date_check = false;
@@ -339,7 +340,7 @@ async fn command_grow(
     ]);
 
     bot.send_message(m.chat.id, text)
-        .disable_web_page_preview(true)
+        .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
     Ok(())
@@ -351,7 +352,7 @@ async fn command_name(
     ltag: LocaleTag,
     payload: &str,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -368,8 +369,8 @@ async fn command_name(
     if payload.is_empty() {
         let text = lng("GameNamePig", ltag).args(&[("name", &pig.name)]);
         bot.send_message(m.chat.id, text)
+            .link_preview_options(LinkPreviewOptions::disable(true))
             .maybe_thread_id(m)
-            .disable_web_page_preview(true)
             .await?;
         return Ok(());
     } else if payload.len() > 64 {
@@ -383,14 +384,14 @@ async fn command_name(
     DB.chat_pig.set_chat_pig_name(from.id.0, m.chat.id.0, payload).await?;
 
     bot.send_message(m.chat.id, text)
-        .disable_web_page_preview(true)
+        .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
 async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -406,14 +407,14 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
     bot.send_message(m.chat.id, text)
-        .disable_web_page_preview(true)
+        .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
     Ok(())
 }
 
 async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     if let ChatKind::Private(_) = m.chat.kind {
         _game_only_for_chats(bot, m, ltag).await?;
@@ -445,7 +446,7 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let markup = keyboards::keyboard_top50(ltag, 1, from.id, is_end);
     bot.send_message(m.chat.id, text)
         .reply_markup(markup)
-        .disable_web_page_preview(true)
+        .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
 
@@ -472,7 +473,7 @@ async fn command_lang(
     m: &Message,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     let user_info = DB.other.get_user(from.id.0).await?;
 
     let is_not_public = m.chat.is_private() || m.chat.is_channel();
@@ -505,7 +506,7 @@ async fn command_lang(
 }
 
 async fn command_id(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     let Some(user) = DB.other.get_user(from.id.0).await? else {
         return Ok(());
@@ -532,7 +533,7 @@ async fn command_louder(
         return Ok(());
     };
 
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     let Ok(Some(user)) =
         db_shortcuts::maybe_get_or_insert_user(from, false).await
     else {
@@ -540,12 +541,13 @@ async fn command_louder(
     };
 
     if user.supported {
-        if voice.duration > LOUDER_PREMIUM_VOICE_LIMIT {
+        if voice.duration > Seconds::from_seconds(LOUDER_PREMIUM_VOICE_LIMIT) {
             let text = lng("CmdLouderLimitPremium", ltag);
             bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
             return Ok(());
         }
-    } else if voice.duration > LOUDER_DEFAULT_VOICE_LIMIT {
+    } else if voice.duration > Seconds::from_seconds(LOUDER_DEFAULT_VOICE_LIMIT)
+    {
         let text = lng("CmdLouderLimitDefault", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());

@@ -4,7 +4,7 @@ use std::{cmp::Ordering, str::FromStr, sync::Arc};
 use teloxide::{
     prelude::*,
     requests::Requester,
-    types::{CallbackQuery, InputFile, UserId},
+    types::{CallbackQuery, InputFile, LinkPreviewOptions, UserId},
     utils::html::user_mention,
 };
 use tokio::{
@@ -24,7 +24,7 @@ use crate::{
     keyboards,
     lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag},
     models::{InlineUser, UpdateInlineUser, User, UserStatus},
-    traits::MaybeMessageSetter,
+    traits::{MaybeMessageSetter, SimpleDisableWebPagePreview},
     types::ParsedCallbackData,
     utils::{
         date::{get_date, get_datetime},
@@ -175,7 +175,7 @@ async fn _callback_error_try_change_message(
                 )
                 .await;
 
-                sleep(time).await;
+                sleep(time.duration()).await;
                 lng("ErrorInlineTooMuchMessage", ltag)
             } else {
                 lng("ErrorInlineInvalidQueryMessage", ltag)
@@ -184,7 +184,8 @@ async fn _callback_error_try_change_message(
             if let Some(im_id) = q.inline_message_id {
                 let _ = temp_bot.edit_message_text_inline(im_id, text).await;
             } else if let Some(m) = q.message {
-                let _ = temp_bot.edit_message_text(m.chat.id, m.id, text).await;
+                let _ =
+                    temp_bot.edit_message_text(m.chat().id, m.id(), text).await;
             }
         });
     } else {
@@ -257,7 +258,7 @@ async fn callback_find_day_pig(
             bot.answer_callback_query(&q.id).await?;
 
             let mention = user_mention(
-                i64::try_from(current_chat.3.user_id).unwrap(),
+                UserId(current_chat.3.user_id),
                 &current_chat.3.first_name,
             );
 
@@ -586,10 +587,13 @@ async fn callback_change_top(
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
     let Some(m) = &q.message else { return Ok(()) };
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(msg) = m.regular_message() else { return Ok(()) };
+    let Some(from) = &msg.from else {
+        return Ok(());
+    };
 
     let Some(chat_info) =
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+        db_shortcuts::maybe_get_or_insert_chat(m.chat()).await?
     else {
         return Ok(());
     };
@@ -598,23 +602,28 @@ async fn callback_change_top(
 
     let offset = data.2.parse::<i64>().unwrap();
 
-    let top50_pigs =
-        DB.chat_pig.get_top50_chat_pigs(m.chat.id.0, limit, offset - 1).await?;
+    let top50_pigs = DB
+        .chat_pig
+        .get_top50_chat_pigs(m.chat().id.0, limit, offset - 1)
+        .await?;
 
     if top50_pigs.is_empty() {
         let text = lng("HandPigNoInBarn", ltag);
-        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        let Some(msg) = m.regular_message() else {
+            return Ok(());
+        };
+        bot.send_message(m.chat().id, text).maybe_thread_id(msg).await?;
         return Ok(());
     }
 
-    let pig_count = DB.chat_pig.count_chat_pig(m.chat.id.0, limit).await?;
+    let pig_count = DB.chat_pig.count_chat_pig(m.chat().id.0, limit).await?;
 
     let text = generate_chat_top50_text(ltag, top50_pigs, offset - 1);
 
     let is_end = pig_count < (TOP_LIMIT * offset);
     let markup = keyboards::keyboard_top50(ltag, offset, from.id, is_end);
-    bot.edit_message_text(m.chat.id, m.id, text)
-        .disable_web_page_preview(true)
+    bot.edit_message_text(m.chat().id, m.id(), text)
+        .link_preview_options(LinkPreviewOptions::disable(true))
         .reply_markup(markup)
         .await?;
 
@@ -758,12 +767,12 @@ async fn callback_allow_voice(
     let text = lng("VoiceAccepted", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
     let probably_url =
-        format!("{}/{}", &BOT_CONFIG.content_check_channel_name, &m.id);
+        format!("{}/{}", &BOT_CONFIG.content_check_channel_name, &m.id());
 
     let accepted = lng("Accepted", ltag);
     let edited_text = format!("{} {}", accepted, user_id);
 
-    bot.edit_message_caption(m.chat.id, m.id)
+    bot.edit_message_caption(m.chat().id, m.id())
         .caption(edited_text)
         .reply_markup(keyboards::keyboard_empty())
         .await?;
@@ -790,7 +799,7 @@ async fn callback_allow_voice(
 
     let text = lng("VoiceAcceptedCongrats", ltag)
         .args(&[("number", number as i32), ("amount", INLINE_VOICE_REWARD_KG)]);
-    bot.send_message(user_id, text).maybe_thread_id(m).await?;
+    bot.send_message(user_id, text).await?;
 
     Ok(())
 }
@@ -817,7 +826,7 @@ async fn callback_disallow_voice(
 
     let not_accepted = lng("NotAccepted", ltag);
     let edited_text = format!("{} {}", not_accepted, user_id);
-    bot.edit_message_caption(m.chat.id, m.id)
+    bot.edit_message_caption(m.chat().id, m.id())
         .caption(edited_text)
         .reply_markup(keyboards::keyboard_empty())
         .await?;
@@ -828,7 +837,7 @@ async fn callback_disallow_voice(
     }
 
     let text = lng("VoiceNotAcceptedMsg", ltag);
-    bot.send_message(user_id, text).maybe_thread_id(m).await?;
+    bot.send_message(user_id, text).await?;
     Ok(())
 }
 
@@ -926,7 +935,9 @@ async fn _cb_allow_gif(
     let text = lng("GifAccepted", ltag);
     bot.answer_callback_query(&q.id).text(text).await?;
 
-    let Some(accepted_animation) = m.animation() else {
+    let Some(accepted_animation) =
+        m.regular_message().and_then(|v| v.animation())
+    else {
         crate::myerr!("Animation not exist!");
         return Ok(());
     };
@@ -934,7 +945,7 @@ async fn _cb_allow_gif(
     let accepted = lng("Accepted", ltag);
     let edited_text = format!("{} {}", accepted, user_id);
 
-    bot.edit_message_caption(m.chat.id, m.id)
+    bot.edit_message_caption(m.chat().id, m.id())
         .caption(edited_text)
         .reply_markup(keyboards::keyboard_empty())
         .await?;
@@ -979,7 +990,7 @@ async fn _cb_allow_gif(
         ("gif_link", gif_link.to_string()),
         ("amount", INLINE_GIF_REWARD_KG.to_string()),
     ]);
-    bot.send_message(user_id, text).maybe_thread_id(m).await?;
+    bot.send_message(user_id, text).await?;
 
     Ok(())
 }
@@ -1006,7 +1017,7 @@ async fn _cb_disallow_gif(
 
     let not_accepted = lng("NotAccepted", ltag);
     let edited_text = format!("{} {}", not_accepted, user_id);
-    bot.edit_message_caption(m.chat.id, m.id)
+    bot.edit_message_caption(m.chat().id, m.id())
         .caption(edited_text)
         .reply_markup(keyboards::keyboard_empty())
         .await?;
@@ -1017,7 +1028,7 @@ async fn _cb_disallow_gif(
     }
 
     let text = lng("GifNotAcceptedMsg", ltag);
-    bot.send_message(user_id, text).maybe_thread_id(m).await?;
+    bot.send_message(user_id, text).await?;
     Ok(())
 }
 
@@ -1208,7 +1219,7 @@ fn _on_error_join_groups_with_inline(q: &CallbackQuery, err: MyError) {
 
 fn _maybe_get_chat_id(q: &CallbackQuery) -> Option<i64> {
     if let Some(m) = &q.message {
-        Some(m.chat.id.0)
+        Some(m.chat().id.0)
     } else if let Some(im_id) = &q.inline_message_id {
         let mut decoded = decode_inline_message_id(im_id)?;
         decoded.normalize();

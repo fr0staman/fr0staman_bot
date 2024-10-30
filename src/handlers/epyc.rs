@@ -26,7 +26,7 @@ pub async fn filter_commands(
     m: Message,
     cmd: EpycCommands,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     let user_info = DB.other.get_user(from.id.0).await?;
     let chat_info = DB.other.get_chat(m.chat.id.0).await?;
@@ -34,7 +34,7 @@ pub async fn filter_commands(
     let ltag = tag_one_two_or(
         user_info.and_then(|c| c.lang).as_deref(),
         chat_info.and_then(|c| c.lang).as_deref(),
-        get_tag_opt(m.from()),
+        get_tag_opt(m.from.as_ref()),
     );
 
     if let ChatKind::Private(_) = m.chat.kind {
@@ -67,7 +67,7 @@ async fn command_epyc(
     ltag: LocaleTag,
     arg: &str,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
 
     let member = bot.get_chat_member(m.chat.id, from.id).await?;
 

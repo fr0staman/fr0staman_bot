@@ -25,6 +25,7 @@ use teloxide::{
     update_listeners::{webhooks, UpdateListener},
     utils::command::BotCommands,
 };
+use tokio::net::TcpListener;
 
 use crate::{
     config::{BOT_CONFIG, BOT_ME, BOT_STATIC},
@@ -75,7 +76,7 @@ async fn run() {
                 .branch(
                     dptree::filter(|m: Message| {
                         m.chat.is_private()
-                            && m.from().is_some_and(|u| {
+                            && m.from.as_ref().is_some_and(|u| {
                                 u.id.0 == BOT_CONFIG.creator_id
                             })
                     })
@@ -166,22 +167,23 @@ async fn setup_listener(
         webhooks::axum_to_router(bot.clone(), options).await?;
     let stop_token = update_listener.stop_token();
 
+    let listener = TcpListener::bind(&address).await.expect("Listener error");
     tokio::spawn(async move {
-        axum::Server::bind(&address)
-            .serve(
-                Router::new()
-                    .merge(bot_router)
-                    .merge(metrics::init())
-                    .fallback(fallback_404)
-                    .into_make_service(),
-            )
-            .with_graceful_shutdown(stop_flag)
-            .await
-            .map_err(|err| {
-                stop_token.stop();
-                err
-            })
-            .expect("Axum server error");
+        axum::serve(
+            listener,
+            Router::new()
+                .merge(bot_router)
+                .merge(metrics::init())
+                .fallback(fallback_404)
+                .into_make_service(),
+        )
+        .with_graceful_shutdown(stop_flag)
+        .await
+        .map_err(|err| {
+            stop_token.stop();
+            err
+        })
+        .expect("Axum server error");
     });
 
     Ok(update_listener)
@@ -228,8 +230,8 @@ async fn setup_commands(bot: &MyBot) {
 async fn default_log_handler(upd: Arc<Update>) {
     crate::metrics::UNHANDLED_COUNTER.inc();
 
-    let update_id = upd.id;
-    if let Some(user) = upd.user() {
+    let update_id = upd.id.0;
+    if let Some(user) = upd.from() {
         let user_id = user.id;
         if let Some(chat) = upd.chat() {
             let chat_id = chat.id;

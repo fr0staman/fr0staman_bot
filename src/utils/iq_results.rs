@@ -1,17 +1,18 @@
 use teloxide::types::{
     ChatType, InlineQueryResultArticle, InlineQueryResultCachedGif,
     InlineQueryResultVoice, InputMessageContent, InputMessageContentText,
-    UserId,
+    LinkPreviewOptions, UserId,
 };
 use teloxide::utils::html::{bold, italic};
 use url::Url;
 
 use crate::config::BOT_CONFIG;
-use crate::consts::{BOT_PARSE_MODE, INLINE_NAME_SET_LIMIT};
+use crate::consts::INLINE_NAME_SET_LIMIT;
 use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
 use crate::lang::{lng, InnerLang, LocaleTag};
 use crate::models::{InlineUser, User};
+use crate::traits::SimpleDisableWebPagePreview;
 use crate::utils::flag::Flags;
 use crate::utils::formulas;
 use crate::utils::helpers::{get_photostock, truncate};
@@ -31,8 +32,7 @@ pub fn get_start_duel(
     ]);
 
     let content = InputMessageContentText::new(text)
-        .parse_mode(BOT_PARSE_MODE)
-        .disable_web_page_preview(true);
+        .link_preview_options(LinkPreviewOptions::disable(true));
 
     let desc = lng("DuelInlineDesc", ltag)
         .args(&[("chat_name", &BOT_CONFIG.chat_link)]);
@@ -43,7 +43,7 @@ pub fn get_start_duel(
         InputMessageContent::Text(content),
     )
     .description(desc)
-    .thumb_url(get_photostock(Image::Fight))
+    .thumbnail_url(get_photostock(Image::Fight))
     .reply_markup(keyboards::keyboard_start_duel(ltag, id_user))
 }
 
@@ -55,8 +55,7 @@ pub fn get_top10_info(
 ) -> InlineQueryResultArticle {
     let title = lng("Top10Caption", ltag);
     let message_text = InputMessageContentText::new(text)
-        .parse_mode(BOT_PARSE_MODE)
-        .disable_web_page_preview(true);
+        .link_preview_options(LinkPreviewOptions::disable(true));
 
     InlineQueryResultArticle::new(
         InlineResults::GetTop10Info.to_string_with_args(),
@@ -64,7 +63,7 @@ pub fn get_top10_info(
         InputMessageContent::Text(message_text),
     )
     .description(lng("InlineTop10Desc", ltag))
-    .thumb_url(get_photostock(Image::Top))
+    .thumbnail_url(get_photostock(Image::Top))
     .reply_markup(keyboards::keyboard_in_top10(ltag, id_user, chat_type))
 }
 
@@ -96,12 +95,11 @@ pub fn get_hryak_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
-    .thumb_url(get_photostock(Image::TakeWeight));
+    .thumbnail_url(get_photostock(Image::TakeWeight));
 
     if remove_markup {
         query_result
@@ -122,12 +120,11 @@ pub fn get_more_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
-    .thumb_url(get_photostock(Image::MoreInfo))
+    .thumbnail_url(get_photostock(Image::MoreInfo))
     .reply_markup(keyboards::keyboard_more_info(ltag))
 }
 
@@ -144,12 +141,11 @@ pub fn name_hryak_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(lng("HandPigNameGoDesc", ltag))
-    .thumb_url(get_photostock(Image::NameTyping))
+    .thumbnail_url(get_photostock(Image::NameTyping))
 }
 
 pub fn rename_hryak_info(
@@ -170,13 +166,12 @@ pub fn rename_hryak_info(
         &cutted_name,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
     .reply_markup(keyboards::keyboard_new_name(ltag, id_user, cutted_name))
-    .thumb_url(get_photostock(Image::NameSuccess))
+    .thumbnail_url(get_photostock(Image::NameSuccess))
 }
 
 pub fn day_pig_info(
@@ -201,12 +196,11 @@ pub fn day_pig_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
-    .thumb_url(get_photostock(Image::DayPig))
+    .thumbnail_url(get_photostock(Image::DayPig))
     .reply_markup(markup)
 }
 
@@ -221,8 +215,7 @@ pub fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -238,8 +231,7 @@ pub fn flag_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -270,8 +262,7 @@ pub fn flag_change_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -299,8 +290,7 @@ pub fn lang_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -317,8 +307,7 @@ pub fn lang_empty_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -362,8 +351,7 @@ pub fn lang_change_info(
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -383,11 +371,10 @@ pub fn cpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
-    .thumb_url(get_photostock(Image::OCCPU))
+    .thumbnail_url(get_photostock(Image::OCCPU))
 }
 
 pub fn ram_oc_info(ltag: LocaleTag, mass: u32) -> InlineQueryResultArticle {
@@ -402,11 +389,10 @@ pub fn ram_oc_info(ltag: LocaleTag, mass: u32) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
-    .thumb_url(get_photostock(Image::OCRAM))
+    .thumbnail_url(get_photostock(Image::OCRAM))
 }
 
 pub fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
@@ -421,11 +407,10 @@ pub fn gpu_oc_info(ltag: LocaleTag, mass: f32) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
-    .thumb_url(get_photostock(Image::OCGPU))
+    .thumbnail_url(get_photostock(Image::OCGPU))
 }
 
 pub fn hru_voice_info(
@@ -457,12 +442,11 @@ pub fn handle_error_info(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
-    .thumb_url(get_photostock(Image::Error))
+    .thumbnail_url(get_photostock(Image::Error))
 }
 
 pub fn handle_error_parse(ltag: LocaleTag) -> InlineQueryResultArticle {
@@ -476,8 +460,7 @@ pub fn handle_error_parse(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)
@@ -494,8 +477,7 @@ pub fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
-                .parse_mode(BOT_PARSE_MODE)
-                .disable_web_page_preview(true),
+                .link_preview_options(LinkPreviewOptions::disable(true)),
         ),
     )
     .description(desc)

@@ -17,7 +17,7 @@ pub async fn filter_admin_commands(
     m: Message,
     cmd: AdminCommands,
 ) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     let Some(user) = DB.other.get_user(from.id.0).await? else { return Ok(()) };
 
     let ltag = tag_one_or(user.lang.as_deref(), get_tag(from));
@@ -30,7 +30,7 @@ pub async fn filter_admin_commands(
 
     let response = function.await;
 
-    let user_id = m.from().map_or(0, |u| u.id.0);
+    let user_id = m.from.map_or(0, |u| u.id.0);
 
     if let Err(err) = response {
         crate::myerr!(

@@ -10,7 +10,7 @@ use crate::{
 };
 use teloxide::{
     prelude::*,
-    types::{InputFile, UpdateKind},
+    types::{InputFile, ReplyParameters, UpdateKind},
     utils::html::user_mention,
 };
 use teloxide::{types::Message, utils::html::escape};
@@ -43,10 +43,7 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
             log::info!("Bot added to chat [{}]", m.chat.id);
         } else {
-            let mention = user_mention(
-                user.id.0.try_into().unwrap(),
-                &escape(&user.first_name),
-            );
+            let mention = user_mention(user.id, &escape(&user.first_name));
             let chat_title = bold(&escape(m.chat.title().unwrap_or("chat")));
             let text = lng("ChatGreeting", ltag).args(&[
                 ("mention", &mention),
@@ -54,7 +51,7 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
                 ("channel", &BOT_CONFIG.channel_name),
             ]);
             bot.send_message(m.chat.id, text)
-                .reply_to_message_id(m.id)
+                .reply_parameters(ReplyParameters::new(m.id))
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("New chat member in chat [{}]", m.chat.id);
@@ -91,15 +88,12 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
 
     let ltag = tag_one_or(settings.lang.as_deref(), get_tag(member));
 
-    let mention = user_mention(
-        member.id.0.try_into().unwrap(),
-        &escape(&member.first_name),
-    );
+    let mention = user_mention(member.id, &escape(&member.first_name));
     let chat_title = bold(&escape(m.chat.title().unwrap_or("chat")));
     let args = &[("mention", mention), ("chat_title", chat_title)];
     let text = lng("UserLeaveChat", ltag).args(args);
     bot.send_message(m.chat.id, text)
-        .reply_to_message_id(m.id)
+        .reply_parameters(ReplyParameters::new(m.id))
         .maybe_thread_id(&m)
         .await?;
 
@@ -161,11 +155,12 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
         _ => "EPYC",
     };
 
-    let ltag = tag_one_or(settings.lang.as_deref(), get_tag_opt(m.from()));
+    let ltag =
+        tag_one_or(settings.lang.as_deref(), get_tag_opt(m.from.as_ref()));
 
     let text = lng(key, ltag);
     bot.send_message(m.chat.id, text)
-        .reply_to_message_id(m.id)
+        .reply_parameters(ReplyParameters::new(m.id))
         .maybe_thread_id(&m)
         .await?;
     log::info!("Video chat reaction in chat [{}]", m.chat.id);
@@ -174,13 +169,13 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
 }
 
 pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
     else {
         return Ok(());
     };
 
-    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from()));
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from.as_ref()));
     let text = lng("InlineHrukAddMessage", ltag);
 
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
@@ -198,7 +193,7 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
 }
 
 pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
-    let Some(from) = m.from() else { return Ok(()) };
+    let Some(from) = &m.from else { return Ok(()) };
     let Some(animation) = m.animation() else { return Ok(()) };
 
     let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
@@ -206,7 +201,7 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from()));
+    let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from.as_ref()));
 
     let maybe_gif_with_same_id =
         DB.other.get_gif_by_file_unique_id(&animation.file.unique_id).await?;

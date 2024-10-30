@@ -8,7 +8,7 @@ use crate::{
 
 use teloxide::{
     prelude::*,
-    types::{InputFile, Message},
+    types::{InputFile, Message, ReplyParameters},
     utils::html::{bold, italic},
 };
 
@@ -70,7 +70,7 @@ async fn _maybe_send_message(
     match action {
         Actions::Text(text) => {
             bot.send_message(m.chat.id, text)
-                .reply_to_message_id(m.id)
+                .reply_parameters(ReplyParameters::new(m.id))
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message: chat [{}]", m.chat.id);
@@ -78,17 +78,20 @@ async fn _maybe_send_message(
         },
         Actions::MaybeRText(text) => {
             bot.send_message(m.chat.id, text)
-                .reply_to_message_id(
-                    m.reply_to_message().map_or_else(|| m.id, |v| v.id),
-                )
+                .reply_parameters(ReplyParameters::new(
+                    m.reply_to_message().map_or(m.id, |v| v.id),
+                ))
                 .maybe_thread_id(&m)
                 .await?;
+
             log::info!("Handled message: chat [{}]", m.chat.id);
             crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::RSticker(file_id) => {
             bot.send_sticker(m.chat.id, InputFile::file_id(file_id))
-                .reply_to_message_id(m.reply_to_message().unwrap().id.0)
+                .reply_parameters(ReplyParameters::new(
+                    m.reply_to_message().unwrap().id,
+                ))
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with sticker: chat [{}]", m.chat.id);
@@ -96,7 +99,9 @@ async fn _maybe_send_message(
         },
         Actions::RVoice(file_id) => {
             bot.send_voice(m.chat.id, InputFile::file_id(file_id))
-                .reply_to_message_id(m.reply_to_message().unwrap().id)
+                .reply_parameters(ReplyParameters::new(
+                    m.reply_to_message().unwrap().id,
+                ))
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with voice: chat [{}]", m.chat.id);
@@ -104,7 +109,7 @@ async fn _maybe_send_message(
         },
         Actions::Photo(file_id) => {
             bot.send_photo(m.chat.id, InputFile::file_id(file_id))
-                .reply_to_message_id(m.id)
+                .reply_parameters(ReplyParameters::new(m.id))
                 .maybe_thread_id(&m)
                 .await?;
             log::info!("Handled message with image: chat [{}]", m.chat.id);
