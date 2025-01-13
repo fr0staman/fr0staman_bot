@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::str::FromStr;
 
 use futures::FutureExt;
@@ -14,7 +15,7 @@ use teloxide::{
 use crate::consts::{DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
 use crate::enums::{InlineCommands, InlineKeywords, Top10Variant};
-use crate::lang::{get_langs, get_tag, lng, tag_one_or, InnerLang, LocaleTag};
+use crate::lang::{InnerLang, LocaleTag, get_langs, get_tag, lng, tag_one_or};
 use crate::models::{InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
 use crate::utils::date::get_date;
@@ -252,12 +253,9 @@ async fn inline_hruks(
         DB.other.get_inline_voices().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
-            bot.answer_inline_query(
-                &q.id,
-                vec![InlineQueryResult::Article(
-                    iq_results::handle_error_parse(ltag),
-                )],
-            )
+            bot.answer_inline_query(&q.id, [InlineQueryResult::Article(
+                iq_results::handle_error_parse(ltag),
+            )])
             .await?;
             return Ok(());
         };
@@ -327,40 +325,36 @@ async fn inline_flag(
     let mut results = Vec::with_capacity(64);
 
     if q.offset.is_empty() {
-        let start_info = InlineQueryResult::Article(iq_results::flag_info(
-            ltag,
-            old_flag.to_emoji(),
-        ));
-
-        results.push(start_info);
+        let start_info = iq_results::flag_info(ltag, old_flag.to_emoji());
+        results.push(InlineQueryResult::Article(start_info));
     }
 
     let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
 
-    let searched_flags: Vec<_> = if payload.is_empty() {
-        Flags::FLAGS.to_vec()
+    let searched_flags: Cow<[_]> = if payload.is_empty() {
+        Flags::FLAGS.into()
     } else {
         Flags::FLAGS
-            .into_iter()
-            .filter(|i| {
-                i.to_code().contains(payload) || i.to_emoji().contains(payload)
+            .iter()
+            .copied()
+            .filter(|v| {
+                v.to_code().contains(payload) || v.to_emoji().contains(payload)
             })
             .collect()
     };
 
-    let (start_index, end_index) = {
-        const ON_PAGE: usize = INLINE_QUERY_LIMIT - 1;
-        let start_index = ON_PAGE * number_from_offset;
-        let probably_end_index = start_index + ON_PAGE;
+    let count = searched_flags.len();
 
-        (start_index, probably_end_index.min(searched_flags.len()))
-    };
+    const ON_PAGE: usize = INLINE_QUERY_LIMIT - 1;
+    let start_index = ON_PAGE * number_from_offset;
+    let end_index = (start_index + ON_PAGE).min(count);
 
-    let selected_flags = &searched_flags[start_index..end_index];
-    if selected_flags.is_empty() {
+    if count == 0 {
         let empty_info = iq_results::flag_empty_info(ltag);
         results.push(InlineQueryResult::Article(empty_info));
     } else {
+        let selected_flags = &searched_flags[start_index..end_index];
+
         for new_flag in selected_flags {
             let info = iq_results::flag_change_info(
                 ltag, q.from.id, old_flag, *new_flag,
@@ -370,13 +364,14 @@ async fn inline_flag(
     }
 
     let new_offset = number_from_offset + 1;
-    let query = bot.answer_inline_query(&q.id, results).cache_time(0);
+    let mut query = bot.answer_inline_query(&q.id, results).cache_time(0);
 
-    if end_index != searched_flags.len() {
-        query.next_offset(new_offset.to_string()).await?;
-    } else {
-        query.await?;
+    if end_index != count {
+        query = query.next_offset(new_offset.to_string());
     }
+
+    query.await?;
+
     Ok(())
 }
 
@@ -431,12 +426,9 @@ async fn inline_gif(
         DB.other.get_inline_gifs().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
-            bot.answer_inline_query(
-                &q.id,
-                vec![InlineQueryResult::Article(
-                    iq_results::handle_error_parse(ltag),
-                )],
-            )
+            bot.answer_inline_query(&q.id, vec![InlineQueryResult::Article(
+                iq_results::handle_error_parse(ltag),
+            )])
             .await?;
             return Ok(());
         };

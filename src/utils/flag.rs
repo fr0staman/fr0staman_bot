@@ -9,33 +9,29 @@ macro_rules! bidirectional_str_enum {
         }
 
         impl $enum_name {
-            pub const FLAGS: [Flags; 255] = [$(Self::$property),*];
+            pub const FLAGS: &'static [Self] = &[$(Self::$property),*];
+            pub const CODES: &'static [&'static str] = &[$($code),*];
+            pub const EMOJIS: &'static [&'static str] = &[$($emoji),*];
 
-            pub fn to_code(self) -> &'static str {
-                match self {
-                    $(Self::$property => $code),*
-                }
+            pub const fn to_code(self) -> &'static str {
+                Self::CODES[self as usize]
             }
 
-            pub fn from_code(code: &str) -> Option<$enum_name> {
-                match code {
-                    $($code => Some(Self::$property)),*,
-                    _ => None
-                }
+            pub fn from_code(code: &str) -> Option<Self> {
+                Self::CODES.iter()
+                    .position(|&c| c == code)
+                    .map(|idx| Self::FLAGS[idx])
             }
 
-            pub fn to_emoji(self) -> &'static str {
-                match self {
-                    $(Self::$property => $emoji),*
-                }
+            pub const fn to_emoji(self) -> &'static str {
+                Self::EMOJIS[self as usize]
             }
 
             #[allow(unused)]
-            pub fn from_emoji(emoji: &str) -> Option<$enum_name> {
-                match emoji {
-                    $($emoji => Some(Self::$property)),*,
-                    _ => None
-                }
+            pub fn from_emoji(emoji: &str) -> Option<Self> {
+                Self::EMOJIS.iter()
+                    .position(|&e| e == emoji)
+                    .map(|idx| Self::FLAGS[idx])
             }
         }
     };

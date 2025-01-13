@@ -10,7 +10,7 @@ use crate::config::BOT_CONFIG;
 use crate::consts::INLINE_NAME_SET_LIMIT;
 use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
-use crate::lang::{lng, InnerLang, LocaleTag};
+use crate::lang::{InnerLang, LocaleTag, lng};
 use crate::models::{InlineUser, User};
 use crate::traits::SimpleDisableWebPagePreview;
 use crate::utils::flag::Flags;
@@ -245,20 +245,21 @@ pub fn flag_change_info(
 ) -> InlineQueryResultArticle {
     let old_flag_emoji = old_flag.to_emoji();
     let new_flag_emoji = new_flag.to_emoji();
-    let new_flag_code = new_flag.to_code().to_string();
+    let new_flag_code = new_flag.to_code();
 
     let caption =
         lng("HandPigFlagChangeCaption", ltag).args(&[("flag", new_flag_emoji)]);
     let desc =
-        lng("HandPigFlagChangeDesc", ltag).args(&[("code", &new_flag_code)]);
+        lng("HandPigFlagChangeDesc", ltag).args(&[("code", new_flag_code)]);
 
     let message = lng("HandPigFlagChangeMessage", ltag)
         .args(&[("old_flag", old_flag_emoji), ("new_flag", new_flag_emoji)]);
 
-    let markup = keyboards::keyboard_change_flag(ltag, id_user, &new_flag_code);
+    let markup = keyboards::keyboard_change_flag(ltag, id_user, new_flag_code);
 
     InlineQueryResultArticle::new(
-        InlineResults::FlagChangeInfo(new_flag_code).to_string_with_args(),
+        InlineResults::FlagChangeInfo(new_flag_code.to_string())
+            .to_string_with_args(),
         caption,
         InputMessageContent::Text(
             InputMessageContentText::new(message)
