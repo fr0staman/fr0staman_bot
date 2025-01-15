@@ -387,7 +387,7 @@ async fn inline_lang(
         return Ok(());
     };
 
-    let mut langs: Vec<&str> = get_langs();
+    let mut langs = get_langs();
 
     langs.reverse();
 
@@ -406,7 +406,7 @@ async fn inline_lang(
             ltag,
             q.from.id,
             user.lang.as_deref(),
-            new_flag,
+            &new_flag,
         );
         results.push(InlineQueryResult::Article(info));
     }

@@ -195,20 +195,18 @@ pub fn tag_opt(opt_tag: Option<&str>) -> Option<LocaleTag> {
 
     let s = LANG.get()?;
 
-    s.langs.binary_search_by(|elem| elem.tag.as_str().cmp(tag)).ok()
+    s.langs.binary_search_by_key(&tag, |elem| &elem.tag).ok()
 }
 
 #[inline]
 pub fn tag(tag: &str) -> LocaleTag {
     let Some(s) = LANG.get() else { return 0 };
 
-    s.langs
-        .binary_search_by(|elem| elem.tag.as_str().cmp(tag))
-        .unwrap_or(s.def_tag)
+    s.langs.binary_search_by_key(&tag, |elem| &elem.tag).unwrap_or(s.def_tag)
 }
 
-pub fn get_langs() -> Vec<&'static str> {
+pub fn get_langs() -> Vec<String> {
     let s = LANG.get().expect("No langs set currently!");
 
-    s.langs.iter().map(|item| item.tag.as_str()).collect()
+    s.langs.iter().map(|item| item.tag.clone()).collect()
 }

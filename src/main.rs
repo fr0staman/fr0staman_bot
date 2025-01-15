@@ -22,7 +22,7 @@ use teloxide::{
     dispatching::UpdateFilterExt,
     prelude::*,
     types::MessageKind,
-    update_listeners::{webhooks, UpdateListener},
+    update_listeners::{UpdateListener, webhooks},
     utils::command::BotCommands,
 };
 use tokio::net::TcpListener;
@@ -219,7 +219,7 @@ async fn setup_commands(bot: &MyBot) {
         let res = if *lang == DEFAULT_LANG_TAG {
             bot.set_my_commands(game_commands).await
         } else {
-            bot.set_my_commands(game_commands).language_code(*lang).await
+            bot.set_my_commands(game_commands).language_code(lang).await
         };
 
         res.expect("Error with command set: ");
@@ -236,7 +236,9 @@ async fn default_log_handler(upd: Arc<Update>) {
         if let Some(chat) = upd.chat() {
             let chat_id = chat.id;
             let chat_kind = get_chat_kind(&chat.kind);
-            log::info!("Unhandled update [{update_id}]: user: [{user_id}] chat: [{chat_kind}:{chat_id}]");
+            log::info!(
+                "Unhandled update [{update_id}]: user: [{user_id}] chat: [{chat_kind}:{chat_id}]"
+            );
         } else {
             log::info!("Unhandled update [{update_id}]: user: [{user_id}] ");
         };

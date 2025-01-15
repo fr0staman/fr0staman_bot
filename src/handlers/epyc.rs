@@ -1,7 +1,7 @@
 use crate::db::DB;
 use crate::enums::EpycCommands;
 use crate::lang::{
-    get_langs, get_tag_opt, lng, tag, tag_one_two_or, InnerLang, LocaleTag,
+    InnerLang, LocaleTag, get_langs, get_tag_opt, lng, tag, tag_one_two_or,
 };
 use crate::models::UpdateGroups;
 use crate::traits::MaybeMessageSetter;
@@ -198,7 +198,7 @@ async fn _epyc_chat_lang_setting(
 
     let langs = get_langs();
 
-    let value = if langs.contains(&setting) {
+    let value = if langs.iter().any(|lang| lang == setting) {
         ltag = tag(setting);
         ("EPYCCommandLangSetSuccessMessage", Some(setting.to_string()))
     } else if setting == "-" {
