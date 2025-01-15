@@ -149,7 +149,7 @@ async fn default_log_handler(upd: std::sync::Arc<Update>) {
                 "Unhandled update [{update_id}]: user: [{user_id}] chat: [{chat_kind}:{chat_id}]"
             );
         } else {
-            log::info!("Unhandled update [{update_id}]: user: [{user_id}] ");
+            log::info!("Unhandled update [{update_id}]: user: [{user_id}]");
         };
     } else if let Some(chat) = upd.chat() {
         let chat_id = chat.id;
