@@ -1,7 +1,7 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
 
 use crate::{
-    config::BOT_CONFIG,
+    config::env::BOT_CONFIG,
     enums::{CbActions, Top10Variant},
     lang::{lng, LocaleTag},
     utils::helpers::encode_callback_data,

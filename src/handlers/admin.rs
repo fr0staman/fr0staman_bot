@@ -2,14 +2,14 @@ use futures::FutureExt;
 use teloxide::prelude::*;
 
 use crate::{
-    consts::HAND_PIG_ADDITION_ON_SUPPORTED,
+    config::consts::HAND_PIG_ADDITION_ON_SUPPORTED,
     db::DB,
+    db::models::UserStatus,
     enums::AdminCommands,
-    lang::{get_tag, lng, tag_one_or, InnerLang, LocaleTag},
-    models::UserStatus,
+    lang::{InnerLang, LocaleTag, get_tag, lng, tag_one_or},
     traits::MaybeMessageSetter,
+    types::{MyBot, MyResult},
     utils::{date::get_date, formulas::calculate_hryak_size, helpers},
-    MyBot, MyResult,
 };
 
 pub async fn filter_admin_commands(

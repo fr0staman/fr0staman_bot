@@ -1,11 +1,11 @@
 use crate::db::DB;
+use crate::db::models::UpdateGroups;
 use crate::enums::EpycCommands;
 use crate::lang::{
     InnerLang, LocaleTag, get_langs, get_tag_opt, lng, tag, tag_one_two_or,
 };
-use crate::models::UpdateGroups;
 use crate::traits::MaybeMessageSetter;
-use crate::{MyBot, MyResult};
+use crate::types::{MyBot, MyResult};
 
 use futures::FutureExt;
 use teloxide::prelude::*;

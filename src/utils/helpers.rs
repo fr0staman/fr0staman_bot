@@ -12,12 +12,13 @@ use std::hash::Hasher;
 use url::Url;
 
 use crate::{
-    config::BOT_CONFIG,
-    consts::{HAND_PIG_ADDITION_ON_SUBSCRIBED, HAND_PIG_ADDITION_ON_SUPPORTED},
+    config::consts::{
+        HAND_PIG_ADDITION_ON_SUBSCRIBED, HAND_PIG_ADDITION_ON_SUPPORTED,
+    },
+    config::env::BOT_CONFIG,
+    db::models::User,
     enums::{CbActions, Image},
-    models::User,
-    types::ParsedCallbackData,
-    MyBot,
+    types::{MyBot, ParsedCallbackData},
 };
 
 const SEPARATOR: char = ':';

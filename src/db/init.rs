@@ -1,15 +1,12 @@
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
+
+use crate::config::env::BOT_CONFIG;
+use crate::db::api::{chat_pig::ChatPig, hand_pig::HandPig, other::Other};
+use crate::types::{DbConn, DbPool};
 
 use diesel_async::pooled_connection::{
-    deadpool::Pool, AsyncDieselConnectionManager,
+    AsyncDieselConnectionManager, deadpool::Pool,
 };
-use std::sync::LazyLock;
-
-use crate::config::BOT_CONFIG;
-use crate::db_api::{chat_pig::ChatPig, hand_pig::HandPig, other::Other};
-
-pub type DbConn = diesel_async::AsyncMysqlConnection;
-pub type MyPool = Pool<DbConn>;
 
 pub static DB: LazyLock<DBScheme> = LazyLock::new(|| DBScheme {
     hand_pig: HandPig::new(Database::get_or_init_pool()),
@@ -24,7 +21,7 @@ pub struct DBScheme {
 }
 
 pub struct Database {
-    pub pool: &'static MyPool,
+    pub pool: &'static DbPool,
 }
 
 impl Default for Database {
@@ -38,8 +35,8 @@ impl Database {
         Database { pool: Self::get_or_init_pool() }
     }
 
-    fn get_or_init_pool() -> &'static MyPool {
-        static POOL: OnceLock<MyPool> = OnceLock::new();
+    fn get_or_init_pool() -> &'static DbPool {
+        static POOL: OnceLock<DbPool> = OnceLock::new();
 
         POOL.get_or_init(|| {
             let config = Self::get_config();

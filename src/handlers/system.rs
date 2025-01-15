@@ -1,12 +1,12 @@
 use crate::{
-    config::BOT_CONFIG,
+    config::env::BOT_CONFIG,
     db::DB,
+    db::models::{UpdateGroups, UserStatus},
+    db::shortcuts,
     keyboards,
-    lang::{get_tag, get_tag_opt, lng, tag_one_or, InnerLang},
-    models::{UpdateGroups, UserStatus},
+    lang::{InnerLang, get_tag, get_tag_opt, lng, tag_one_or},
     traits::MaybeMessageSetter,
-    utils::db_shortcuts,
-    MyBot, MyResult,
+    types::{MyBot, MyResult},
 };
 use teloxide::{
     prelude::*,
@@ -15,7 +15,7 @@ use teloxide::{
 };
 use teloxide::{types::Message, utils::html::escape};
 use teloxide::{types::MessageKind, utils::html::bold};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(new_chat_members) = m.new_chat_members() else {
@@ -23,8 +23,7 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let Some(settings) =
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    let Some(settings) = shortcuts::maybe_get_or_insert_chat(&m.chat).await?
     else {
         return Ok(());
     };
@@ -68,8 +67,7 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    let Some(settings) =
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    let Some(settings) = shortcuts::maybe_get_or_insert_chat(&m.chat).await?
     else {
         return Ok(());
     };
@@ -110,11 +108,9 @@ pub async fn handle_ban_or_unban_in_private(
 
     let is_banned = member.new_chat_member.is_banned();
 
-    let Some(user) = db_shortcuts::maybe_get_or_insert_user(
-        &member.new_chat_member.user,
-        true,
-    )
-    .await?
+    let Some(user) =
+        shortcuts::maybe_get_or_insert_user(&member.new_chat_member.user, true)
+            .await?
     else {
         crate::myerr!("User not inserted!");
         return Ok(());
@@ -138,8 +134,7 @@ pub async fn handle_ban_or_unban_in_private(
 }
 
 pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
-    let Some(settings) =
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    let Some(settings) = shortcuts::maybe_get_or_insert_chat(&m.chat).await?
     else {
         return Ok(());
     };
@@ -170,7 +165,7 @@ pub async fn handle_video_chat(bot: MyBot, m: Message) -> MyResult<()> {
 
 pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
-    let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
+    let Some(user) = shortcuts::maybe_get_or_insert_user(from, true).await?
     else {
         return Ok(());
     };
@@ -196,7 +191,7 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
     let Some(animation) = m.animation() else { return Ok(()) };
 
-    let Some(user) = db_shortcuts::maybe_get_or_insert_user(from, true).await?
+    let Some(user) = shortcuts::maybe_get_or_insert_user(from, true).await?
     else {
         return Ok(());
     };

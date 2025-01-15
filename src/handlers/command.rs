@@ -5,25 +5,25 @@ use teloxide::types::{
 };
 use teloxide::utils::html::{italic, user_mention};
 
-use crate::config::BOT_CONFIG;
-use crate::consts::LOUDER_PREMIUM_VOICE_LIMIT;
-use crate::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
-use crate::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
+use crate::config::env::BOT_CONFIG;
+use crate::config::consts::LOUDER_PREMIUM_VOICE_LIMIT;
+use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
+use crate::config::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
 use crate::db::DB;
+use crate::db::models::UserStatus;
+use crate::db::shortcuts;
 use crate::enums::MyCommands;
 use crate::keyboards;
-use crate::lang::{get_tag_opt, lng, tag_one_two_or, InnerLang, LocaleTag};
-use crate::models::UserStatus;
+use crate::lang::{InnerLang, LocaleTag, get_tag_opt, lng, tag_one_two_or};
 use crate::traits::{
     MaybeMessageSetter, MaybeVoiceSetter, SimpleDisableWebPagePreview,
 };
+use crate::types::{MyBot, MyResult};
 use crate::utils::date::{get_datetime, get_timediff};
-use crate::utils::db_shortcuts;
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
 use crate::utils::ogg::increase_sound;
 use crate::utils::text::generate_chat_top50_text;
-use crate::{MyBot, MyResult};
 
 pub async fn filter_commands(
     bot: MyBot,
@@ -33,13 +33,13 @@ pub async fn filter_commands(
     crate::metrics::CMD_COUNTER.inc();
 
     let user_info = if let Some(from) = &m.from {
-        db_shortcuts::maybe_get_or_insert_user(from, false).await?
+        shortcuts::maybe_get_or_insert_user(from, false).await?
     } else {
         None
     };
 
     let chat_info = if let ChatKind::Public(_) = &m.chat.kind {
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+        shortcuts::maybe_get_or_insert_chat(&m.chat).await?
     } else {
         None
     };
@@ -125,7 +125,7 @@ async fn command_start(
             };
             DB.other.change_user_status(from.id.0, user_status).await?;
         } else {
-            db_shortcuts::maybe_get_or_insert_user(from, true).await?;
+            shortcuts::maybe_get_or_insert_user(from, true).await?;
         };
 
         bot.send_message(m.chat.id, text_reg).maybe_thread_id(m).await?;
@@ -254,13 +254,13 @@ async fn command_grow(
         pig
     } else {
         let Some(chat_info) =
-            db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+            shortcuts::maybe_get_or_insert_chat(&m.chat).await?
         else {
             return Ok(());
         };
 
         let Some(user) =
-            db_shortcuts::maybe_get_or_insert_user(from, false).await?
+            shortcuts::maybe_get_or_insert_user(from, false).await?
         else {
             return Ok(());
         };
@@ -422,7 +422,7 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     }
 
     let Some(chat_settings) =
-        db_shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+        shortcuts::maybe_get_or_insert_chat(&m.chat).await?
     else {
         return Ok(());
     };
@@ -534,8 +534,7 @@ async fn command_louder(
     };
 
     let Some(from) = &m.from else { return Ok(()) };
-    let Ok(Some(user)) =
-        db_shortcuts::maybe_get_or_insert_user(from, false).await
+    let Ok(Some(user)) = shortcuts::maybe_get_or_insert_user(from, false).await
     else {
         return Ok(());
     };

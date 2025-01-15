@@ -2,26 +2,26 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    db::MyPool,
-    models::{
+    db::models::{
         Groups, InlineGif, InlineVoice, NewGroup, NewUser, UpdateGroups,
         UpdateUser, User, UserStatus,
     },
-    MyResult,
+    types::DbPool,
+    types::MyResult,
 };
 
 #[derive(Clone)]
 pub struct Other {
-    pool: &'static MyPool,
+    pool: &'static DbPool,
 }
 
 impl Other {
-    pub fn new(pool: &'static MyPool) -> Self {
+    pub fn new(pool: &'static DbPool) -> Self {
         Self { pool }
     }
 
     pub async fn register_user(&self, new_user: NewUser<'_>) -> MyResult<()> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
         diesel::insert_into(users)
             .values(new_user)
             .execute(&mut self.pool.get().await?)
@@ -30,7 +30,7 @@ impl Other {
     }
 
     pub async fn get_user(&self, id_user: u64) -> MyResult<Option<User>> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
 
         let result = users
             .filter(user_id.eq(id_user))
@@ -43,7 +43,7 @@ impl Other {
     }
 
     pub async fn get_user_by_id(&self, uid: u32) -> MyResult<Option<User>> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
 
         let result = users
             .filter(id.eq(uid))
@@ -60,7 +60,7 @@ impl Other {
         id_user: u64,
         status: UserStatus,
     ) -> MyResult<()> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
         diesel::update(users)
             .set(&status)
             .filter(user_id.eq(id_user))
@@ -75,7 +75,7 @@ impl Other {
         id_user: u64,
         status: Option<&str>,
     ) -> MyResult<()> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
         diesel::update(users)
             .set(lang.eq(status))
             .filter(user_id.eq(id_user))
@@ -89,7 +89,7 @@ impl Other {
         &self,
         voice_id: i16,
     ) -> MyResult<Option<InlineVoice>> {
-        use crate::schema::inline_voices::dsl::*;
+        use crate::db::schema::inline_voices::dsl::*;
 
         let results = inline_voices
             .filter(status.eq(1))
@@ -103,7 +103,7 @@ impl Other {
     }
 
     pub async fn get_inline_voices(&self) -> MyResult<Vec<InlineVoice>> {
-        use crate::schema::inline_voices::dsl::*;
+        use crate::db::schema::inline_voices::dsl::*;
 
         let results = inline_voices
             .filter(status.eq(1))
@@ -119,7 +119,7 @@ impl Other {
         &self,
         voice_id: i16,
     ) -> MyResult<Option<InlineGif>> {
-        use crate::schema::inline_gifs::dsl::*;
+        use crate::db::schema::inline_gifs::dsl::*;
 
         let results = inline_gifs
             .filter(status.eq(1))
@@ -133,7 +133,7 @@ impl Other {
     }
 
     pub async fn get_inline_gifs(&self) -> MyResult<Vec<InlineGif>> {
-        use crate::schema::inline_gifs::dsl::*;
+        use crate::db::schema::inline_gifs::dsl::*;
 
         let results = inline_gifs
             .filter(status.eq(1))
@@ -146,7 +146,7 @@ impl Other {
     }
 
     pub async fn get_chat(&self, id_chat: i64) -> MyResult<Option<Groups>> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         let results = groups
             .filter(chat_id.eq(id_chat))
@@ -159,7 +159,7 @@ impl Other {
     }
 
     pub async fn add_chat(&self, new_group: NewGroup<'_>) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::insert_into(groups)
             .values(new_group)
@@ -174,7 +174,7 @@ impl Other {
         id_chat: i64,
         chat_info: UpdateGroups,
     ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::update(groups)
             .set(chat_info)
@@ -190,7 +190,7 @@ impl Other {
         id_chat: i64,
         setting: i8,
     ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::update(groups)
             .set(settings.eq(setting))
@@ -206,7 +206,7 @@ impl Other {
         id_chat: i64,
         setting: i32,
     ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::update(groups)
             .set(top10_setting.eq(setting))
@@ -222,7 +222,7 @@ impl Other {
         iv_uid: u32,
         new_url: String,
     ) -> MyResult<()> {
-        use crate::schema::inline_voices::dsl::*;
+        use crate::db::schema::inline_voices::dsl::*;
 
         diesel::insert_into(inline_voices)
             .values((url.eq(new_url), uid.eq(iv_uid)))
@@ -236,7 +236,7 @@ impl Other {
         &self,
         iv_uid: u32,
     ) -> MyResult<Vec<InlineVoice>> {
-        use crate::schema::inline_voices::dsl::*;
+        use crate::db::schema::inline_voices::dsl::*;
 
         let results = inline_voices
             .filter(uid.eq(iv_uid))
@@ -253,7 +253,7 @@ impl Other {
         new_file_id: String,
         new_file_unique_id: String,
     ) -> MyResult<()> {
-        use crate::schema::inline_gifs::dsl::*;
+        use crate::db::schema::inline_gifs::dsl::*;
 
         diesel::insert_into(inline_gifs)
             .values((
@@ -271,7 +271,7 @@ impl Other {
         &self,
         iv_uid: u32,
     ) -> MyResult<Vec<InlineGif>> {
-        use crate::schema::inline_gifs::dsl::*;
+        use crate::db::schema::inline_gifs::dsl::*;
 
         let results = inline_gifs
             .filter(uid.eq(iv_uid))
@@ -286,7 +286,7 @@ impl Other {
         &self,
         id_file_unique: &str,
     ) -> MyResult<Option<InlineGif>> {
-        use crate::schema::inline_gifs::dsl::*;
+        use crate::db::schema::inline_gifs::dsl::*;
 
         let results = inline_gifs
             .filter(file_unique_id.eq(id_file_unique))
@@ -303,7 +303,7 @@ impl Other {
         from_id: i64,
         to_id: i64,
     ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::update(groups)
             .filter(chat_id.eq(from_id))
@@ -319,7 +319,7 @@ impl Other {
         id_chat: i64,
         my_ig_id: Option<i32>,
     ) -> MyResult<()> {
-        use crate::schema::groups::dsl::*;
+        use crate::db::schema::groups::dsl::*;
 
         diesel::update(groups)
             .filter(chat_id.eq(id_chat))
@@ -335,7 +335,7 @@ impl Other {
         id_user: u64,
         chat_info: UpdateUser,
     ) -> MyResult<()> {
-        use crate::schema::users::dsl::*;
+        use crate::db::schema::users::dsl::*;
 
         diesel::update(users)
             .set(chat_info)

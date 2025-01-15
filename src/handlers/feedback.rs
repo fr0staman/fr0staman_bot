@@ -2,16 +2,16 @@ use futures::FutureExt;
 use teloxide::prelude::*;
 use teloxide::types::ChosenInlineResult;
 
-use crate::consts::INLINE_NAME_SET_LIMIT;
+use crate::config::consts::INLINE_NAME_SET_LIMIT;
 use crate::db::DB;
 use crate::enums::InlineResults;
-use crate::lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag};
+use crate::lang::{InnerLang, LocaleTag, get_tag, lng, tag, tag_one_or};
 use crate::types::MyBot;
+use crate::types::{MyError, MyResult};
 use crate::utils::date::get_date;
 use crate::utils::decode::decode_inline_message_id;
 use crate::utils::flag::Flags;
 use crate::utils::helpers;
-use crate::{MyError, MyResult};
 
 pub async fn filter_inline_feedback_commands(
     bot: MyBot,

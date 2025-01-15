@@ -1,14 +1,12 @@
-use chrono::{prelude::*, Duration};
+use chrono::{Duration, prelude::*};
 
 const GMT: i32 = 2;
 const FIXED_HOUR: u32 = 12;
 const FIXED_MINUTE: u32 = 36;
 const FIXED_OFFSET_IN_SECONDS: i32 = -GMT * 3600;
 const FIXED_OFFSET: FixedOffset =
-    match FixedOffset::east_opt(FIXED_OFFSET_IN_SECONDS) {
-        Some(offset) => offset,
-        None => panic!("Wrong fixed offset!"),
-    };
+    FixedOffset::east_opt(FIXED_OFFSET_IN_SECONDS)
+        .expect("Wrong fixed offset!");
 
 pub fn get_datetime() -> NaiveDateTime {
     let datetime = Utc::now().naive_utc();

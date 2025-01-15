@@ -1,4 +1,4 @@
-use diesel_async::pooled_connection::deadpool::PoolError;
+use diesel_async::pooled_connection::deadpool::{Pool, PoolError};
 use teloxide::{adaptors::DefaultParseMode, prelude::*};
 
 #[derive(thiserror::Error, Debug)]
@@ -26,3 +26,6 @@ pub type MyBot = DefaultParseMode<Bot>;
 pub type MyResult<T> = Result<T, MyError>;
 
 pub type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);
+
+pub type DbConn = diesel_async::AsyncMysqlConnection;
+pub type DbPool = Pool<DbConn>;

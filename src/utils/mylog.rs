@@ -7,7 +7,7 @@ use teloxide::{
     error_handlers::ErrorHandler, requests::Requester, types::ChatId,
 };
 
-use crate::config::BOT_CONFIG;
+use crate::config::env::BOT_CONFIG;
 
 pub struct MyErrorHandler {
     text: String,

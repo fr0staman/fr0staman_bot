@@ -12,24 +12,27 @@ use teloxide::{
     },
 };
 
-use crate::consts::{DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
+use crate::config::consts::{DEFAULT_LANG_TAG, INLINE_QUERY_LIMIT};
 use crate::db::DB;
+use crate::db::models::{
+    InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser,
+};
+use crate::db::shortcuts;
 use crate::enums::{InlineCommands, InlineKeywords, Top10Variant};
 use crate::lang::{InnerLang, LocaleTag, get_langs, get_tag, lng, tag_one_or};
-use crate::models::{InlineGif, InlineVoice, NewInlineUser, UpdateInlineUser};
 use crate::types::MyBot;
+use crate::types::{MyError, MyResult};
 use crate::utils::date::get_date;
 use crate::utils::flag::Flags;
 use crate::utils::helpers::{escape, truncate};
-use crate::utils::{db_shortcuts, formulas, helpers, iq_results};
-use crate::{MyError, MyResult};
+use crate::utils::{formulas, helpers, iq_results};
 
 pub async fn filter_inline_commands(
     bot: MyBot,
     q: InlineQuery,
 ) -> MyResult<()> {
     crate::metrics::INLINE_COUNTER.inc();
-    let user = db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?;
+    let user = shortcuts::maybe_get_or_insert_user(&q.from, false).await?;
     let ltag =
         tag_one_or(user.and_then(|u| u.lang).as_deref(), get_tag(&q.from));
 
@@ -107,7 +110,7 @@ async fn _get_hryak(
 
     let Some(info) = hrundel_info else {
         let Some(user) =
-            db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?
+            shortcuts::maybe_get_or_insert_user(&q.from, false).await?
         else {
             return Ok(vec![iq_results::handle_error_info(ltag)]);
         };

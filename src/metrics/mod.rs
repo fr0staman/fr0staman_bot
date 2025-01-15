@@ -6,9 +6,9 @@ use axum_prometheus::PrometheusMetricLayer;
 use prometheus::{Encoder, Gauge, Opts, TextEncoder};
 use std::sync::LazyLock;
 use systemstat::{Platform, System};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
-use crate::config::BOT_CONFIG;
+use crate::config::env::BOT_CONFIG;
 // Register additional metrics of our own structs by using this registry instance.
 pub static REGISTRY: LazyLock<Registry> =
     LazyLock::new(|| Registry(prometheus::Registry::new()));

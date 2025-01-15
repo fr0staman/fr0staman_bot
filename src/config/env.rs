@@ -6,7 +6,7 @@ use std::{
 use teloxide::types::Me;
 use url::Url;
 
-use crate::MyBot;
+use crate::types::MyBot;
 
 pub struct Config {
     // For some situations with props with "me"

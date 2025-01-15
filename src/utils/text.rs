@@ -1,10 +1,10 @@
 use teloxide::utils::html::bold;
 
 use crate::{
-    consts::TOP_LIMIT,
+    config::consts::TOP_LIMIT,
+    db::models::{Game, InlineUser},
     enums::Top10Variant,
-    lang::{lng, InnerLang, LocaleTag},
-    models::{Game, InlineUser},
+    lang::{InnerLang, LocaleTag, lng},
 };
 
 use super::{flag::Flags, helpers};

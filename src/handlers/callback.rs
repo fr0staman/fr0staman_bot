@@ -1,4 +1,4 @@
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use rand::Rng;
 use std::{cmp::Ordering, str::FromStr, sync::Arc};
 use teloxide::{
@@ -9,33 +9,33 @@ use teloxide::{
 };
 use tokio::{
     sync::Mutex,
-    time::{sleep, Duration},
+    time::{Duration, sleep},
 };
 
 use crate::{
-    config::BOT_CONFIG,
-    consts::{
+    config::env::BOT_CONFIG,
+    config::consts::{
         DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
         INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
         TOP_LIMIT,
     },
     db::DB,
+    db::models::{InlineUser, UpdateInlineUser, User, UserStatus},
+    db::shortcuts,
     enums::{CbActions, DuelResult, Top10Variant},
     keyboards,
-    lang::{get_tag, lng, tag, tag_one_or, InnerLang, LocaleTag},
-    models::{InlineUser, UpdateInlineUser, User, UserStatus},
+    lang::{InnerLang, LocaleTag, get_tag, lng, tag, tag_one_or},
     traits::{MaybeMessageSetter, SimpleDisableWebPagePreview},
     types::ParsedCallbackData,
+    types::{MyBot, MyError, MyResult},
     utils::{
         date::{get_date, get_datetime},
-        db_shortcuts,
         decode::decode_inline_message_id,
         flag::Flags,
         formulas,
         helpers::{self, get_hash},
         text::{generate_chat_top50_text, generate_top10_text},
     },
-    MyBot, MyError, MyResult,
 };
 
 pub async fn filter_callback_commands(
@@ -51,7 +51,7 @@ pub async fn filter_callback_commands(
     }
 
     let Some(user) =
-        db_shortcuts::maybe_get_or_insert_user(&q.from, false).await?
+        shortcuts::maybe_get_or_insert_user(&q.from, false).await?
     else {
         crate::myerr!("User not exist after inserting!");
         return Ok(());
@@ -592,8 +592,7 @@ async fn callback_change_top(
         return Ok(());
     };
 
-    let Some(chat_info) =
-        db_shortcuts::maybe_get_or_insert_chat(m.chat()).await?
+    let Some(chat_info) = shortcuts::maybe_get_or_insert_chat(m.chat()).await?
     else {
         return Ok(());
     };
@@ -677,11 +676,11 @@ fn _duel_get_status<'a>(
 async fn _start_duel_get_2_hrundels(
     ids: (UserId, UserId),
 ) -> MyResult<Option<[(InlineUser, User); 2]>> {
-    let Some(first) = DB.hand_pig.get_hrundel(ids.0 .0).await? else {
+    let Some(first) = DB.hand_pig.get_hrundel(ids.0.0).await? else {
         return Ok(None);
     };
 
-    let Some(second) = DB.hand_pig.get_hrundel(ids.1 .0).await? else {
+    let Some(second) = DB.hand_pig.get_hrundel(ids.1.0).await? else {
         return Ok(None);
     };
 

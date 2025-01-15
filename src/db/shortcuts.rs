@@ -1,12 +1,12 @@
 use teloxide::types::{Chat, User as TelegramUser};
 
 use crate::db::DB;
-use crate::models::{
+use crate::db::models::{
     Groups, NewGroup, NewUser, UpdateGroups, UpdateUser, User,
 };
-use crate::MyResult;
+use crate::types::MyResult;
 
-use super::date::get_datetime;
+use crate::utils::date::get_datetime;
 
 pub async fn maybe_get_or_insert_user(
     from: &TelegramUser,

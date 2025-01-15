@@ -3,7 +3,7 @@ use crate::{
         MaybeMessageSetter, MaybePhotoSetter, MaybeStickerSetter,
         MaybeVoiceSetter,
     },
-    MyBot, MyResult,
+    types::{MyBot, MyResult},
 };
 
 use teloxide::{

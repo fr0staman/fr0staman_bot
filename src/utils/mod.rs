@@ -1,5 +1,4 @@
 pub mod date;
-pub mod db_shortcuts;
 pub mod decode;
 pub mod flag;
 pub mod formulas;

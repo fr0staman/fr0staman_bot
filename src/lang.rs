@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 use teloxide::types::User;
 use walkdir::WalkDir;
 
-use crate::consts::DEFAULT_LANG_TAG;
+use crate::config::consts::DEFAULT_LANG_TAG;
 
 // Access to localize
 pub static LANG: OnceLock<Locale> = OnceLock::new();

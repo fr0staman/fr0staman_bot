@@ -6,12 +6,12 @@ use teloxide::types::{
 use teloxide::utils::html::{bold, italic};
 use url::Url;
 
-use crate::config::BOT_CONFIG;
-use crate::consts::INLINE_NAME_SET_LIMIT;
+use crate::config::consts::INLINE_NAME_SET_LIMIT;
+use crate::config::env::BOT_CONFIG;
+use crate::db::models::{InlineUser, User};
 use crate::enums::{Image, InlineResults, Top10Variant};
 use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, lng};
-use crate::models::{InlineUser, User};
 use crate::traits::SimpleDisableWebPagePreview;
 use crate::utils::flag::Flags;
 use crate::utils::formulas;

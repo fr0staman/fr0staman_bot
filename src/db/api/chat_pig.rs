@@ -2,15 +2,17 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use crate::{consts::TOP_LIMIT, db::MyPool, models::Game, MyResult};
+use crate::{
+    config::consts::TOP_LIMIT, db::models::Game, types::DbPool, types::MyResult,
+};
 
 #[derive(Clone)]
 pub struct ChatPig {
-    pool: &'static MyPool,
+    pool: &'static DbPool,
 }
 
 impl ChatPig {
-    pub fn new(pool: &'static MyPool) -> Self {
+    pub fn new(pool: &'static DbPool) -> Self {
         Self { pool }
     }
 
@@ -19,9 +21,9 @@ impl ChatPig {
         id_user: u64,
         id_chat: i64,
     ) -> MyResult<Option<Game>> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::groups;
-        use crate::schema::users;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
+        use crate::db::schema::users;
 
         let results = game
             .inner_join(groups::table)
@@ -40,8 +42,8 @@ impl ChatPig {
         &self,
         id_user: u64,
     ) -> MyResult<Option<Game>> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::users;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::users;
 
         let results: Option<Game> = game
             .inner_join(users::table)
@@ -62,9 +64,9 @@ impl ChatPig {
         id_chat: i64,
         new_name: String,
     ) -> MyResult<()> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::groups;
-        use crate::schema::users;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
+        use crate::db::schema::users;
 
         diesel::update(game)
             .set(name.eq(new_name))
@@ -95,9 +97,9 @@ impl ChatPig {
         other_mass: i32,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::groups;
-        use crate::schema::users;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
+        use crate::db::schema::users;
 
         diesel::update(game)
             .set((mass.eq(other_mass), date.eq(cur_date)))
@@ -129,7 +131,7 @@ impl ChatPig {
         cur_date: NaiveDate,
         start_mass: i32,
     ) -> MyResult<()> {
-        use crate::schema::game::dsl::*;
+        use crate::db::schema::game::dsl::*;
 
         diesel::insert_into(game)
             .values((
@@ -151,8 +153,8 @@ impl ChatPig {
         min: i32,
         offset_multiplier: i64,
     ) -> MyResult<Vec<Game>> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::groups;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
 
         let results = game
             .filter(groups::chat_id.eq(id_chat))
@@ -173,8 +175,8 @@ impl ChatPig {
         id_chat: i64,
         min: i32,
     ) -> MyResult<i64> {
-        use crate::schema::game::dsl::*;
-        use crate::schema::groups;
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
 
         let results = game
             .filter(groups::chat_id.eq(id_chat))

@@ -3,21 +3,20 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    db::MyPool,
-    models::{
+    db::models::{
         HryakDay, InlineGroup, InlineUser, InlineUsersGroup, NewInlineUser,
         UpdateInlineUser, User,
     },
-    MyResult,
+    types::{DbPool, MyResult},
 };
 
 #[derive(Clone)]
 pub struct HandPig {
-    pool: &'static MyPool,
+    pool: &'static DbPool,
 }
 
 impl HandPig {
-    pub fn new(pool: &'static MyPool) -> Self {
+    pub fn new(pool: &'static DbPool) -> Self {
         Self { pool }
     }
 
@@ -27,8 +26,8 @@ impl HandPig {
         offset: i32,
         is_win: bool,
     ) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
-        use crate::schema::users;
+        use crate::db::schema::inline_users::dsl::*;
+        use crate::db::schema::users;
         use diesel::dsl::sql;
 
         if is_win {
@@ -70,8 +69,8 @@ impl HandPig {
         size: i32,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
-        use crate::schema::users;
+        use crate::db::schema::inline_users::dsl::*;
+        use crate::db::schema::users;
 
         diesel::update(inline_users)
             .filter(
@@ -92,8 +91,8 @@ impl HandPig {
         id_user: u64,
         new_name: &str,
     ) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
-        use crate::schema::users;
+        use crate::db::schema::inline_users::dsl::*;
+        use crate::db::schema::users;
 
         diesel::update(inline_users)
             .filter(
@@ -115,8 +114,8 @@ impl HandPig {
         id_user: u64,
         new_flag: &str,
     ) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
-        use crate::schema::users;
+        use crate::db::schema::inline_users::dsl::*;
+        use crate::db::schema::users;
 
         diesel::update(inline_users)
             .filter(
@@ -134,7 +133,7 @@ impl HandPig {
     }
 
     pub async fn update_hrundel(&self, data: UpdateInlineUser) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
+        use crate::db::schema::inline_users::dsl::*;
 
         diesel::update(inline_users.find(data.id))
             .set((
@@ -152,7 +151,7 @@ impl HandPig {
         &self,
         hrundel: NewInlineUser<'_>,
     ) -> MyResult<()> {
-        use crate::schema::inline_users::dsl::*;
+        use crate::db::schema::inline_users::dsl::*;
 
         diesel::insert_into(inline_users)
             .values(&hrundel)
@@ -166,8 +165,8 @@ impl HandPig {
         &self,
         id_user: u64,
     ) -> MyResult<Option<(InlineUser, User)>> {
-        use crate::schema::inline_users;
-        use crate::schema::users;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::users;
 
         let results = inline_users::table
             .filter(users::user_id.eq(id_user))
@@ -185,11 +184,11 @@ impl HandPig {
         chat_instance: &str,
         the_date: NaiveDate,
     ) -> MyResult<Option<(InlineGroup, HryakDay, InlineUser, User)>> {
-        use crate::schema::hryak_day;
-        use crate::schema::inline_groups;
-        use crate::schema::inline_users;
-        use crate::schema::inline_users_groups;
-        use crate::schema::users;
+        use crate::db::schema::hryak_day;
+        use crate::db::schema::inline_groups;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::inline_users_groups;
+        use crate::db::schema::users;
 
         let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
         let results = hryak_day::table
@@ -217,7 +216,7 @@ impl HandPig {
         &self,
         instance_chat: &str,
     ) -> MyResult<Option<InlineGroup>> {
-        use crate::schema::inline_groups::dsl::*;
+        use crate::db::schema::inline_groups::dsl::*;
 
         let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
         let results = inline_groups
@@ -234,7 +233,7 @@ impl HandPig {
         &self,
         primary_id: i32,
     ) -> MyResult<Option<InlineGroup>> {
-        use crate::schema::inline_groups::dsl::*;
+        use crate::db::schema::inline_groups::dsl::*;
 
         let results = inline_groups
             .filter(id.eq(primary_id))
@@ -251,7 +250,7 @@ impl HandPig {
         instance_chat: &str,
         cur_datetime: NaiveDateTime,
     ) -> MyResult<()> {
-        use crate::schema::inline_groups::dsl::*;
+        use crate::db::schema::inline_groups::dsl::*;
 
         diesel::insert_into(inline_groups)
             .values((
@@ -268,8 +267,8 @@ impl HandPig {
         &self,
         instance_chat: &str,
     ) -> MyResult<Option<InlineUsersGroup>> {
-        use crate::schema::inline_groups;
-        use crate::schema::inline_users_groups;
+        use crate::db::schema::inline_groups;
+        use crate::db::schema::inline_users_groups;
 
         sql_function!(fn rand() -> Text);
 
@@ -291,10 +290,10 @@ impl HandPig {
         instance_chat: &str,
         id_user: u64,
     ) -> MyResult<Option<InlineUsersGroup>> {
-        use crate::schema::inline_groups;
-        use crate::schema::inline_users;
-        use crate::schema::inline_users_groups;
-        use crate::schema::users;
+        use crate::db::schema::inline_groups;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::inline_users_groups;
+        use crate::db::schema::users;
 
         let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
         let results = inline_users_groups::table
@@ -321,7 +320,7 @@ impl HandPig {
         id_iu: i32,
         id_ig: i32,
     ) -> MyResult<()> {
-        use crate::schema::inline_users_groups::dsl::*;
+        use crate::db::schema::inline_users_groups::dsl::*;
 
         diesel::insert_into(inline_users_groups)
             .values((iu_id.eq(id_iu), ig_id.eq(id_ig)))
@@ -336,7 +335,7 @@ impl HandPig {
         user_to_chat_id: i32,
         current_date: NaiveDate,
     ) -> MyResult<()> {
-        use crate::schema::hryak_day::dsl::*;
+        use crate::db::schema::hryak_day::dsl::*;
 
         diesel::insert_into(hryak_day)
             .values((iug_id.eq(user_to_chat_id), date.eq(current_date)))
@@ -351,9 +350,9 @@ impl HandPig {
         chat_instance: &str,
         cur_date: NaiveDate,
     ) -> MyResult<Option<Vec<InlineUser>>> {
-        use crate::schema::inline_groups;
-        use crate::schema::inline_users;
-        use crate::schema::inline_users_groups;
+        use crate::db::schema::inline_groups;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::inline_users_groups;
 
         let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
 
@@ -380,7 +379,7 @@ impl HandPig {
         &self,
         cur_date: NaiveDate,
     ) -> MyResult<Option<Vec<InlineUser>>> {
-        use crate::schema::inline_users::dsl::*;
+        use crate::db::schema::inline_users::dsl::*;
 
         let results = inline_users
             .filter(date.eq(cur_date))
@@ -398,7 +397,7 @@ impl HandPig {
     }
 
     pub async fn get_top10_win(&self) -> MyResult<Option<Vec<InlineUser>>> {
-        use crate::schema::inline_users::dsl::*;
+        use crate::db::schema::inline_users::dsl::*;
 
         let results = inline_users
             .order_by(win.desc())
