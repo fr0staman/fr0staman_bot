@@ -270,7 +270,7 @@ impl HandPig {
         use crate::db::schema::inline_groups;
         use crate::db::schema::inline_users_groups;
 
-        sql_function!(fn rand() -> Text);
+        define_sql_function!(fn rand() -> Text);
 
         let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
         let results = inline_users_groups::table

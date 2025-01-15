@@ -12,6 +12,7 @@ pub struct Config {
     // For some situations with props with "me"
     pub me: &'static Me,
     pub bot: &'static MyBot,
+    #[allow(unused)]
     pub teloxide_token: String,
     pub webhook_url: Url,
     pub webhook_port: u16,

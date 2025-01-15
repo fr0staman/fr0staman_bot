@@ -18,6 +18,7 @@ pub enum MyError {
     #[error(transparent)]
     PoolError(#[from] PoolError),
 
+    #[allow(unused)]
     #[error("unknown error: {0}")]
     Unknown(String),
 }
