@@ -12,7 +12,6 @@ axum-prometheus = "0.8.0"
 base64 = "0.22.1"
 bytes = "1.9.0"
 chrono = { version = "0.4.39" }
-dashmap = "6.1.0"
 diesel = { version = "2.2.6", features = ["chrono"] }
 diesel-async = { version = "0.5.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"

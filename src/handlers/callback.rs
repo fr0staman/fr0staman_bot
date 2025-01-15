@@ -13,12 +13,12 @@ use tokio::{
 };
 
 use crate::{
-    config::env::BOT_CONFIG,
     config::consts::{
         DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
         INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
         TOP_LIMIT,
     },
+    config::env::BOT_CONFIG,
     db::DB,
     db::models::{InlineUser, UpdateInlineUser, User, UserStatus},
     db::shortcuts,
@@ -141,7 +141,8 @@ async fn _handle_error(
                 let cloned_locks = locks.clone();
                 drop(read_locks);
                 cloned_locks.lock().await.retain(|&x| x != thread_identifier);
-                DUEL_LIST.retain(|&x| x != thread_identifier);
+                drop(cloned_locks);
+                DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
@@ -458,11 +459,11 @@ async fn callback_start_duel(
     );
 
     {
-        if DUEL_LIST.contains(&thread_identifier) {
+        if DUEL_LIST.read().await.contains(&thread_identifier) {
             log::warn!("Pending duel here!");
             return Ok(());
         } else {
-            DUEL_LIST.insert(thread_identifier);
+            DUEL_LIST.write().await.insert(thread_identifier);
         };
     }
 
@@ -501,7 +502,7 @@ async fn callback_start_duel(
     let Some([first, second]) = hrundels else {
         user_locked_threads.retain(|&x| x != thread_identifier);
         drop(user_locked_threads);
-        DUEL_LIST.retain(|&x| x != thread_identifier);
+        DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(&q.id).text(text).await?;
         return Ok(());
@@ -568,7 +569,7 @@ async fn callback_start_duel(
 
     user_locked_threads.retain(|&x| x != thread_identifier);
     drop(user_locked_threads);
-    DUEL_LIST.retain(|&x| x != thread_identifier);
+    DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
 
     log::info!(
         "Ended duel [{}] from user [{}] to [{}]",
