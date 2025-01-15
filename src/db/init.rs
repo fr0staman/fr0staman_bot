@@ -20,35 +20,24 @@ pub struct DBScheme {
     pub other: Other,
 }
 
-pub struct Database {
-    pub pool: &'static DbPool,
-}
-
-impl Default for Database {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub struct Database;
 
 impl Database {
-    pub fn new() -> Database {
-        Database { pool: Self::get_or_init_pool() }
-    }
-
-    fn get_or_init_pool() -> &'static DbPool {
+    pub fn get_or_init_pool() -> &'static DbPool {
         static POOL: OnceLock<DbPool> = OnceLock::new();
 
         POOL.get_or_init(|| {
             let config = Self::get_config();
+
             Pool::builder(config)
                 .build()
                 .expect("Something wrong with Pool manager!")
         })
     }
 
-    fn get_config() -> AsyncDieselConnectionManager<DbConn> {
+    pub fn get_config() -> AsyncDieselConnectionManager<DbConn> {
         AsyncDieselConnectionManager::<DbConn>::new(
-            BOT_CONFIG.database_url.to_string(),
+            BOT_CONFIG.database_url.clone(),
         )
     }
 }

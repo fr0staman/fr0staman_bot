@@ -68,7 +68,7 @@ pub async fn setup_me(bot: &MyBot) {
 
 pub async fn setup_db() {
     // I just try check database, thats not bad
-    let _ = Database::new();
+    let _ = Database::get_or_init_pool();
 }
 
 pub async fn setup_commands(bot: &MyBot) {
