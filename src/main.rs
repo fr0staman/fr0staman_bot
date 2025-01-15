@@ -179,10 +179,7 @@ async fn setup_listener(
         )
         .with_graceful_shutdown(stop_flag)
         .await
-        .map_err(|err| {
-            stop_token.stop();
-            err
-        })
+        .inspect_err(|_| stop_token.stop())
         .expect("Axum server error");
     });
 
