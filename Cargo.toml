@@ -23,10 +23,10 @@ pretty_env_logger = "0.5"
 prometheus = "0.13.4"
 rand = "0.8.5"
 rayon = "1.10.0"
-serde_json = "1.0.135"
+serde_json = "1.0.137"
 strum = { version = "0.26.3", features = ["derive"] }
 systemstat = "0.2.4"
-teloxide = { git = "https://github.com/teloxide/teloxide", features = [
+teloxide = { git = "https://github.com/teloxide/teloxide", rev = "b24245dd4dac8a7d4b48ff816fc68cf05d79f6fb", features = [
     "macros",
     "webhooks-axum",
 ] }
