@@ -126,24 +126,25 @@ fn init_interval_listener() {
                 Ok(cpu) => {
                     sleep(Duration::from_secs(1)).await;
 
-                    let cpu = cpu.done().unwrap();
+                    let cpu = cpu.done().expect("CPU metrics crash!");
                     let percentage = (cpu.system + cpu.user) as f64 * 100.0;
 
-                    CPU_USAGE.set(f64::trunc(percentage));
+                    CPU_USAGE.set(percentage.trunc());
                 },
                 Err(x) => crate::myerr!("CPU load: error: {x}"),
             }
 
             match sys.memory() {
                 Ok(mem) => {
-                    let memory_used = mem.total.0 - mem.free.0;
-                    let percentage = (memory_used / mem.total.0) as f64 * 100.0;
+                    let mem_used = mem.total.0 - mem.free.0;
+                    let percentage =
+                        (mem_used as f64 / mem.total.0 as f64) * 100.0;
 
-                    MEM_USAGE.set(f64::trunc(percentage));
+                    MEM_USAGE.set(percentage.trunc());
                 },
                 Err(x) => crate::myerr!("Memory: error: {x}"),
             }
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(5)).await;
         }
     });
 }
