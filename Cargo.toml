@@ -26,11 +26,11 @@ rayon = "1.10.0"
 serde_json = "1.0.137"
 strum = { version = "0.26.3", features = ["derive"] }
 systemstat = "0.2.4"
-teloxide = { git = "https://github.com/teloxide/teloxide", rev = "b24245dd4dac8a7d4b48ff816fc68cf05d79f6fb", features = [
+teloxide = { git = "https://github.com/teloxide/teloxide", rev = "a5dc414d14b38f050133fa63022b72da49644408", features = [
     "macros",
     "webhooks-axum",
 ] }
-thiserror = "1.0.69"
+thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.0"
 url = "2.5.4"
