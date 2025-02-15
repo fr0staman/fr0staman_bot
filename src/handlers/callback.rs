@@ -608,7 +608,7 @@ async fn callback_change_top(
         .await?;
 
     if top50_pigs.is_empty() {
-        let text = lng("HandPigNoInBarn", ltag);
+        let text = lng("GameNoChatPigs", ltag);
         let Some(msg) = m.regular_message() else {
             return Ok(());
         };
