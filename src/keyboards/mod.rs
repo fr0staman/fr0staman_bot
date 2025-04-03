@@ -3,7 +3,7 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
 use crate::{
     config::env::BOT_CONFIG,
     enums::{CbActions, Top10Variant},
-    lang::{lng, LocaleTag},
+    lang::{LocaleTag, lng},
     utils::helpers::encode_callback_data,
 };
 
@@ -69,10 +69,10 @@ pub fn keyboard_in_top10(
     to: Top10Variant,
 ) -> InlineKeyboardMarkup {
     let coded_data =
-        encode_callback_data(CbActions::Top10, id_user, to.as_ref());
+        encode_callback_data(CbActions::Top10, id_user, to.into_str());
 
     let summarized = to.summarize();
-    let key = summarized.as_ref();
+    let key = summarized.into_str();
 
     let text = lng(&format!("InlineTop10ButtonIn_{}", &key), ltag);
     let button = InlineKeyboardButton::callback(text, coded_data);
@@ -214,7 +214,15 @@ macro_rules! make_switch_buttons {
 }
 
 pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
-    let [chg_name_button, chg_flag_button, chg_lang_button, pig_day_button, oc_button, hru_button, gifs_button] = make_switch_buttons!(
+    let [
+        chg_name_button,
+        chg_flag_button,
+        chg_lang_button,
+        pig_day_button,
+        oc_button,
+        hru_button,
+        gifs_button,
+    ] = make_switch_buttons!(
         ltag,
         [
             "ChangeHandPigName",

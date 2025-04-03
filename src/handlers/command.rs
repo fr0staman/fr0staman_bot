@@ -5,10 +5,10 @@ use teloxide::types::{
 };
 use teloxide::utils::html::{italic, user_mention};
 
-use crate::config::env::BOT_CONFIG;
 use crate::config::consts::LOUDER_PREMIUM_VOICE_LIMIT;
 use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::config::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
+use crate::config::env::BOT_CONFIG;
 use crate::db::DB;
 use crate::db::models::UserStatus;
 use crate::db::shortcuts;
@@ -330,7 +330,7 @@ async fn command_grow(
         .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
         .await?;
 
-    let grow_status_key = format!("GamePigGrowMessage_{}", status.as_ref());
+    let grow_status_key = format!("GamePigGrowMessage_{}", status.into_str());
 
     let text = lng(&grow_status_key, ltag).args(&[
         ("name", pig.name),

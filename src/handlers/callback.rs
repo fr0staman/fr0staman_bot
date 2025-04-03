@@ -540,7 +540,7 @@ async fn callback_start_duel(
         ("looser_weight", &(looser.0.weight - damage).to_string()),
     ]);
 
-    let lng_key = &format!("InlineDuelMessage_{}", status.as_ref());
+    let lng_key = &format!("InlineDuelMessage_{}", status.into_str());
     let text = lng(lng_key, ltag).args(&[
         ("winner_name", &winner.0.name),
         ("looser_name", &looser.0.name),

@@ -16,7 +16,7 @@ pub fn generate_top10_text(
 ) -> String {
     let summarized = chat_type.summarize();
     let is_win = matches!(summarized, Top10Variant::Win);
-    let chat_type = summarized.as_ref();
+    let chat_type = summarized.into_str();
 
     let text = lng(&format!("InlineTop10Header_{}", chat_type), ltag);
 

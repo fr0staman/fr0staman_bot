@@ -33,7 +33,7 @@ where
 {
     let mut capacity = String::with_capacity(64);
 
-    capacity.push_str(action.as_ref());
+    capacity.push_str(action.into_str());
     capacity.push(SEPARATOR);
     capacity.push_str(&id_user.to_string());
     capacity.push(SEPARATOR);
@@ -61,7 +61,7 @@ pub fn decode_callback_data(data: &str) -> Option<ParsedCallbackData> {
 pub fn get_photostock(append: Image) -> Url {
     let url = &BOT_CONFIG.photostock_url;
 
-    url.join(append.as_ref()).unwrap_or_else(|_| url.clone())
+    url.join(append.into_str()).unwrap_or_else(|_| url.clone())
 }
 
 // Truncate to some width with emoji check, because it can be 2 bytes or even 4 bytes

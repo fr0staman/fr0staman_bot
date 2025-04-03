@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use strum::{AsRefStr, Display, EnumString};
+use strum::{Display, EnumString, IntoStaticStr};
 use teloxide::macros::BotCommands;
 
 // Descriptions of BotCommands — check locales /<command>_desc
@@ -48,7 +48,7 @@ pub enum AdminCommands {
     Promote(String),
 }
 
-#[derive(Display, AsRefStr, EnumString)]
+#[derive(EnumString)]
 pub enum InlineCommands {
     #[strum(
         serialize = "ім'я",
@@ -76,7 +76,7 @@ pub enum InlineCommands {
     Gif,
 }
 
-#[derive(Display, AsRefStr, EnumString)]
+#[derive(EnumString)]
 pub enum InlineKeywords {
     #[strum(
         serialize = "ім'я",
@@ -121,8 +121,8 @@ pub enum InlineKeywords {
     Gif,
 }
 
-#[derive(AsRefStr, EnumString, Display)]
-#[strum(serialize_all = "snake_case")]
+#[derive(IntoStaticStr, EnumString)]
+#[strum(const_into_str, serialize_all = "snake_case")]
 pub enum CbActions {
     GiveName,
     FindHryak,
@@ -141,8 +141,8 @@ pub enum CbActions {
     GifDecision,
 }
 
-#[derive(AsRefStr, EnumString, Display)]
-#[strum(serialize_all = "snake_case")]
+#[derive(IntoStaticStr, EnumString, Display)]
+#[strum(const_into_str, serialize_all = "snake_case")]
 pub enum Top10Variant {
     Global,
     Chat,
@@ -152,7 +152,7 @@ pub enum Top10Variant {
 }
 
 impl Top10Variant {
-    pub fn summarize(self) -> Self {
+    pub const fn summarize(self) -> Self {
         match self {
             Self::PGlobal => Self::Global,
             Self::PWin => Self::Win,
@@ -162,7 +162,8 @@ impl Top10Variant {
 }
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(AsRefStr)]
+#[derive(IntoStaticStr)]
+#[strum(const_into_str)]
 pub enum Image {
     #[strum(serialize = "1_fight_200x200.jpg")]
     Fight,
@@ -188,16 +189,16 @@ pub enum Image {
     MoreInfo,
 }
 
-#[derive(AsRefStr, EnumString, Display)]
-#[strum(serialize_all = "snake_case")]
+#[derive(IntoStaticStr, EnumString)]
+#[strum(const_into_str, serialize_all = "snake_case")]
 pub enum PigGrowthStatus {
     Lost,
     Maintained,
     Gained,
 }
 
-#[derive(AsRefStr, EnumString, Display)]
-#[strum(serialize_all = "snake_case")]
+#[derive(IntoStaticStr, EnumString)]
+#[strum(const_into_str, serialize_all = "snake_case")]
 pub enum InlineResults {
     GetStartDuel,
     GetTop10Info,
@@ -255,11 +256,12 @@ impl InlineResults {
     where
         T: std::fmt::Display,
     {
-        format!("{}{}{}", self.as_ref(), Self::DELIMITER, value)
+        format!("{}{}{}", self.into_str(), Self::DELIMITER, value)
     }
 }
 
-#[derive(PartialEq, AsRefStr)]
+#[derive(PartialEq, IntoStaticStr)]
+#[strum(const_into_str)]
 pub enum DuelResult {
     Draw,
     Win,
