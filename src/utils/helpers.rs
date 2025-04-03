@@ -86,7 +86,7 @@ pub fn get_chat_kind(kind: &ChatKind) -> &str {
     match kind {
         ChatKind::Public(kind) => match kind.kind {
             PublicChatKind::Channel(_) => "channel",
-            PublicChatKind::Group(_) => "group",
+            PublicChatKind::Group => "group",
             PublicChatKind::Supergroup(_) => "supergroup",
         },
         ChatKind::Private(_) => "private",

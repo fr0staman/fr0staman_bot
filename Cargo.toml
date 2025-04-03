@@ -7,31 +7,28 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.11"
-axum = "0.8.1"
+axum = "0.8.3"
 axum-prometheus = "0.8.0"
 base64 = "0.22.1"
-bytes = "1.9.0"
-chrono = { version = "0.4.39" }
-diesel = { version = "2.2.6", features = ["chrono"] }
+bytes = "1.10.1"
+chrono = { version = "0.4.40" }
+diesel = { version = "2.2.8", features = ["chrono"] }
 diesel-async = { version = "0.5.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
-log = "0.4.22"
+log = "0.4.27"
 ogg-opus = { git = "https://github.com/fr0staman/ogg-opus" }
 packed_struct = "0.10.1"
 pretty_env_logger = "0.5"
-prometheus = "0.13.4"
+prometheus = "0.14.0"
 rand = "0.8.5"
 rayon = "1.10.0"
-serde_json = "1.0.137"
-strum = { version = "0.26.3", features = ["derive"] }
+serde_json = "1.0.140"
+strum = { version = "0.27.1", features = ["derive"] }
 systemstat = "0.2.4"
-teloxide = { git = "https://github.com/teloxide/teloxide", rev = "a5dc414d14b38f050133fa63022b72da49644408", features = [
-    "macros",
-    "webhooks-axum",
-] }
-thiserror = "2.0.11"
-tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros"] }
+teloxide = { version = "0.14.1", features = ["macros", "webhooks-axum"] }
+thiserror = "2.0.12"
+tokio = { version = "1.44.1", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.0"
 url = "2.5.4"
 walkdir = "2.5.0"
