@@ -62,7 +62,7 @@ pub enum InlineCommands {
         serialize = "хрю",
         serialize = "hru",
         serialize = "grunt",
-        serialize = "oink"
+        serialize = "xort"
     )]
     Hru,
     #[strum(
