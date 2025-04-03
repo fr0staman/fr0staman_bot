@@ -54,12 +54,23 @@ pub enum InlineCommands {
         serialize = "ім'я",
         serialize = "імя",
         serialize = "имя",
-        serialize = "name"
+        serialize = "name",
+        serialize = "ad"
     )]
     Name,
-    #[strum(serialize = "хрю", serialize = "hru", serialize = "grunt")]
+    #[strum(
+        serialize = "хрю",
+        serialize = "hru",
+        serialize = "grunt",
+        serialize = "oink"
+    )]
     Hru,
-    #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
+    #[strum(
+        serialize = "прапор",
+        serialize = "флаг",
+        serialize = "flag",
+        serialize = "bayraq"
+    )]
     Flag,
     #[strum(serialize = "гіф", serialize = "гиф", serialize = "gif")]
     Gif,
@@ -71,23 +82,40 @@ pub enum InlineKeywords {
         serialize = "ім'я",
         serialize = "імя",
         serialize = "имя",
-        serialize = "name"
+        serialize = "name",
+        serialize = "ad"
     )]
     Name,
     #[strum(
         serialize = "хряк",
         serialize = "свиня",
         serialize = "свинья",
-        serialize = "pig"
+        serialize = "pig",
+        serialize = "donuz"
     )]
     DayPig,
     #[strum(serialize = "ос", serialize = "oc")]
     OC,
-    #[strum(serialize = "хрю", serialize = "hru", serialize = "grunt")]
+    #[strum(
+        serialize = "хрю",
+        serialize = "hru",
+        serialize = "grunt",
+        serialize = "oink"
+    )]
     Hru,
-    #[strum(serialize = "прапор", serialize = "флаг", serialize = "flag")]
+    #[strum(
+        serialize = "прапор",
+        serialize = "флаг",
+        serialize = "flag",
+        serialize = "bayraq"
+    )]
     Flag,
-    #[strum(serialize = "мова", serialize = "язык", serialize = "lang")]
+    #[strum(
+        serialize = "мова",
+        serialize = "язык",
+        serialize = "lang",
+        serialize = "dil"
+    )]
     Lang,
     #[strum(serialize = "гіф", serialize = "гиф", serialize = "gif")]
     Gif,
