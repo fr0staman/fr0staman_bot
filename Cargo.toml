@@ -12,7 +12,7 @@ axum-prometheus = "0.8.0"
 base64 = "0.22.1"
 bytes = "1.10.1"
 chrono = { version = "0.4.40" }
-diesel = { version = "2.2.8", features = ["chrono"] }
+diesel = { version = "2.2.9", features = ["chrono"] }
 diesel-async = { version = "0.5.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
@@ -26,9 +26,9 @@ rayon = "1.10.0"
 serde_json = "1.0.140"
 strum = { version = "0.27.1", features = ["derive"] }
 systemstat = "0.2.4"
-teloxide = { version = "0.14.1", features = ["macros", "webhooks-axum"] }
+teloxide = { version = "0.15.0", features = ["macros", "webhooks-axum"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.44.2", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.0"
 url = "2.5.4"
 walkdir = "2.5.0"
