@@ -645,8 +645,8 @@ fn _duel_get_status<'a>(
         first_chance = second_chance / 5;
     }
 
-    let first_random = rand::thread_rng().gen_range(0..first_chance);
-    let second_random = rand::thread_rng().gen_range(0..second_chance);
+    let first_random = rand::rng().random_range(0..first_chance);
+    let second_random = rand::rng().random_range(0..second_chance);
 
     let duel_win_variant = |random, weight| match random {
         r if r >= (weight * 99) / 100 => DuelResult::Knockout,

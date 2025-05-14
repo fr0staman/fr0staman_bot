@@ -40,11 +40,7 @@ pub fn calculate_hryak_size(user_id: u64) -> i32 {
 
     let casted_size = size as i32;
 
-    if casted_size == 0 {
-        1
-    } else {
-        casted_size
-    }
+    if casted_size == 0 { 1 } else { casted_size }
 }
 
 pub fn calculate_cpu_clock(hryak_size: i32, user_id: u64) -> f32 {
@@ -75,7 +71,7 @@ pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: u64) -> f32 {
 }
 
 pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {
-    let chance = rand::thread_rng().gen_range(-8..=20);
+    let chance = rand::rng().random_range(-8..=20);
 
     match chance.cmp(&0) {
         Ordering::Greater => (chance, PigGrowthStatus::Gained),
@@ -85,7 +81,7 @@ pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {
                 // Try another.
                 return calculate_chat_pig_grow(current_kg);
             }
-            let chance = rand::thread_rng().gen_range(-min..0);
+            let chance = rand::rng().random_range(-min..0);
             (chance, PigGrowthStatus::Lost)
         },
         Ordering::Equal => {
