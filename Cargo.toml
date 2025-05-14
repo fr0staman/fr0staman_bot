@@ -6,29 +6,32 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ahash = "0.8.11"
-axum = "0.8.3"
+ahash = "0.8.12"
+axum = "0.8.4"
 axum-prometheus = "0.8.0"
 base64 = "0.22.1"
 bytes = "1.10.1"
-chrono = { version = "0.4.40" }
-diesel = { version = "2.2.9", features = ["chrono"] }
+chrono = { version = "0.4.41", default-features = false, features = [
+    "clock",
+    "std",
+] }
+diesel = { version = "2.2.10", features = ["chrono"] }
 diesel-async = { version = "0.5.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
 log = "0.4.27"
 ogg-opus = { git = "https://github.com/fr0staman/ogg-opus" }
-packed_struct = "0.10.1"
+packed_struct = { version = "0.10.1", default-features = false }
 pretty_env_logger = "0.5"
 prometheus = "0.14.0"
-rand = "0.8.5"
+rand = "0.9.1"
 rayon = "1.10.0"
 serde_json = "1.0.140"
 strum = { version = "0.27.1", features = ["derive"] }
 systemstat = "0.2.4"
 teloxide = { version = "0.15.0", features = ["macros", "webhooks-axum"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.45.0", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.0"
 url = "2.5.4"
 walkdir = "2.5.0"
