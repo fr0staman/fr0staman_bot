@@ -2,11 +2,14 @@ use std::time::Duration;
 
 use ahash::AHashSet;
 use futures::FutureExt;
-use teloxide::{RequestError, prelude::*};
+use teloxide::{ApiError, RequestError, prelude::*};
 
 use crate::{
     config::{consts::HAND_PIG_ADDITION_ON_SUPPORTED, env::BOT_CONFIG},
-    db::{DB, models::UserStatus},
+    db::{
+        DB,
+        models::{UpdateGroups, UserStatus},
+    },
     enums::AdminCommands,
     lang::{InnerLang, LocaleTag, get_tag, lng, tag_one_or},
     traits::MaybeMessageSetter,
@@ -227,6 +230,23 @@ async fn _inner_admin_command_repost(
                     if res_again.is_err() {
                         chat_sended_error_count += 1;
                     }
+                } else if matches!(
+                    err,
+                    RequestError::Api(
+                        ApiError::BotKicked
+                            | ApiError::BotKickedFromSupergroup
+                            | ApiError::BotKickedFromChannel
+                            | ApiError::ChatNotFound,
+                    ) | RequestError::MigrateToChatId(_)
+                ) {
+                    let chat_info =
+                        UpdateGroups { active: false, ..chat.to_update() };
+                    let chat_id = chat_info.chat_id;
+                    let _ = DB.other.update_chat(chat_id, chat_info).await;
+                    log::info!("Chat already deactivated: {}", chat_id);
+                    chat_sended_error_count += 1;
+                } else {
+                    chat_sended_error_count += 1;
                 }
             } else {
                 chat_sended_count += 1;
@@ -280,6 +300,8 @@ async fn _inner_admin_command_repost(
                     if res_again.is_err() {
                         user_sended_error_count += 1;
                     }
+                } else {
+                    user_sended_error_count += 1;
                 }
             } else {
                 user_sended_count += 1;
