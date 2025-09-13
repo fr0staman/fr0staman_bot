@@ -223,3 +223,39 @@ pub struct UserStatus {
     pub supported: bool,
     pub subscribed: bool,
 }
+
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = grow_log)]
+pub struct GrowLog {
+    pub id: u32,
+    pub game_id: i32,
+    pub created_at: NaiveDateTime,
+    pub weight_change: i32,
+    pub current_weight: u32,
+}
+
+#[derive(Insertable, Debug)]
+#[diesel(table_name = grow_log)]
+pub struct GrowLogAdd {
+    pub game_id: i32,
+    pub created_at: NaiveDateTime,
+    pub weight_change: i32,
+    pub current_weight: u32,
+}
+
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = achievements_users)]
+pub struct AchievementUser {
+    pub id: u32,
+    pub game_id: i32,
+    pub code: u8,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[diesel(table_name = achievements_users)]
+pub struct AchievementUserAdd {
+    pub game_id: i32,
+    pub code: u8,
+    pub created_at: NaiveDateTime,
+}

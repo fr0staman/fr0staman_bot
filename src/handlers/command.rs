@@ -1,4 +1,7 @@
+use ahash::AHashSet;
 use futures::FutureExt;
+use num_traits::ToPrimitive;
+use strum::{EnumCount, VariantArray};
 use teloxide::prelude::*;
 use teloxide::types::{
     ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds,
@@ -10,16 +13,19 @@ use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::config::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
 use crate::config::env::BOT_CONFIG;
 use crate::db::DB;
-use crate::db::models::UserStatus;
+use crate::db::models::{GrowLogAdd, UserStatus};
 use crate::db::shortcuts;
 use crate::enums::MyCommands;
 use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, get_tag_opt, lng, tag_one_two_or};
+use crate::services::achievements::{self, Ach};
 use crate::traits::{
     MaybeMessageSetter, MaybeVoiceSetter, SimpleDisableWebPagePreview,
 };
 use crate::types::{MyBot, MyResult};
-use crate::utils::date::{get_datetime, get_timediff};
+use crate::utils::date::{
+    get_datetime, get_datetime_from_message_date, get_timediff,
+};
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
 use crate::utils::ogg::increase_sound;
@@ -65,6 +71,7 @@ pub async fn filter_commands(
         MyCommands::Lang => command_lang(bot, &m, ltag).boxed(),
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
         MyCommands::Louder => command_louder(bot, &m, ltag).boxed(),
+        MyCommands::Achievements => command_achievements(bot, &m, ltag).boxed(),
     };
 
     let response = function.await;
@@ -244,7 +251,7 @@ async fn command_grow(
         return Ok(());
     }
 
-    let cur_datetime = get_datetime();
+    let cur_datetime = get_datetime_from_message_date(m.date);
     let cur_date = cur_datetime.date();
     let mention = user_mention(from.id, &from.first_name);
 
@@ -330,6 +337,34 @@ async fn command_grow(
         .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
         .await?;
 
+    let grow_log_info = GrowLogAdd {
+        game_id: pig.id,
+        created_at: get_datetime(),
+        current_weight: current as u32,
+        weight_change: offset,
+    };
+
+    DB.chat_pig.add_grow_log_by_game(grow_log_info).await?;
+
+    let message = m.clone();
+    let outer_bot = bot.clone();
+    tokio::spawn(async move {
+        let new_achievements =
+            achievements::check_achievements(pig.id, cur_datetime).await;
+
+        if let Ok(achievements) = new_achievements {
+            let _ = _handle_new_achievements(
+                outer_bot,
+                &message,
+                ltag,
+                pig.id,
+                pig.uid,
+                achievements,
+            )
+            .await;
+        }
+    });
+
     let grow_status_key = format!("GamePigGrowMessage_{}", status.into_str());
 
     let text = lng(&grow_status_key, ltag).args(&[
@@ -343,6 +378,7 @@ async fn command_grow(
         .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
+
     Ok(())
 }
 
@@ -598,6 +634,80 @@ async fn command_louder(
     Ok(())
 }
 
+async fn command_achievements(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    let Some(from) = &m.from else { return Ok(()) };
+
+    let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+    let Some(pig) = pig else {
+        _game_no_chat_pig(bot, m, ltag).await?;
+        return Ok(());
+    };
+
+    let achievements_in_all_chats =
+        DB.other.get_achievements_by_uid(pig.uid).await?;
+
+    let achievements_in_this_chat: Vec<_> = achievements_in_all_chats
+        .iter()
+        .filter(|v| v.game_id == pig.id)
+        .collect();
+
+    let achievements_in_all_chats: AHashSet<_> =
+        achievements_in_all_chats.iter().map(|v| v.code).collect();
+
+    let all_count = Ach::COUNT.to_string();
+
+    let chat_count = achievements_in_this_chat.len().to_string();
+    let global_count = achievements_in_all_chats.len().to_string();
+
+    let mention = user_mention(from.id, &from.first_name);
+
+    let mut done_list_text = String::with_capacity(512);
+    let mut not_done_list_text = String::with_capacity(512);
+
+    for achievement in Ach::VARIANTS {
+        let is_in_this_chat = achievements_in_this_chat
+            .iter()
+            .any(|v| v.code == achievement.to_u8().unwrap_or(0));
+        let is_in_global = achievements_in_all_chats
+            .contains(&achievement.to_u8().unwrap_or(0));
+        let done = is_in_this_chat || is_in_global;
+
+        let achievement_name = lng(
+            &format!("Achievement_{}", achievement.to_u32().unwrap_or(0)),
+            ltag,
+        );
+
+        let one_achievement_text = lng("AchievementListOne", ltag).args(&[
+            ("achievement", achievement_name.as_str()),
+            ("chat_emoji", if is_in_this_chat { "✅" } else { "➖" }),
+            ("global_emoji", if is_in_global { "✅" } else { "➖" }),
+        ]);
+
+        if done {
+            done_list_text.push_str(&format!("   {}\n", one_achievement_text));
+        } else {
+            not_done_list_text.push_str(&format!("{}\n", one_achievement_text));
+        }
+    }
+
+    let text = lng("AchievementList", ltag).args(&[
+        ("mention", &mention),
+        ("done_achievements", &done_list_text),
+        ("not_done_achievements", &not_done_list_text),
+        ("chat_count", &chat_count),
+        ("chat_all_count", &all_count),
+        ("global_count", &global_count),
+        ("global_all_count", &all_count),
+    ]);
+
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+
+    Ok(())
+}
 async fn _game_only_for_chats(
     bot: MyBot,
     m: &Message,
@@ -619,5 +729,49 @@ async fn _game_no_chat_pig(
 ) -> MyResult<()> {
     let text = lng("GameNoChatPigs", ltag);
     bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+    Ok(())
+}
+
+pub async fn _handle_new_achievements(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+    game_id: i32,
+    id_uid: u32,
+    new_achievements: Vec<Ach>,
+) -> MyResult<()> {
+    let achievements_in_all_chats =
+        DB.other.get_achievements_by_uid(id_uid).await?;
+
+    let achievements_in_this_chat: Vec<_> = achievements_in_all_chats
+        .iter()
+        .filter(|v| v.game_id == game_id)
+        .collect();
+
+    let achievements_in_all_chats: AHashSet<_> =
+        achievements_in_all_chats.iter().map(|v| v.code).collect();
+
+    let all_count = Ach::COUNT.to_string();
+
+    let chat_count = achievements_in_this_chat.len().to_string();
+    let global_count = achievements_in_all_chats.len().to_string();
+
+    for achievement in new_achievements {
+        let achievement_name = lng(
+            &format!("Achievement_{}", achievement.to_u32().unwrap_or(0)),
+            ltag,
+        );
+
+        let text = lng("NewAchievementUnlocked", ltag).args(&[
+            ("achievement_name", &achievement_name),
+            ("chat_count", &chat_count),
+            ("chat_all_count", &all_count),
+            ("global_count", &global_count),
+            ("global_all_count", &all_count),
+        ]);
+
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+    }
+
     Ok(())
 }

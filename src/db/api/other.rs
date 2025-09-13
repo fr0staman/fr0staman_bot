@@ -3,11 +3,10 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     db::models::{
-        Groups, InlineGif, InlineVoice, NewGroup, NewUser, UpdateGroups,
-        UpdateUser, User, UserStatus,
+        AchievementUser, AchievementUserAdd, Groups, InlineGif, InlineVoice,
+        NewGroup, NewUser, UpdateGroups, UpdateUser, User, UserStatus,
     },
-    types::DbPool,
-    types::MyResult,
+    types::{DbPool, MyResult},
 };
 
 #[derive(Clone)]
@@ -344,5 +343,73 @@ impl Other {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_achievements_by_game_id(
+        &self,
+        id_game: i32,
+    ) -> MyResult<Vec<AchievementUser>> {
+        use crate::db::schema::achievements_users::dsl::*;
+
+        let results = achievements_users
+            .filter(game_id.eq(id_game))
+            .select(AchievementUser::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn add_achievement(
+        &self,
+        new_achievement: AchievementUserAdd,
+    ) -> MyResult<()> {
+        use crate::db::schema::achievements_users::dsl::*;
+
+        diesel::insert_into(achievements_users)
+            .values(new_achievement)
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_achievements_by_uid(
+        &self,
+        id_uid: u32,
+    ) -> MyResult<Vec<AchievementUser>> {
+        use crate::db::schema::achievements_users::dsl::*;
+        use crate::db::schema::game;
+
+        let results = achievements_users
+            .inner_join(game::table)
+            .filter(game::uid.eq(id_uid))
+            .select(AchievementUser::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_chats(&self) -> MyResult<Vec<Groups>> {
+        use crate::db::schema::groups::dsl::*;
+
+        let results = groups
+            .select(Groups::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_users(&self) -> MyResult<Vec<User>> {
+        use crate::db::schema::users::dsl::*;
+
+        let results = users
+            .select(User::as_select())
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
     }
 }

@@ -3,7 +3,9 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    config::consts::TOP_LIMIT, db::models::Game, types::DbPool, types::MyResult,
+    config::consts::TOP_LIMIT,
+    db::models::{Game, GrowLog, GrowLogAdd},
+    types::{DbPool, MyResult},
 };
 
 #[derive(Clone)]
@@ -30,6 +32,22 @@ impl ChatPig {
             .inner_join(users::table)
             .filter(users::user_id.eq(&id_user))
             .filter(groups::chat_id.eq(&id_chat))
+            .select(Game::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
+
+        Ok(results)
+    }
+
+    pub async fn get_chat_pig_by_id(
+        &self,
+        id_game: i32,
+    ) -> MyResult<Option<Game>> {
+        use crate::db::schema::game::dsl::*;
+
+        let results = game
+            .filter(id.eq(id_game))
             .select(Game::as_select())
             .first(&mut self.pool.get().await?)
             .await
@@ -187,5 +205,34 @@ impl ChatPig {
             .await?;
 
         Ok(results)
+    }
+
+    #[allow(unused)]
+    pub async fn get_grow_log_by_game(
+        &self,
+        id_game: i32,
+    ) -> MyResult<Vec<GrowLog>> {
+        use crate::db::schema::grow_log::dsl::*;
+
+        let results = grow_log
+            .filter(game_id.eq(id_game))
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn add_grow_log_by_game(
+        &self,
+        about_grow: GrowLogAdd,
+    ) -> MyResult<()> {
+        use crate::db::schema::grow_log::dsl::*;
+
+        diesel::insert_into(grow_log)
+            .values(about_grow)
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
     }
 }

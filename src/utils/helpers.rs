@@ -41,7 +41,7 @@ where
     capacity
 }
 
-pub fn decode_callback_data(data: &str) -> Option<ParsedCallbackData> {
+pub fn decode_callback_data(data: &str) -> Option<ParsedCallbackData<'_>> {
     let splitted: Vec<&str> = data.splitn(3, SEPARATOR).collect();
 
     if splitted.len() < 3 {

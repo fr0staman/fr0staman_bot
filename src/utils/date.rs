@@ -42,3 +42,9 @@ pub fn get_timediff(cur_datetime: NaiveDateTime) -> (i64, i64, i64) {
     let seconds = duration.num_seconds() % 60;
     (hours, minutes, seconds)
 }
+
+pub fn get_datetime_from_message_date(
+    datetime: DateTime<Utc>,
+) -> NaiveDateTime {
+    FIXED_OFFSET.from_local_datetime(&datetime.naive_utc()).unwrap().naive_utc()
+}

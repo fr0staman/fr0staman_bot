@@ -5,6 +5,7 @@ mod handlers;
 mod keyboards;
 mod lang;
 mod metrics;
+mod services;
 mod setup;
 mod traits;
 mod types;
@@ -61,8 +62,7 @@ async fn run() {
                 )
                 .branch(
                     dptree::filter(|m: Message| {
-                        m.chat.is_private()
-                            && m.from.as_ref().is_some_and(|u| {
+                             m.from.as_ref().is_some_and(|u| {
                                 u.id.0 == BOT_CONFIG.creator_id
                             })
                     })

@@ -27,6 +27,7 @@ pub enum MyCommands {
     Game,
     Lang,
     Louder,
+    Achievements,
 }
 
 #[derive(BotCommands, Clone, Debug)]
@@ -46,6 +47,7 @@ pub enum EpycCommands {
 #[command(rename_rule = "lowercase")]
 pub enum AdminCommands {
     Promote(String),
+    Repost(String),
 }
 
 #[derive(EnumString)]

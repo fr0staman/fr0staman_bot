@@ -1,6 +1,15 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    achievements_users (id) {
+        id -> Unsigned<Integer>,
+        game_id -> Integer,
+        created_at -> Datetime,
+        code -> Unsigned<Tinyint>,
+    }
+}
+
+diesel::table! {
     game (id) {
         id -> Integer,
         group_id -> Integer,
@@ -27,6 +36,16 @@ diesel::table! {
         username -> Nullable<Varchar>,
         #[max_length = 128]
         title -> Varchar,
+    }
+}
+
+diesel::table! {
+    grow_log (id) {
+        id -> Unsigned<Integer>,
+        game_id -> Integer,
+        created_at -> Datetime,
+        weight_change -> Integer,
+        current_weight -> Unsigned<Integer>,
     }
 }
 
@@ -114,9 +133,11 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(achievements_users -> game (game_id));
 diesel::joinable!(game -> groups (group_id));
 diesel::joinable!(game -> users (uid));
 diesel::joinable!(groups -> inline_groups (ig_id));
+diesel::joinable!(grow_log -> game (game_id));
 diesel::joinable!(hryak_day -> inline_users_groups (iug_id));
 diesel::joinable!(inline_gifs -> users (uid));
 diesel::joinable!(inline_users -> users (uid));
@@ -125,8 +146,10 @@ diesel::joinable!(inline_users_groups -> inline_users (iu_id));
 diesel::joinable!(inline_voices -> users (uid));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    achievements_users,
     game,
     groups,
+    grow_log,
     hryak_day,
     inline_gifs,
     inline_groups,
