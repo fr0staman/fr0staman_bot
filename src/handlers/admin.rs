@@ -144,6 +144,21 @@ async fn admin_command_promote(
 async fn admin_command_repost(
     bot: MyBot,
     m: &Message,
+    ltag: LocaleTag,
+    arg: &str,
+) -> MyResult<()> {
+    let m = m.clone();
+    let arg = arg.to_string();
+    tokio::spawn(async move {
+        _inner_admin_command_repost(bot, &m, ltag, &arg).await
+    });
+
+    Ok(())
+}
+
+async fn _inner_admin_command_repost(
+    bot: MyBot,
+    m: &Message,
     _ltag: LocaleTag,
     arg: &str,
 ) -> MyResult<()> {
