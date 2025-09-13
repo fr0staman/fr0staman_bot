@@ -250,8 +250,11 @@ pub async fn check_achievements(
     };
 
     // 9. "Вічний Генін" — 7 днів поспіль у межах 0–10 кг
-    let eternal_genin =
-        || grow_log.iter().rev().take(7).all(|d| d.current_weight <= 10);
+    let eternal_genin = || {
+        grow_log.windows(7).last().is_some_and(|last_week| {
+            last_week.iter().all(|d| d.current_weight <= 10)
+        })
+    };
 
     // 10. "Свиня у вас минулорічна" — годувати 31.12 і 01.01
     let new_year_pig = || {
