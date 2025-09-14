@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use chrono::{Datelike, Duration, NaiveDateTime, Timelike};
-use num_derive::{FromPrimitive, ToPrimitive};
+use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use strum::{EnumCount, IntoStaticStr, VariantArray};
 
@@ -11,13 +11,7 @@ use crate::{
 };
 
 #[derive(
-    PartialEq,
-    IntoStaticStr,
-    EnumCount,
-    VariantArray,
-    FromPrimitive,
-    ToPrimitive,
-    Clone,
+    PartialEq, IntoStaticStr, EnumCount, VariantArray, FromPrimitive, Clone,
 )]
 #[strum(const_into_str, serialize_all = "snake_case")]
 pub enum Ach {
@@ -67,10 +61,8 @@ pub async fn check_achievements(
     let grow_log = DB.chat_pig.get_grow_log_by_game(chat_pig.id).await?;
     let achieved = DB.other.get_achievements_by_game_id(chat_pig.id).await?;
 
-    let achieved = achieved
-        .iter()
-        .filter_map(|v| Ach::from_u8(v.code))
-        .collect::<Vec<_>>();
+    let achieved: Vec<_> =
+        achieved.iter().filter_map(|v| Ach::from_u16(v.code)).collect();
 
     let now = message_time;
 
@@ -311,7 +303,7 @@ pub async fn check_achievements(
         let new_achievement = AchievementUserAdd {
             game_id: chat_pig.id,
             created_at: now,
-            code: new_achievement.clone() as u8,
+            code: new_achievement.clone() as u16,
         };
         DB.other.add_achievement(new_achievement).await?;
     }

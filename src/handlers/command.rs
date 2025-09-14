@@ -1,6 +1,5 @@
 use ahash::AHashSet;
 use futures::FutureExt;
-use num_traits::ToPrimitive;
 use strum::{EnumCount, VariantArray};
 use teloxide::prelude::*;
 use teloxide::types::{
@@ -650,9 +649,9 @@ async fn command_achievements(
     let achievements_in_all_chats =
         DB.other.get_achievements_by_uid(pig.uid).await?;
 
-    let achievements_in_this_chat: Vec<_> = achievements_in_all_chats
+    let achievements_in_this_chat: AHashSet<_> = achievements_in_all_chats
         .iter()
-        .filter(|v| v.game_id == pig.id)
+        .filter_map(|v| if v.game_id == pig.id { Some(v.code) } else { None })
         .collect();
 
     let achievements_in_all_chats: AHashSet<_> =
@@ -669,17 +668,13 @@ async fn command_achievements(
     let mut not_done_list_text = String::with_capacity(512);
 
     for achievement in Ach::VARIANTS {
-        let is_in_this_chat = achievements_in_this_chat
-            .iter()
-            .any(|v| v.code == achievement.to_u8().unwrap_or(0));
-        let is_in_global = achievements_in_all_chats
-            .contains(&achievement.to_u8().unwrap_or(0));
+        let code = achievement.clone() as u16;
+        let is_in_this_chat = achievements_in_this_chat.contains(&code);
+
+        let is_in_global = achievements_in_all_chats.contains(&code);
         let done = is_in_this_chat || is_in_global;
 
-        let achievement_name = lng(
-            &format!("Achievement_{}", achievement.to_u32().unwrap_or(0)),
-            ltag,
-        );
+        let achievement_name = lng(&format!("Achievement_{}", code), ltag);
 
         let one_achievement_text = lng("AchievementListOne", ltag).args(&[
             ("achievement", achievement_name.as_str()),
@@ -757,10 +752,8 @@ pub async fn _handle_new_achievements(
     let global_count = achievements_in_all_chats.len().to_string();
 
     for achievement in new_achievements {
-        let achievement_name = lng(
-            &format!("Achievement_{}", achievement.to_u32().unwrap_or(0)),
-            ltag,
-        );
+        let achievement_name =
+            lng(&format!("Achievement_{}", achievement as u16), ltag);
 
         let text = lng("NewAchievementUnlocked", ltag).args(&[
             ("achievement_name", &achievement_name),

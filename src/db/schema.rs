@@ -5,7 +5,7 @@ diesel::table! {
         id -> Unsigned<Integer>,
         game_id -> Integer,
         created_at -> Datetime,
-        code -> Unsigned<Tinyint>,
+        code -> Unsigned<Smallint>,
     }
 }
 

@@ -248,7 +248,7 @@ pub struct GrowLogAdd {
 pub struct AchievementUser {
     pub id: u32,
     pub game_id: i32,
-    pub code: u8,
+    pub code: u16,
     pub created_at: NaiveDateTime,
 }
 
@@ -256,6 +256,6 @@ pub struct AchievementUser {
 #[diesel(table_name = achievements_users)]
 pub struct AchievementUserAdd {
     pub game_id: i32,
-    pub code: u8,
+    pub code: u16,
     pub created_at: NaiveDateTime,
 }
