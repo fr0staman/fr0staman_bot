@@ -1,21 +1,24 @@
 use crate::{
     config::env::BOT_CONFIG,
-    db::DB,
-    db::models::{UpdateGroups, UserStatus},
-    db::shortcuts,
+    db::{
+        DB,
+        models::{UpdateGroups, UserStatus},
+        shortcuts,
+    },
     keyboards,
-    lang::{InnerLang, get_tag, get_tag_opt, lng, tag_one_or},
+    lang::{InnerLang, LocaleTag, get_tag, get_tag_opt, lng, tag_one_or},
     traits::MaybeMessageSetter,
     types::{MyBot, MyResult},
 };
 use teloxide::{
+    RequestError,
     prelude::*,
-    types::{InputFile, ReplyParameters, UpdateKind},
+    types::{InputFile, ReplyParameters, UpdateKind, User},
     utils::html::user_mention,
 };
 use teloxide::{types::Message, utils::html::escape};
 use teloxide::{types::MessageKind, utils::html::bold};
-use tokio::time::{Duration, sleep};
+use tokio::time::sleep;
 
 pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     let Some(new_chat_members) = m.new_chat_members() else {
@@ -42,19 +45,12 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
             log::info!("Bot added to chat [{}]", m.chat.id);
         } else {
-            let mention = user_mention(user.id, &escape(&user.first_name));
-            let chat_title = bold(&escape(m.chat.title().unwrap_or("chat")));
-            let text = lng("ChatGreeting", ltag).args(&[
-                ("mention", &mention),
-                ("chat_title", &chat_title),
-                ("channel", &BOT_CONFIG.channel_name),
-            ]);
-            bot.send_message(m.chat.id, text)
-                .reply_parameters(ReplyParameters::new(m.id))
-                .maybe_thread_id(&m)
-                .await?;
-            log::info!("New chat member in chat [{}]", m.chat.id);
-            sleep(Duration::from_millis(500)).await;
+            let bot = bot.clone();
+            let m = m.clone();
+            let user = user.clone();
+            tokio::spawn(async move {
+                _greeting_new_chat_member(bot, m, ltag, user).await
+            });
         }
     }
 
@@ -226,4 +222,30 @@ pub async fn handle_chat_migration(_bot: MyBot, m: Message) -> MyResult<()> {
     DB.other.update_chat_id(m.chat.id.0, to.0).await?;
 
     Ok(())
+}
+
+pub async fn _greeting_new_chat_member(
+    bot: MyBot,
+    m: Message,
+    ltag: LocaleTag,
+    user: User,
+) {
+    let mention = user_mention(user.id, &escape(&user.first_name));
+    let chat_title = bold(&escape(m.chat.title().unwrap_or("chat")));
+    let text = lng("ChatGreeting", ltag).args(&[
+        ("mention", &mention),
+        ("chat_title", &chat_title),
+        ("channel", &BOT_CONFIG.channel_name),
+    ]);
+
+    let res = bot
+        .send_message(m.chat.id, text)
+        .reply_parameters(ReplyParameters::new(m.id))
+        .maybe_thread_id(&m)
+        .await;
+    log::info!("New chat member in chat [{}]", m.chat.id);
+    if let Err(RequestError::RetryAfter(sec)) = res {
+        sleep(sec.duration()).await;
+        Box::pin(_greeting_new_chat_member(bot, m, ltag, user)).await;
+    }
 }
