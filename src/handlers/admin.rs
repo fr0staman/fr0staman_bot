@@ -8,7 +8,7 @@ use crate::{
     config::{consts::HAND_PIG_ADDITION_ON_SUPPORTED, env::BOT_CONFIG},
     db::{
         DB,
-        models::{UpdateGroups, UserStatus},
+        models::{Groups, UpdateGroups, User, UserStatus},
     },
     enums::AdminCommands,
     lang::{InnerLang, LocaleTag, get_tag, lng, tag_one_or},
@@ -22,6 +22,16 @@ enum RepostTarget {
     DM,
     Chats,
 }
+
+struct PostStats {
+    pub chat_sended_count: u32,
+    pub chat_sended_error_count: u32,
+    pub user_sended_count: u32,
+    pub user_sended_error_count: u32,
+}
+
+const USER_SENDING_THROTTLE_TIME_MS: u64 = 333;
+const CHAT_SENDING_THROTTLE_TIME_MS: u64 = 333;
 
 pub async fn filter_admin_commands(
     bot: MyBot,
@@ -165,9 +175,6 @@ async fn _inner_admin_command_repost(
     _ltag: LocaleTag,
     arg: &str,
 ) -> MyResult<()> {
-    const USER_SENDING_THROTTLE_TIME_MS: u64 = 333;
-    const CHAT_SENDING_THROTTLE_TIME_MS: u64 = 333;
-
     let Some(reply) = m.reply_to_message() else {
         bot.send_message(m.chat.id, "Where is no reply.")
             .maybe_thread_id(m)
@@ -191,77 +198,24 @@ async fn _inner_admin_command_repost(
         };
     }
 
-    let mut chat_sended_count = 0;
-    let mut chat_sended_error_count = 0;
-    let mut user_sended_count = 0;
-    let mut user_sended_error_count = 0;
+    let mut post_stats = PostStats {
+        chat_sended_count: 0,
+        chat_sended_error_count: 0,
+        user_sended_count: 0,
+        user_sended_error_count: 0,
+    };
 
     if flags.contains(&RepostTarget::Chats) {
         let chats = DB.other.get_chats().await?;
 
         for chat in chats {
-            if !chat.active {
-                continue;
-            }
-            let res = bot
-                .forward_message(ChatId(chat.chat_id), reply.chat.id, reply.id)
-                .await;
-
-            if let Err(err) = res {
-                log::error!(
-                    "Failed to repost to chat [{}] {}",
-                    chat.chat_id,
-                    err
-                );
-                if let RequestError::RetryAfter(sec) = err {
-                    log::info!(
-                        "Retrying to repost to chat [{}] in {} seconds...",
-                        chat.id,
-                        sec.seconds()
-                    );
-                    tokio::time::sleep(sec.duration()).await;
-                    let res_again = bot
-                        .forward_message(
-                            ChatId(chat.chat_id),
-                            reply.chat.id,
-                            reply.id,
-                        )
-                        .await;
-                    if res_again.is_err() {
-                        chat_sended_error_count += 1;
-                    }
-                } else if matches!(
-                    err,
-                    RequestError::Api(
-                        ApiError::BotKicked
-                            | ApiError::BotKickedFromSupergroup
-                            | ApiError::BotKickedFromChannel
-                            | ApiError::ChatNotFound,
-                    ) | RequestError::MigrateToChatId(_)
-                ) {
-                    let chat_info =
-                        UpdateGroups { active: false, ..chat.to_update() };
-                    let chat_id = chat_info.chat_id;
-                    let _ = DB.other.update_chat(chat_id, chat_info).await;
-                    log::info!("Chat already deactivated: {}", chat_id);
-                    chat_sended_error_count += 1;
-                } else {
-                    chat_sended_error_count += 1;
-                }
-            } else {
-                chat_sended_count += 1;
-                log::info!("Reposted to chat [{}]", chat.chat_id);
-            }
-            tokio::time::sleep(Duration::from_millis(
-                CHAT_SENDING_THROTTLE_TIME_MS,
-            ))
-            .await;
+            _repost_to_chat(&bot, chat, reply, &mut post_stats).await;
         }
     }
 
     let text = format!(
         "Sending chats: {}\nErrors: {}",
-        chat_sended_count, chat_sended_error_count
+        post_stats.chat_sended_count, post_stats.chat_sended_error_count
     );
     let _ = bot.send_message(UserId(BOT_CONFIG.creator_id), text).await;
 
@@ -269,56 +223,119 @@ async fn _inner_admin_command_repost(
         let users = DB.other.get_users().await?;
 
         for user in users {
-            if !user.started || user.banned {
-                continue;
-            }
-            let res = bot
-                .forward_message(UserId(user.user_id), reply.chat.id, reply.id)
-                .await;
-
-            if let Err(err) = res {
-                log::error!(
-                    "Failed to repost to user [{}] {}",
-                    user.user_id,
-                    err
-                );
-                if let RequestError::RetryAfter(sec) = err {
-                    log::info!(
-                        "Retrying to repost to user [{}] in {} seconds...",
-                        user.user_id,
-                        sec.seconds()
-                    );
-                    tokio::time::sleep(sec.duration()).await;
-                    let res_again = bot
-                        .forward_message(
-                            UserId(user.user_id),
-                            reply.chat.id,
-                            reply.id,
-                        )
-                        .await;
-
-                    if res_again.is_err() {
-                        user_sended_error_count += 1;
-                    }
-                } else {
-                    user_sended_error_count += 1;
-                }
-            } else {
-                user_sended_count += 1;
-                log::info!("Reposted to user [{}]", user.user_id);
-            }
-            tokio::time::sleep(Duration::from_millis(
-                USER_SENDING_THROTTLE_TIME_MS,
-            ))
-            .await;
+            _repost_to_user(&bot, user, reply, &mut post_stats).await;
         }
     }
 
     let text = format!(
         "Sended users: {}\nErrors: {}",
-        user_sended_count, user_sended_error_count
+        post_stats.user_sended_count, post_stats.user_sended_error_count
     );
     let _ = bot.send_message(UserId(BOT_CONFIG.creator_id), text).await;
 
     Ok(())
+}
+
+async fn _repost_to_chat(
+    bot: &MyBot,
+    chat: Groups,
+    reply: &Message,
+    post_stats: &mut PostStats,
+) {
+    if !chat.active {
+        return;
+    }
+    let res = bot
+        .forward_message(ChatId(chat.chat_id), reply.chat.id, reply.id)
+        .await;
+
+    if let Err(err) = res {
+        log::error!("Failed to repost to chat [{}] {}", chat.chat_id, err);
+        if let RequestError::RetryAfter(sec) = err {
+            log::info!(
+                "Retrying to repost to chat [{}] in {} seconds...",
+                chat.id,
+                sec.seconds()
+            );
+            tokio::time::sleep(sec.duration()).await;
+            return Box::pin(_repost_to_chat(bot, chat, reply, post_stats))
+                .await;
+        } else if matches!(
+            err,
+            RequestError::Api(
+                ApiError::BotKicked
+                    | ApiError::BotKickedFromSupergroup
+                    | ApiError::BotKickedFromChannel
+                    | ApiError::ChatNotFound,
+            ) | RequestError::MigrateToChatId(_)
+        ) {
+            let chat_info = UpdateGroups { active: false, ..chat.to_update() };
+            let chat_id = chat_info.chat_id;
+            let _ = DB.other.update_chat(chat_id, chat_info).await;
+            log::info!("Chat already deactivated: {}", chat_id);
+            post_stats.chat_sended_error_count += 1;
+        } else {
+            post_stats.chat_sended_error_count += 1;
+        }
+    } else {
+        post_stats.chat_sended_count += 1;
+        log::info!("Reposted to chat [{}]", chat.chat_id);
+    }
+    tokio::time::sleep(Duration::from_millis(CHAT_SENDING_THROTTLE_TIME_MS))
+        .await;
+}
+
+async fn _repost_to_user(
+    bot: &MyBot,
+    user: User,
+    reply: &Message,
+    post_stats: &mut PostStats,
+) {
+    if !user.started || user.banned {
+        return;
+    }
+    let res = bot
+        .forward_message(UserId(user.user_id), reply.chat.id, reply.id)
+        .await;
+
+    if let Err(err) = res {
+        log::error!("Failed to repost to user [{}] {}", user.user_id, err);
+        if let RequestError::RetryAfter(sec) = err {
+            log::info!(
+                "Retrying to repost to user [{}] in {} seconds...",
+                user.user_id,
+                sec.seconds()
+            );
+            tokio::time::sleep(sec.duration()).await;
+            return Box::pin(_repost_to_user(bot, user, reply, post_stats))
+                .await;
+        } else if matches!(
+            err,
+            RequestError::Api(
+                ApiError::UserDeactivated
+                    | ApiError::BotBlocked
+                    | ApiError::UserNotFound
+                    | ApiError::ChatNotFound
+            )
+        ) {
+            let user_status = UserStatus {
+                banned: true,
+                started: user.started,
+                supported: user.supported,
+                subscribed: user.subscribed,
+            };
+
+            let _ =
+                DB.other.change_user_status(user.user_id, user_status).await;
+            log::info!("User already banned: {}", user.user_id);
+            post_stats.user_sended_error_count += 1;
+        } else {
+            post_stats.user_sended_error_count += 1;
+        }
+    } else {
+        post_stats.user_sended_count += 1;
+        log::info!("Reposted to user [{}]", user.user_id);
+    }
+    tokio::time::sleep(Duration::from_millis(USER_SENDING_THROTTLE_TIME_MS))
+        .await;
 }
