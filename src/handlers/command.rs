@@ -439,6 +439,31 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     };
 
+    let achievements = DB.other.get_achievements_by_game_id(pig.id).await?;
+
+    // Chance to get achievements without weight change
+    if achievements.is_empty() {
+        let message = m.clone();
+        let outer_bot = bot.clone();
+        tokio::spawn(async move {
+            let cur_datetime = get_datetime_from_message_date(message.date);
+            let new_achievements =
+                achievements::check_achievements(pig.id, cur_datetime).await;
+
+            if let Ok(achievements) = new_achievements {
+                let _ = _handle_new_achievements(
+                    outer_bot,
+                    &message,
+                    ltag,
+                    pig.id,
+                    pig.uid,
+                    achievements,
+                )
+                .await;
+            }
+        });
+    }
+
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
     bot.send_message(m.chat.id, text)
