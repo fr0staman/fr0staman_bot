@@ -429,7 +429,7 @@ pub fn hru_voice_info(
 pub fn gif_pig_info(id: i16, file_id: String) -> InlineQueryResultCachedGif {
     InlineQueryResultCachedGif::new(
         InlineResults::PigGif(id).to_string_with_args(),
-        file_id,
+        teloxide::types::FileId(file_id),
     )
 }
 

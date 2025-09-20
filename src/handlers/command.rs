@@ -627,7 +627,7 @@ async fn command_louder(
         LOUDER_DEFAULT_RATIO
     };
 
-    let Ok(as_file) = bot.get_file(&voice.file.id).await else {
+    let Ok(as_file) = bot.get_file(voice.file.id.clone()).await else {
         let text = lng("CmdLouderErrorFileDownload", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());

@@ -210,7 +210,7 @@ async fn callback_give_hand_pig_name(
     DB.hand_pig.update_hrundel_name(q.from.id.0, new_name).await?;
 
     let text = lng("HandPigNameChangedResponse", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     if let Some(id) = &q.inline_message_id {
         let text =
@@ -238,7 +238,7 @@ async fn callback_find_day_pig(
     if let Some(hryak_today) = result {
         let text = lng("DayPigAlreadyFound", ltag)
             .args(&[("name", hryak_today.3.first_name)]);
-        bot.answer_callback_query(&q.id).await?;
+        bot.answer_callback_query(q.id.clone()).await?;
         bot.edit_message_text_inline(im_id, text).await?;
         return Ok(());
     }
@@ -256,7 +256,7 @@ async fn callback_find_day_pig(
             .get_hryak_day_in_chat(&q.chat_instance, cur_date)
             .await?;
         if let Some(current_chat) = result {
-            bot.answer_callback_query(&q.id).await?;
+            bot.answer_callback_query(q.id.clone().clone()).await?;
 
             let mention = user_mention(
                 UserId(current_chat.3.user_id),
@@ -281,7 +281,7 @@ async fn callback_find_day_pig(
             bot.edit_message_text_inline(im_id, res).await?;
         }
     } else {
-        bot.answer_callback_query(&q.id)
+        bot.answer_callback_query(q.id.clone())
             .text(lng("HandPigNoInBarn", ltag))
             .await?;
         return Ok(());
@@ -305,7 +305,7 @@ async fn callback_add_inline_chat(
     _check_or_insert_user_or_chat(q.from.id.0, &q.chat_instance).await?;
 
     let text = lng("ChatAddedToRating", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     bot.edit_message_reply_markup_inline(im_id).await?;
 
     Ok(())
@@ -317,7 +317,7 @@ async fn callback_top10(
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
-    bot.answer_callback_query(&q.id).await?;
+    bot.answer_callback_query(q.id.clone()).await?;
 
     let Ok(top10var) = Top10Variant::from_str(data.2) else {
         return callback_empty(bot, q, ltag).await;
@@ -435,7 +435,7 @@ async fn callback_start_duel(
 
     if q.from.id == data.1 {
         let message = lng("InlineDuelCantFightSelf", ltag);
-        bot.answer_callback_query(&q.id).text(message).await?;
+        bot.answer_callback_query(q.id.clone()).text(message).await?;
         return Ok(());
     }
 
@@ -443,7 +443,7 @@ async fn callback_start_duel(
     let hrundel = DB.hand_pig.get_hrundel(q.from.id.0).await?;
     if hrundel.is_none() {
         let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     };
 
@@ -504,7 +504,7 @@ async fn callback_start_duel(
         drop(user_locked_threads);
         DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     };
 
@@ -527,7 +527,7 @@ async fn callback_start_duel(
     bot.edit_message_text_inline(im_id, text)
         .disable_web_page_preview(true)
         .await?;
-    bot.answer_callback_query(&q.id).await?;
+    bot.answer_callback_query(q.id.clone()).await?;
 
     sleep(Duration::from_secs(3)).await;
 
@@ -718,7 +718,7 @@ async fn callback_access_denied(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("UserAccessDeniedResponse", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     Ok(())
 }
 
@@ -729,7 +729,7 @@ async fn callback_error(
     err: MyError,
 ) -> MyResult<()> {
     let text = lng("ErrorInlineTooMuchResponse", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     let user_id = q.from.id;
     crate::myerr!("Error in callback {:?} from user [{}]", err, user_id);
 
@@ -742,7 +742,7 @@ async fn callback_empty(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let text = lng("ErrorUndefCallbackResponse", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     let user_id = q.from.id;
     crate::myerr!("Empty callback from user [{}]", user_id);
 
@@ -761,11 +761,11 @@ async fn callback_allow_voice(
     log::info!("Allowed voice from [{}]", user_id);
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
     let text = lng("VoiceAccepted", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     let probably_url =
         format!("{}/{}", &BOT_CONFIG.content_check_channel_name, &m.id());
 
@@ -818,11 +818,11 @@ async fn callback_disallow_voice(
 
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
     let text = lng("VoiceNotAccepted", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     let not_accepted = lng("NotAccepted", ltag);
     let edited_text = format!("{} {}", not_accepted, user_id);
@@ -862,7 +862,7 @@ async fn callback_change_flag(
     let text = lng("HandPigFlagChangeResponse", ltag)
         .args(&[("flag", probably_flag.to_emoji())]);
     bot.edit_message_text_inline(im_id, &text).await?;
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     Ok(())
 }
 
@@ -899,7 +899,7 @@ async fn callback_change_lang(
     DB.other.change_user_lang(q.from.id.0, res).await?;
 
     bot.edit_message_text_inline(im_id, &text).await?;
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
     Ok(())
 }
 
@@ -928,12 +928,12 @@ async fn _cb_allow_gif(
     log::info!("Allowed gif from [{}]", user_id);
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
 
     let text = lng("GifAccepted", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     let Some(accepted_animation) =
         m.regular_message().and_then(|v| v.animation())
@@ -977,7 +977,7 @@ async fn _cb_allow_gif(
     let gifs = DB.other.get_gifs_by_user(user.id).await?;
     let number = gifs.last().map_or(0, |v| v.id);
 
-    let file = InputFile::file_id(&accepted_animation.file.id);
+    let file = InputFile::file_id(accepted_animation.file.id.clone());
     let res = bot
         .send_animation(ChatId(BOT_CONFIG.gif_content_channel_id), file)
         .caption(format!("ID: {}", number))
@@ -1009,11 +1009,11 @@ async fn _cb_disallow_gif(
 
     if q.from.id.0 != BOT_CONFIG.creator_id {
         let text = lng("AccessDenied", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
     let text = lng("GifNotAccepted", ltag);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     let not_accepted = lng("NotAccepted", ltag);
     let edited_text = format!("{} {}", not_accepted, user_id);
@@ -1050,19 +1050,19 @@ async fn callback_gift<'a>(
 
     if !channel_member.is_present() {
         let text = lng("SubscribeChannelFirstResponse", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
 
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     };
 
     if hrundel.0.gifted {
         let text = lng("GiftAlreadyTakenTomorrow", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
 
@@ -1077,7 +1077,7 @@ async fn callback_gift<'a>(
 
     let text = lng("GiftThanksReceive500", ltag)
         .args(&[("amount", DAILY_GIFT_AMOUNT)]);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     Ok(())
 }
@@ -1093,19 +1093,19 @@ async fn callback_check_subscribe<'a>(
 
     if !channel_member.is_present() {
         let text = lng("SubscribeChannelFirstResponse", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
 
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let text = lng("HandPigNoInBarn", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     };
 
     if hrundel.1.subscribed || hrundel.1.supported {
         let text = lng("GiftAlreadyTaken", ltag);
-        bot.answer_callback_query(&q.id).text(text).await?;
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
     }
 
@@ -1127,7 +1127,7 @@ async fn callback_check_subscribe<'a>(
 
     let text =
         lng("GiftThanksReceive100", ltag).args(&[("amount", SUBSCRIBE_GIFT)]);
-    bot.answer_callback_query(&q.id).text(text).await?;
+    bot.answer_callback_query(q.id.clone()).text(text).await?;
 
     Ok(())
 }

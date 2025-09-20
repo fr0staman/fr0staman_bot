@@ -23,17 +23,20 @@ log = "0.4.28"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 ogg-opus = { git = "https://github.com/fr0staman/ogg-opus" }
-packed_struct = { version = "0.10.1", default-features = false }
+packed_struct = { git = "https://github.com/hashmismatch/packed_struct.rs", rev = "0faff82db821d0dba02b8cd92e29eb8ff79d4ecd", default-features = false }
 pretty_env_logger = "0.5"
-prometheus = "0.14.0"
+prometheus-client = "0.24.0"
 rand = { version = "0.9.2", default-features = false, features = [
     "thread_rng",
 ] }
 rayon = "1.11.0"
-serde_json = "1.0.143"
+serde_json = "1.0.145"
 strum = { version = "0.27.2", features = ["derive"] }
 systemstat = "0.2.5"
-teloxide = { version = "0.15.0", features = ["macros", "webhooks-axum"] }
+teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "b8f8c513d7c4f31cdf568c5f33b8f1272fc6e18e", features = [
+    "macros",
+    "webhooks-axum",
+] }
 thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.1"

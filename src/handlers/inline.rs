@@ -97,7 +97,7 @@ async fn inline_hrundel(
         .map(InlineQueryResult::Article)
         .collect::<Vec<_>>();
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
     Ok(())
 }
 
@@ -171,14 +171,16 @@ async fn inline_name_hrundel(
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        bot.answer_inline_query(q.id.clone(), vec![results])
+            .cache_time(0)
+            .await?;
         return Ok(());
     };
 
     let article = iq_results::name_hryak_info(ltag, hrundel.0.name);
     let results = vec![InlineQueryResult::Article(article)];
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
     Ok(())
 }
 
@@ -191,7 +193,9 @@ async fn inline_rename_hrundel(
     let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        bot.answer_inline_query(q.id.clone(), vec![results])
+            .cache_time(0)
+            .await?;
         return Ok(());
     };
 
@@ -208,7 +212,7 @@ async fn inline_rename_hrundel(
     );
     let results = vec![InlineQueryResult::Article(article)];
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
     Ok(())
 }
 
@@ -220,7 +224,7 @@ async fn inline_day_pig(
     let article = iq_results::day_pig_info(ltag, q.from.id, q.chat_type);
     let results = vec![InlineQueryResult::Article(article)];
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
     Ok(())
 }
 
@@ -242,7 +246,7 @@ async fn inline_oc_stats(
         InlineQueryResult::Article(iq_results::gpu_oc_info(ltag, gpu_hashr)),
     ];
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
     Ok(())
 }
 
@@ -256,9 +260,12 @@ async fn inline_hruks(
         DB.other.get_inline_voices().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
-            bot.answer_inline_query(&q.id, [InlineQueryResult::Article(
-                iq_results::handle_error_parse(ltag),
-            )])
+            bot.answer_inline_query(
+                q.id.clone(),
+                [InlineQueryResult::Article(iq_results::handle_error_parse(
+                    ltag,
+                ))],
+            )
             .await?;
             return Ok(());
         };
@@ -270,7 +277,7 @@ async fn inline_hruks(
     if voices.is_empty() {
         let result =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![result]).await?;
+        bot.answer_inline_query(q.id.clone(), vec![result]).await?;
         return Ok(());
     }
 
@@ -300,7 +307,7 @@ async fn inline_hruks(
         })
         .collect();
 
-    let query = bot.answer_inline_query(&q.id, results).cache_time(30);
+    let query = bot.answer_inline_query(q.id.clone(), results).cache_time(30);
 
     if end_index != voices.len() {
         let next_offset = (number_from_offset + 1).to_string();
@@ -320,7 +327,9 @@ async fn inline_flag(
     let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        bot.answer_inline_query(q.id.clone(), vec![results])
+            .cache_time(0)
+            .await?;
         return Ok(());
     };
 
@@ -367,7 +376,8 @@ async fn inline_flag(
     }
 
     let new_offset = number_from_offset + 1;
-    let mut query = bot.answer_inline_query(&q.id, results).cache_time(0);
+    let mut query =
+        bot.answer_inline_query(q.id.clone(), results).cache_time(0);
 
     if end_index != count {
         query = query.next_offset(new_offset.to_string());
@@ -386,7 +396,9 @@ async fn inline_lang(
     let Some(user) = DB.other.get_user(q.from.id.0).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![results]).cache_time(0).await?;
+        bot.answer_inline_query(q.id.clone(), vec![results])
+            .cache_time(0)
+            .await?;
         return Ok(());
     };
 
@@ -414,7 +426,7 @@ async fn inline_lang(
         results.push(InlineQueryResult::Article(info));
     }
 
-    bot.answer_inline_query(&q.id, results).cache_time(0).await?;
+    bot.answer_inline_query(q.id.clone(), results).cache_time(0).await?;
 
     Ok(())
 }
@@ -429,9 +441,12 @@ async fn inline_gif(
         DB.other.get_inline_gifs().await?
     } else {
         let Ok(id) = payload.parse::<i16>() else {
-            bot.answer_inline_query(&q.id, vec![InlineQueryResult::Article(
-                iq_results::handle_error_parse(ltag),
-            )])
+            bot.answer_inline_query(
+                q.id.clone(),
+                vec![InlineQueryResult::Article(
+                    iq_results::handle_error_parse(ltag),
+                )],
+            )
             .await?;
             return Ok(());
         };
@@ -443,7 +458,7 @@ async fn inline_gif(
     if gifs.is_empty() {
         let result =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
-        bot.answer_inline_query(&q.id, vec![result]).await?;
+        bot.answer_inline_query(q.id.clone(), vec![result]).await?;
         return Ok(());
     }
 
@@ -468,7 +483,7 @@ async fn inline_gif(
         })
         .collect();
 
-    let query = bot.answer_inline_query(&q.id, results).cache_time(30);
+    let query = bot.answer_inline_query(q.id.clone(), results).cache_time(30);
 
     if end_index != gifs.len() {
         let next_offset = (number_from_offset + 1).to_string();

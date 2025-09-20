@@ -174,7 +174,7 @@ pub async fn handle_voice_private(bot: MyBot, m: Message) -> MyResult<()> {
 
     bot.send_voice(
         ChatId(BOT_CONFIG.content_check_channel_id),
-        InputFile::file_id(&voice.file.id),
+        InputFile::file_id(voice.file.id.clone()),
     )
     .caption(from.id.to_string())
     .reply_markup(keyboards::keyboard_voice_check(from.id))
@@ -195,7 +195,7 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
     let ltag = tag_one_or(user.lang.as_deref(), get_tag_opt(m.from.as_ref()));
 
     let maybe_gif_with_same_id =
-        DB.other.get_gif_by_file_unique_id(&animation.file.unique_id).await?;
+        DB.other.get_gif_by_file_unique_id(&animation.file.unique_id.0).await?;
 
     if maybe_gif_with_same_id.is_some() {
         let text = lng("InlineGifAlreadyExist", ltag);
@@ -207,7 +207,7 @@ pub async fn handle_animation_private(bot: MyBot, m: Message) -> MyResult<()> {
 
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
 
-    let file = InputFile::file_id(&animation.file.id);
+    let file = InputFile::file_id(animation.file.id.clone());
 
     bot.send_animation(ChatId(BOT_CONFIG.content_check_channel_id), file)
         .caption(from.id.to_string())

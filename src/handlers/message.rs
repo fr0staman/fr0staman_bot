@@ -65,7 +65,7 @@ pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
 async fn _maybe_send_message(
     bot: MyBot,
     m: Message,
-    action: Actions<'_>,
+    action: Actions<'static>,
 ) -> MyResult<()> {
     match action {
         Actions::Text(text) => {
@@ -88,7 +88,7 @@ async fn _maybe_send_message(
             crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::RSticker(file_id) => {
-            bot.send_sticker(m.chat.id, InputFile::file_id(file_id))
+            bot.send_sticker(m.chat.id, InputFile::file_id(file_id.into()))
                 .reply_parameters(ReplyParameters::new(
                     m.reply_to_message().unwrap().id,
                 ))
@@ -98,7 +98,7 @@ async fn _maybe_send_message(
             crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::RVoice(file_id) => {
-            bot.send_voice(m.chat.id, InputFile::file_id(file_id))
+            bot.send_voice(m.chat.id, InputFile::file_id(file_id.into()))
                 .reply_parameters(ReplyParameters::new(
                     m.reply_to_message().unwrap().id,
                 ))
@@ -108,7 +108,7 @@ async fn _maybe_send_message(
             crate::metrics::MESSAGE_HANDLED_COUNTER.inc();
         },
         Actions::Photo(file_id) => {
-            bot.send_photo(m.chat.id, InputFile::file_id(file_id))
+            bot.send_photo(m.chat.id, InputFile::file_id(file_id.into()))
                 .reply_parameters(ReplyParameters::new(m.id))
                 .maybe_thread_id(&m)
                 .await?;

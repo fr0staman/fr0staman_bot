@@ -3,88 +3,120 @@
 
 use axum::{Router, body::Body, http::Request, routing::get};
 use axum_prometheus::PrometheusMetricLayer;
-use prometheus::{Counter, Gauge, Registry, TextEncoder};
-use std::sync::LazyLock;
+use prometheus_client::{
+    metrics::{counter::Counter, gauge::Gauge},
+    registry::Registry,
+};
+use std::sync::{LazyLock, OnceLock, atomic::AtomicI64};
 use systemstat::{Platform, System};
 use tokio::time::{Duration, sleep};
 
 use crate::config::env::BOT_CONFIG;
 
+static REGISTRY: OnceLock<Registry> = OnceLock::new();
+
 // Export special preconstructed counters for Teloxide's handlers.
-pub static INLINE_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new(
-        "inline_usage_total",
-        "count of inline queries processed by the bot",
-    )
-    .unwrap()
-});
+pub static INLINE_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static CALLBACK_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("callback_total", "count of callbacks").unwrap()
-});
+pub static CALLBACK_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static MESSAGE_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new(
-        "message_usage_total",
-        "count of messages processed by the bot",
-    )
-    .unwrap()
-});
+pub static MESSAGE_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static MESSAGE_HANDLED_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new(
-        "message_handled_total",
-        "count of messages handled by the bot",
-    )
-    .unwrap()
-});
+pub static MESSAGE_HANDLED_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static CMD_START_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("command_start_usage_total", "count of /start invocations")
-        .unwrap()
-});
+pub static CMD_START_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static CMD_HELP_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("command_help_usage_total", "count of /help invocations")
-        .unwrap()
-});
+pub static CMD_HELP_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static CMD_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("command_all_usage", "count of commands invocations").unwrap()
-});
+pub static CMD_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static UNHANDLED_COUNTER: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("unhandled", "count of unhandled updates").unwrap()
-});
+pub static UNHANDLED_COUNTER: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-pub static DUEL_NUMBERS: LazyLock<Counter> = LazyLock::new(|| {
-    Counter::new("duel_numbers", "Active duels on time").unwrap()
-});
+pub static DUEL_NUMBERS: LazyLock<Counter<u64>> =
+    LazyLock::new(Counter::default);
 
-static CPU_USAGE: LazyLock<Gauge> = LazyLock::new(|| {
-    Gauge::new("cpu_usage", "Current CPU usage in percent").unwrap()
-});
+static CPU_USAGE: LazyLock<Gauge<i64, AtomicI64>> =
+    LazyLock::new(Gauge::default);
 
-static MEM_USAGE: LazyLock<Gauge> = LazyLock::new(|| {
-    Gauge::new("mem_usage", "Current memory usage in percent").unwrap()
-});
+static MEM_USAGE: LazyLock<Gauge<i64, AtomicI64>> =
+    LazyLock::new(Gauge::default);
 
 pub fn init() -> axum::Router {
-    let prometheus = Registry::new();
+    let mut prometheus = Registry::default();
 
-    let err = "Unable to register counter";
+    prometheus.register(
+        "inline_usage_total",
+        "count of inline queries processed by the bot",
+        INLINE_COUNTER.clone(),
+    );
+    prometheus.register(
+        "callback_total",
+        "count of callbacks",
+        CALLBACK_COUNTER.clone(),
+    );
+    prometheus.register(
+        "message_usage_total",
+        "count of messages processed",
+        MESSAGE_COUNTER.clone(),
+    );
 
-    prometheus.register(Box::new(INLINE_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(CALLBACK_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(MESSAGE_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(MESSAGE_HANDLED_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(UNHANDLED_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(CMD_START_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(CMD_HELP_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(CMD_COUNTER.clone())).expect(err);
-    prometheus.register(Box::new(DUEL_NUMBERS.clone())).expect(err);
-    prometheus.register(Box::new(CPU_USAGE.clone())).expect(err);
-    prometheus.register(Box::new(MEM_USAGE.clone())).expect(err);
+    prometheus.register(
+        "message_handled_total",
+        "count of messages handled",
+        MESSAGE_HANDLED_COUNTER.clone(),
+    );
+
+    prometheus.register(
+        "command_start_usage_total",
+        "count of /start invocations",
+        CMD_START_COUNTER.clone(),
+    );
+
+    prometheus.register(
+        "command_help_usage_total",
+        "count of /help invocations",
+        CMD_HELP_COUNTER.clone(),
+    );
+
+    prometheus.register(
+        "command_all_usage",
+        "count of commands invocations",
+        CMD_COUNTER.clone(),
+    );
+
+    prometheus.register(
+        "unhandled",
+        "count of unhandled updates",
+        UNHANDLED_COUNTER.clone(),
+    );
+
+    prometheus.register(
+        "duel_numbers",
+        "Active duels on time",
+        DUEL_NUMBERS.clone(),
+    );
+
+    prometheus.register(
+        "cpu_usage",
+        "Current CPU usage in percent",
+        CPU_USAGE.clone(),
+    );
+
+    prometheus.register(
+        "mem_usage",
+        "Current memory usage in percent",
+        MEM_USAGE.clone(),
+    );
+
+    REGISTRY.set(prometheus).unwrap();
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
 
@@ -97,10 +129,17 @@ pub fn init() -> axum::Router {
         {
             if auth.len() > 7 && auth[7..] == BOT_CONFIG.prometheus_token {
                 log::info!("Metrics: captured data");
-                let metrics = prometheus.gather();
-                let mut buf = metric_handle.render();
+                let mut buf = String::new();
 
-                TextEncoder::new().encode_utf8(&metrics, &mut buf).unwrap();
+                match prometheus_client::encoding::text::encode(
+                    &mut buf,
+                    REGISTRY.get().unwrap(),
+                ) {
+                    Ok(_) => {},
+                    Err(_) => log::error!("Metrics: encoding error"),
+                };
+
+                buf.push_str(&metric_handle.render());
 
                 return Ok(buf);
             }
@@ -129,7 +168,7 @@ fn init_interval_listener() {
                     let cpu = cpu.done().expect("CPU metrics crash!");
                     let percentage = (cpu.system + cpu.user) as f64 * 100.0;
 
-                    CPU_USAGE.set(percentage.trunc());
+                    CPU_USAGE.set(percentage.trunc() as i64);
                 },
                 Err(x) => crate::myerr!("CPU load: error: {x}"),
             }
@@ -140,7 +179,7 @@ fn init_interval_listener() {
                     let percentage =
                         (mem_used as f64 / mem.total.0 as f64) * 100.0;
 
-                    MEM_USAGE.set(percentage.trunc());
+                    MEM_USAGE.set(percentage.trunc() as i64);
                 },
                 Err(x) => crate::myerr!("Memory: error: {x}"),
             }
