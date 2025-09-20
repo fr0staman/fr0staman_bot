@@ -53,35 +53,35 @@ pub fn init() -> axum::Router {
     let mut prometheus = Registry::default();
 
     prometheus.register(
-        "inline_usage_total",
+        "inline_usage",
         "count of inline queries processed by the bot",
         INLINE_COUNTER.clone(),
     );
     prometheus.register(
-        "callback_total",
+        "callback",
         "count of callbacks",
         CALLBACK_COUNTER.clone(),
     );
     prometheus.register(
-        "message_usage_total",
+        "message_usage",
         "count of messages processed",
         MESSAGE_COUNTER.clone(),
     );
 
     prometheus.register(
-        "message_handled_total",
+        "message_handled",
         "count of messages handled",
         MESSAGE_HANDLED_COUNTER.clone(),
     );
 
     prometheus.register(
-        "command_start_usage_total",
+        "command_start_usage",
         "count of /start invocations",
         CMD_START_COUNTER.clone(),
     );
 
     prometheus.register(
-        "command_help_usage_total",
+        "command_help_usage",
         "count of /help invocations",
         CMD_HELP_COUNTER.clone(),
     );
