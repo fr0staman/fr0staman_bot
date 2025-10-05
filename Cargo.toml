@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.12"
-axum = "0.8.4"
+axum = "0.8.6"
 axum-prometheus = "0.9.0"
 base64 = "0.22.1"
 byteorder = "1.5.0"
@@ -16,8 +16,8 @@ chrono = { version = "0.4.42", default-features = false, features = [
     "clock",
     "std",
 ] }
-diesel = { version = "2.2.12", features = ["chrono"] }
-diesel-async = { version = "0.6.1", features = ["mysql", "deadpool"] }
+diesel = { version = "2.3.2", features = ["chrono"] }
+diesel-async = { version = "0.7.2", features = ["mysql", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
 log = "0.4.28"
@@ -37,7 +37,7 @@ teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "b8f8c513d7
     "macros",
     "webhooks-axum",
 ] }
-thiserror = "2.0.16"
+thiserror = "2.0.17"
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.1"
 url = "2.5.7"
