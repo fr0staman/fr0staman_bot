@@ -18,7 +18,7 @@ pub struct Counter {
 #[diesel(table_name = game)]
 pub struct Game {
     pub id: i32,
-    pub uid: u32,
+    pub uid: i32,
     pub group_id: i32,
     pub mass: i32,
     pub date: NaiveDate,
@@ -40,7 +40,7 @@ pub struct Groups {
     pub id: i32,
     pub chat_id: i64,
     pub date: NaiveDateTime,
-    pub settings: i8,
+    pub settings: i16,
     pub top10_setting: i32,
     pub lang: Option<String>,
     pub active: bool,
@@ -54,7 +54,7 @@ pub struct Groups {
 pub struct UpdateGroups {
     // chat_id can be changed during migration to supergroup
     pub chat_id: i64,
-    pub settings: i8,
+    pub settings: i16,
     pub top10_setting: i32,
     pub lang: Option<String>,
     pub active: bool,
@@ -101,12 +101,12 @@ pub struct InlineGroup {
 #[diesel(table_name = inline_users)]
 pub struct InlineUser {
     pub id: i32,
-    pub uid: u32,
+    pub uid: i32,
     pub weight: i32,
     pub date: NaiveDate,
     pub flag: String,
-    pub win: u16,
-    pub rout: u16,
+    pub win: i32,
+    pub rout: i32,
     pub name: String,
     pub gifted: bool,
 }
@@ -122,7 +122,7 @@ pub struct InlineUsersGroup {
 #[derive(Insertable)]
 #[diesel(table_name = inline_users)]
 pub struct NewInlineUser<'a> {
-    pub uid: u32,
+    pub uid: i32,
     pub weight: i32,
     pub date: NaiveDate,
     pub flag: &'a str,
@@ -143,7 +143,7 @@ pub struct UpdateInlineUser {
 pub struct InlineVoice {
     pub id: i16,
     pub url: String,
-    pub uid: u32,
+    pub uid: i32,
     pub caption: String,
     pub status: i16,
 }
@@ -154,14 +154,14 @@ pub struct InlineGif {
     pub id: i16,
     pub file_id: String,
     pub file_unique_id: String,
-    pub uid: u32,
+    pub uid: i32,
     pub status: i16,
 }
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {
-    pub user_id: u64,
+    pub user_id: i64,
     pub started: bool,
     pub created_at: NaiveDateTime,
     pub username: Option<&'a str>,
@@ -172,8 +172,8 @@ pub struct NewUser<'a> {
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = users)]
 pub struct User {
-    pub id: u32,
-    pub user_id: u64,
+    pub id: i32,
+    pub user_id: i64,
     pub started: bool,
     pub banned: bool,
     pub supported: bool,
@@ -227,11 +227,11 @@ pub struct UserStatus {
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = grow_log)]
 pub struct GrowLog {
-    pub id: u32,
+    pub id: i32,
     pub game_id: i32,
     pub created_at: NaiveDateTime,
     pub weight_change: i32,
-    pub current_weight: u32,
+    pub current_weight: i32,
 }
 
 #[derive(Insertable, Debug)]
@@ -240,15 +240,15 @@ pub struct GrowLogAdd {
     pub game_id: i32,
     pub created_at: NaiveDateTime,
     pub weight_change: i32,
-    pub current_weight: u32,
+    pub current_weight: i32,
 }
 
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = achievements_users)]
 pub struct AchievementUser {
-    pub id: u32,
+    pub id: i32,
     pub game_id: i32,
-    pub code: u16,
+    pub code: i16,
     pub created_at: NaiveDateTime,
 }
 
@@ -256,6 +256,6 @@ pub struct AchievementUser {
 #[diesel(table_name = achievements_users)]
 pub struct AchievementUserAdd {
     pub game_id: i32,
-    pub code: u16,
+    pub code: i16,
     pub created_at: NaiveDateTime,
 }

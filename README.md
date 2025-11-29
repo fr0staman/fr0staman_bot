@@ -39,8 +39,8 @@ Bot uses much from Telegram Bot API and solves many (non) classic tasks, so in t
 - Metrics with [Prometheus](https://prometheus.io/)
 
 ## Deployment
-1. Install `diesel_cli` (`--no-default-features --features=mysql`)
-2. Install and create `mysql` database
+1. Install `diesel_cli` (`--no-default-features --features=postgres`)
+2. Install and create `postgres` database
 3. Copy and fill `.env` from `.env.example`
 4. Setup diesel migrations by `diesel migration run`
 5. Build and start bot (`cargo build --release && target/release/fr0staman_bot`, `cargo run --release`)

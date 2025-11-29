@@ -28,5 +28,5 @@ pub type MyResult<T> = Result<T, MyError>;
 
 pub type ParsedCallbackData<'a> = (&'a str, UserId, &'a str);
 
-pub type DbConn = diesel_async::AsyncMysqlConnection;
+pub type DbConn = diesel_async::AsyncPgConnection;
 pub type DbPool = Pool<DbConn>;

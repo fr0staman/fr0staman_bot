@@ -105,7 +105,7 @@ async fn _get_hryak(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<Vec<InlineQueryResultArticle>> {
-    let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0).await?;
+    let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?;
     let cur_date = get_date();
 
     let Some(info) = hrundel_info else {
@@ -117,7 +117,8 @@ async fn _get_hryak(
 
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
 
-        let weight = formulas::calculate_hryak_size(q.from.id.0) + biggest_mass;
+        let weight =
+            formulas::calculate_hryak_size(q.from.id.0 as i64) + biggest_mass;
         let escaped_f_name = escape(&q.from.first_name);
         let f_name = truncate(&escaped_f_name, 64).0;
 
@@ -134,7 +135,7 @@ async fn _get_hryak(
 
     if info.0.date != cur_date {
         // Pig exist, but not "today", just recreate that!
-        let weight = formulas::calculate_hryak_size(q.from.id.0);
+        let weight = formulas::calculate_hryak_size(q.from.id.0 as i64);
         let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
         let add = biggest_mass + helpers::mass_addition_on_status(&info.1);
 
@@ -168,7 +169,8 @@ async fn inline_name_hrundel(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?
+    else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(q.id.clone(), vec![results])
@@ -190,7 +192,8 @@ async fn inline_rename_hrundel(
     ltag: LocaleTag,
     new_name: &str,
 ) -> MyResult<()> {
-    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?
+    else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(q.id.clone(), vec![results])
@@ -233,7 +236,7 @@ async fn inline_oc_stats(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let user_id = q.from.id.0;
+    let user_id = q.from.id.0 as i64;
     let hryak_size = formulas::calculate_hryak_size(user_id);
 
     let cpu_clock = formulas::calculate_cpu_clock(hryak_size, user_id);
@@ -324,7 +327,7 @@ async fn inline_flag(
     ltag: LocaleTag,
     payload: &str,
 ) -> MyResult<()> {
-    let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+    let Some(user) = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(q.id.clone(), vec![results])
@@ -393,7 +396,7 @@ async fn inline_lang(
     q: &InlineQuery,
     ltag: LocaleTag,
 ) -> MyResult<()> {
-    let Some(user) = DB.other.get_user(q.from.id.0).await? else {
+    let Some(user) = DB.other.get_user(q.from.id.0 as i64).await? else {
         let results =
             InlineQueryResult::Article(iq_results::handle_no_results(ltag));
         bot.answer_inline_query(q.id.clone(), vec![results])
@@ -519,7 +522,7 @@ async fn handle_good(q: InlineQuery) {
 }
 
 async fn _get_biggest_chat_pig_mass(id_user: UserId) -> MyResult<i32> {
-    let biggest = DB.chat_pig.get_biggest_chat_pig(id_user.0).await?;
+    let biggest = DB.chat_pig.get_biggest_chat_pig(id_user.0 as i64).await?;
     let biggest_mass = biggest.map_or(0, |b| b.mass);
 
     Ok(biggest_mass)

@@ -12,7 +12,7 @@ pub async fn maybe_get_or_insert_user(
     from: &TelegramUser,
     started: bool,
 ) -> MyResult<Option<User>> {
-    if let Some(user) = DB.other.get_user(from.id.0).await? {
+    if let Some(user) = DB.other.get_user(from.id.0 as i64).await? {
         let mut update = false;
 
         let TelegramUser { first_name, last_name, username, .. } = from;
@@ -37,16 +37,16 @@ pub async fn maybe_get_or_insert_user(
                 ..user.to_update()
             };
 
-            DB.other.update_user(from.id.0, update_info).await?;
+            DB.other.update_user(from.id.0 as i64, update_info).await?;
 
-            return DB.other.get_user(from.id.0).await;
+            return DB.other.get_user(from.id.0 as i64).await;
         }
 
         return Ok(Some(user));
     }
 
     let new_user = NewUser {
-        user_id: from.id.0,
+        user_id: from.id.0 as i64,
         created_at: get_datetime(),
         first_name: &from.first_name,
         last_name: from.last_name.as_deref(),
@@ -55,7 +55,7 @@ pub async fn maybe_get_or_insert_user(
     };
 
     DB.other.register_user(new_user).await?;
-    DB.other.get_user(from.id.0).await
+    DB.other.get_user(from.id.0 as i64).await
 }
 
 pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {

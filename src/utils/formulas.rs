@@ -11,7 +11,7 @@ const STRANGE_DELIMITER: f64 = 5527.0;
 const ANOTHER_STRANGE_DELIMITER: f64 = 1009.0;
 const SECOND_STRANGE_DELIMITER: f64 = 4049.0;
 
-pub fn calculate_hryak_size(user_id: u64) -> i32 {
+pub fn calculate_hryak_size(user_id: i64) -> i32 {
     let datetime = get_datetime();
     let day = f64::from(datetime.day());
     let month = f64::from(datetime.month());
@@ -43,31 +43,31 @@ pub fn calculate_hryak_size(user_id: u64) -> i32 {
     if casted_size == 0 { 1 } else { casted_size }
 }
 
-pub fn calculate_cpu_clock(hryak_size: i32, user_id: u64) -> f32 {
-    const MIN_CLOCK: u64 = 19;
-    const MAX_TOP_ON_MIN_CLOCK: u64 = 42;
+pub fn calculate_cpu_clock(hryak_size: i32, user_id: i64) -> f32 {
+    const MIN_CLOCK: i64 = 19;
+    const MAX_TOP_ON_MIN_CLOCK: i64 = 42;
 
-    ((hryak_size as u64 + user_id).rem_euclid(MAX_TOP_ON_MIN_CLOCK) + MIN_CLOCK)
+    ((hryak_size as i64 + user_id).rem_euclid(MAX_TOP_ON_MIN_CLOCK) + MIN_CLOCK)
         as f32
         / 10.0
 }
 
-pub fn calculate_ram_clock(hryak_size: i32, user_id: u64) -> u32 {
+pub fn calculate_ram_clock(hryak_size: i32, user_id: i64) -> u32 {
     const STEP: f32 = 266.67;
-    const MIN_CLOCK: u64 = 1333;
-    const MAX_TOP_ON_MIN_CLOCK: u64 = 4533;
+    const MIN_CLOCK: i64 = 1333;
+    const MAX_TOP_ON_MIN_CLOCK: i64 = 4533;
 
-    let ram_clock = ((hryak_size as u64 + user_id)
+    let ram_clock = ((hryak_size as i64 + user_id)
         .rem_euclid(MAX_TOP_ON_MIN_CLOCK)
         + MIN_CLOCK) as u32;
 
     ram_clock + (STEP - (ram_clock as f32).rem_euclid(STEP)) as u32
 }
 
-pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: u64) -> f32 {
-    const MAX_HASHRATE: u64 = 12800;
+pub fn calculate_gpu_hashrate(hryak_size: i32, user_id: i64) -> f32 {
+    const MAX_HASHRATE: i64 = 12800;
 
-    ((hryak_size as u64 + user_id).rem_euclid(MAX_HASHRATE)) as f32 / 100.0
+    ((hryak_size as i64 + user_id).rem_euclid(MAX_HASHRATE)) as f32 / 100.0
 }
 
 pub fn calculate_chat_pig_grow(current_kg: i32) -> (i32, PigGrowthStatus) {

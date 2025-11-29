@@ -39,7 +39,9 @@ pub async fn filter_admin_commands(
     cmd: AdminCommands,
 ) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
-    let Some(user) = DB.other.get_user(from.id.0).await? else { return Ok(()) };
+    let Some(user) = DB.other.get_user(from.id.0 as i64).await? else {
+        return Ok(());
+    };
 
     let ltag = tag_one_or(user.lang.as_deref(), get_tag(from));
 
@@ -88,7 +90,7 @@ async fn admin_command_promote(
         return Ok(());
     }
 
-    let Ok(parsed_id) = arg.parse::<u32>() else {
+    let Ok(parsed_id) = arg.parse::<i32>() else {
         let text = lng("AdminCommandPromoteInvalid", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
@@ -129,8 +131,10 @@ async fn admin_command_promote(
     // TODO: get lang from user
     let text = lng("AdminCommandPromoteUserMessage", ltag)
         .args(&[("amount", HAND_PIG_ADDITION_ON_SUPPORTED)]);
-    let res =
-        bot.send_message(UserId(user.user_id), text).maybe_thread_id(m).await;
+    let res = bot
+        .send_message(UserId(user.user_id as u64), text)
+        .maybe_thread_id(m)
+        .await;
 
     // In 99.99% situations, user just banned me in private, but I didnt received it in the past.
     if res.is_err() {
@@ -295,7 +299,7 @@ async fn _repost_to_user(
         return;
     }
     let res = bot
-        .forward_message(UserId(user.user_id), reply.chat.id, reply.id)
+        .forward_message(UserId(user.user_id as u64), reply.chat.id, reply.id)
         .await;
 
     if let Err(err) = res {

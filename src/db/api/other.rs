@@ -28,7 +28,7 @@ impl Other {
         Ok(())
     }
 
-    pub async fn get_user(&self, id_user: u64) -> MyResult<Option<User>> {
+    pub async fn get_user(&self, id_user: i64) -> MyResult<Option<User>> {
         use crate::db::schema::users::dsl::*;
 
         let result = users
@@ -41,7 +41,7 @@ impl Other {
         Ok(result)
     }
 
-    pub async fn get_user_by_id(&self, uid: u32) -> MyResult<Option<User>> {
+    pub async fn get_user_by_id(&self, uid: i32) -> MyResult<Option<User>> {
         use crate::db::schema::users::dsl::*;
 
         let result = users
@@ -56,7 +56,7 @@ impl Other {
 
     pub async fn change_user_status(
         &self,
-        id_user: u64,
+        id_user: i64,
         status: UserStatus,
     ) -> MyResult<()> {
         use crate::db::schema::users::dsl::*;
@@ -71,7 +71,7 @@ impl Other {
 
     pub async fn change_user_lang(
         &self,
-        id_user: u64,
+        id_user: i64,
         status: Option<&str>,
     ) -> MyResult<()> {
         use crate::db::schema::users::dsl::*;
@@ -187,7 +187,7 @@ impl Other {
     pub async fn set_chat_settings(
         &self,
         id_chat: i64,
-        setting: i8,
+        setting: i16,
     ) -> MyResult<()> {
         use crate::db::schema::groups::dsl::*;
 
@@ -218,7 +218,7 @@ impl Other {
 
     pub async fn add_voice(
         &self,
-        iv_uid: u32,
+        iv_uid: i32,
         new_url: String,
     ) -> MyResult<()> {
         use crate::db::schema::inline_voices::dsl::*;
@@ -233,7 +233,7 @@ impl Other {
 
     pub async fn get_voices_by_user(
         &self,
-        iv_uid: u32,
+        iv_uid: i32,
     ) -> MyResult<Vec<InlineVoice>> {
         use crate::db::schema::inline_voices::dsl::*;
 
@@ -248,7 +248,7 @@ impl Other {
 
     pub async fn add_gif(
         &self,
-        iv_uid: u32,
+        iv_uid: i32,
         new_file_id: String,
         new_file_unique_id: String,
     ) -> MyResult<()> {
@@ -268,7 +268,7 @@ impl Other {
 
     pub async fn get_gifs_by_user(
         &self,
-        iv_uid: u32,
+        iv_uid: i32,
     ) -> MyResult<Vec<InlineGif>> {
         use crate::db::schema::inline_gifs::dsl::*;
 
@@ -331,7 +331,7 @@ impl Other {
 
     pub async fn update_user(
         &self,
-        id_user: u64,
+        id_user: i64,
         chat_info: UpdateUser,
     ) -> MyResult<()> {
         use crate::db::schema::users::dsl::*;
@@ -376,7 +376,7 @@ impl Other {
 
     pub async fn get_achievements_by_uid(
         &self,
-        id_uid: u32,
+        id_uid: i32,
     ) -> MyResult<Vec<AchievementUser>> {
         use crate::db::schema::achievements_users::dsl::*;
         use crate::db::schema::game;

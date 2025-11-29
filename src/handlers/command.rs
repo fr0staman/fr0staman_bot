@@ -121,15 +121,14 @@ async fn command_start(
             ("channel", &BOT_CONFIG.channel_name),
         ]);
 
-        let probably_user = DB.other.get_user(from.id.0).await?;
-        if let Some(user) = probably_user {
+        if let Some(user) = DB.other.get_user(from.id.0  as i64).await? {
             let user_status = UserStatus {
                 banned: false,
                 started: true,
                 supported: user.supported,
                 subscribed: user.subscribed,
             };
-            DB.other.change_user_status(from.id.0, user_status).await?;
+            DB.other.change_user_status(from.id.0  as i64, user_status).await?;
         } else {
             shortcuts::maybe_get_or_insert_user(from, true).await?;
         };
@@ -254,7 +253,7 @@ async fn command_grow(
     let cur_date = cur_datetime.date();
     let mention = user_mention(from.id, &from.first_name);
 
-    let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+    let pig = DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?;
     let mut skip_date_check = false;
     let pig = if let Some(pig) = pig {
         pig
@@ -284,7 +283,7 @@ async fn command_grow(
             .await?;
 
         let Some(new_pig) =
-            DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?
+            DB.chat_pig.get_chat_pig(from.id.0  as i64, m.chat.id.0).await?
         else {
             return Ok(());
         };
@@ -333,13 +332,13 @@ async fn command_grow(
     let current = pig.mass + offset;
 
     DB.chat_pig
-        .set_chat_pig_mass_n_date(from.id.0, m.chat.id.0, current, cur_date)
+        .set_chat_pig_mass_n_date(from.id.0  as i64, m.chat.id.0, current, cur_date)
         .await?;
 
     let grow_log_info = GrowLogAdd {
         game_id: pig.id,
         created_at: get_datetime(),
-        current_weight: current as u32,
+        current_weight: current,
         weight_change: offset,
     };
 
@@ -394,7 +393,7 @@ async fn command_name(
         return Ok(());
     }
 
-    let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+    let pig = DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?;
     let Some(pig) = pig else {
         _game_no_chat_pig(bot, m, ltag).await?;
         return Ok(());
@@ -416,7 +415,7 @@ async fn command_name(
 
     let text = lng("GameNameNewPig", ltag).args(&[("new_name", &payload)]);
 
-    DB.chat_pig.set_chat_pig_name(from.id.0, m.chat.id.0, payload).await?;
+    DB.chat_pig.set_chat_pig_name(from.id.0 as i64, m.chat.id.0, payload).await?;
 
     bot.send_message(m.chat.id, text)
         .link_preview_options(LinkPreviewOptions::disable(true))
@@ -433,7 +432,7 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     }
 
-    let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+    let pig = DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?;
     let Some(pig) = pig else {
         _game_no_chat_pig(bot, m, ltag).await?;
         return Ok(());
@@ -534,7 +533,7 @@ async fn command_lang(
     ltag: LocaleTag,
 ) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
-    let user_info = DB.other.get_user(from.id.0).await?;
+    let user_info = DB.other.get_user(from.id.0 as i64).await?;
 
     let is_not_public = m.chat.is_private() || m.chat.is_channel();
     let chat_info = if is_not_public {
@@ -568,7 +567,7 @@ async fn command_lang(
 async fn command_id(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
 
-    let Some(user) = DB.other.get_user(from.id.0).await? else {
+    let Some(user) = DB.other.get_user(from.id.0 as i64).await? else {
         return Ok(());
     };
     let text = lng("UserCommandIdMessage", ltag).args(&[("id", user.id)]);
@@ -665,7 +664,7 @@ async fn command_achievements(
 ) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
 
-    let pig = DB.chat_pig.get_chat_pig(from.id.0, m.chat.id.0).await?;
+    let pig = DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?;
     let Some(pig) = pig else {
         _game_no_chat_pig(bot, m, ltag).await?;
         return Ok(());
@@ -693,7 +692,7 @@ async fn command_achievements(
     let mut not_done_list_text = String::with_capacity(512);
 
     for achievement in Ach::VARIANTS {
-        let code = achievement.clone() as u16;
+        let code = achievement.clone() as i16;
         let is_in_this_chat = achievements_in_this_chat.contains(&code);
 
         let is_in_global = achievements_in_all_chats.contains(&code);
@@ -757,7 +756,7 @@ pub async fn _handle_new_achievements(
     m: &Message,
     ltag: LocaleTag,
     game_id: i32,
-    id_uid: u32,
+    id_uid: i32,
     new_achievements: Vec<Ach>,
 ) -> MyResult<()> {
     let achievements_in_all_chats =
@@ -778,7 +777,7 @@ pub async fn _handle_new_achievements(
 
     for achievement in new_achievements {
         let achievement_name =
-            lng(&format!("Achievement_{}", achievement as u16), ltag);
+            lng(&format!("Achievement_{}", achievement as i16), ltag);
 
         let text = lng("NewAchievementUnlocked", ltag).args(&[
             ("achievement_name", &achievement_name),

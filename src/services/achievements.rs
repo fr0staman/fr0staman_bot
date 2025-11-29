@@ -62,7 +62,7 @@ pub async fn check_achievements(
     let achieved = DB.other.get_achievements_by_game_id(chat_pig.id).await?;
 
     let achieved: Vec<_> =
-        achieved.iter().filter_map(|v| Ach::from_u16(v.code)).collect();
+        achieved.iter().filter_map(|v| Ach::from_i16(v.code)).collect();
 
     let now = message_time;
 
@@ -73,8 +73,7 @@ pub async fn check_achievements(
         let Some(stats) = grow_log.last() else {
             return false;
         };
-        let previous_weight =
-            (stats.current_weight as i32 - stats.weight_change) as u32;
+        let previous_weight = stats.current_weight - stats.weight_change;
         stats.current_weight < previous_weight
     };
 
@@ -303,7 +302,7 @@ pub async fn check_achievements(
         let new_achievement = AchievementUserAdd {
             game_id: chat_pig.id,
             created_at: now,
-            code: new_achievement.clone() as u16,
+            code: new_achievement.clone() as i16,
         };
         DB.other.add_achievement(new_achievement).await?;
     }

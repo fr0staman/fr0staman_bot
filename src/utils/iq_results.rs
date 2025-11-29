@@ -484,12 +484,12 @@ pub fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
     .description(desc)
 }
 
-fn _get_duel_winrate(ltag: LocaleTag, win: u16, rout: u16) -> String {
+fn _get_duel_winrate(ltag: LocaleTag, win: i32, rout: i32) -> String {
     if rout == 0 || win == 0 {
         return italic(&lng("InlineDuelNotEnoughBattles", ltag));
     }
 
-    let percent_winrate = 100.0 / ((win as f32 + rout as f32) / win as f32);
+    let percent_winrate = 100.0 / ((win + rout) as f32 / win as f32);
 
-    bold(&format!("{} %", percent_winrate as u32))
+    bold(&format!("{} %", percent_winrate as i32))
 }

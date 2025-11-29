@@ -26,7 +26,7 @@ pub async fn filter_inline_feedback_commands(
         return Ok(());
     };
 
-    let user = DB.other.get_user(q.from.id.0).await?;
+    let user = DB.other.get_user(q.from.id.0 as i64).await?;
     let ltag =
         tag_one_or(user.and_then(|u| u.lang).as_deref(), get_tag(&q.from));
 
@@ -71,7 +71,7 @@ async fn chosen_rename_hryak(
     let (new_name, _) =
         helpers::truncate(name_from_query, INLINE_NAME_SET_LIMIT);
 
-    DB.hand_pig.update_hrundel_name(q.from.id.0, new_name).await?;
+    DB.hand_pig.update_hrundel_name(q.from.id.0 as i64, new_name).await?;
 
     let text = lng("HandPigNameNowIs", ltag).args(&[("new_name", new_name)]);
     bot.edit_message_text_inline(im_id, text)
@@ -91,7 +91,7 @@ async fn chosen_change_flag(
     let probably_flag = Flags::from_code(code).unwrap_or(Flags::Us);
 
     DB.hand_pig
-        .update_hrundel_flag(q.from.id.0, probably_flag.to_code())
+        .update_hrundel_flag(q.from.id.0 as i64, probably_flag.to_code())
         .await?;
 
     let text = lng("HandPigFlagChangeResponse", ltag)
@@ -109,7 +109,7 @@ async fn chosen_change_lang(
 ) -> MyResult<()> {
     let Some(im_id) = &q.inline_message_id else { return Ok(()) };
     let (text, res) = if code == "-" {
-        DB.other.change_user_lang(q.from.id.0, None).await?;
+        DB.other.change_user_lang(q.from.id.0 as i64, None).await?;
 
         let text = lng("InlineLangDeleteResponse", ltag);
         (text, None)
@@ -122,7 +122,7 @@ async fn chosen_change_lang(
         (text, Some(code))
     };
 
-    DB.other.change_user_lang(q.from.id.0, res).await?;
+    DB.other.change_user_lang(q.from.id.0 as i64, res).await?;
     bot.edit_message_text_inline(im_id, &text).await?;
 
     Ok(())

@@ -22,7 +22,7 @@ impl HandPig {
 
     pub async fn update_hrundel_duel(
         &self,
-        id_user: u64,
+        id_user: i64,
         offset: i32,
         is_win: bool,
     ) -> MyResult<()> {
@@ -65,7 +65,7 @@ impl HandPig {
 
     pub async fn update_hrundel_date_and_size(
         &self,
-        id_user: u64,
+        id_user: i64,
         size: i32,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
@@ -88,7 +88,7 @@ impl HandPig {
 
     pub async fn update_hrundel_name(
         &self,
-        id_user: u64,
+        id_user: i64,
         new_name: &str,
     ) -> MyResult<()> {
         use crate::db::schema::inline_users::dsl::*;
@@ -111,7 +111,7 @@ impl HandPig {
 
     pub async fn update_hrundel_flag(
         &self,
-        id_user: u64,
+        id_user: i64,
         new_flag: &str,
     ) -> MyResult<()> {
         use crate::db::schema::inline_users::dsl::*;
@@ -163,7 +163,7 @@ impl HandPig {
 
     pub async fn get_hrundel(
         &self,
-        id_user: u64,
+        id_user: i64,
     ) -> MyResult<Option<(InlineUser, User)>> {
         use crate::db::schema::inline_users;
         use crate::db::schema::users;
@@ -288,7 +288,7 @@ impl HandPig {
     pub async fn get_group_user(
         &self,
         instance_chat: &str,
-        id_user: u64,
+        id_user: i64,
     ) -> MyResult<Option<InlineUsersGroup>> {
         use crate::db::schema::inline_groups;
         use crate::db::schema::inline_users;

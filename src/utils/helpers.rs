@@ -1,4 +1,4 @@
-use diesel::{debug_query, mysql::Mysql, query_builder::DebugQuery};
+use diesel::{debug_query, pg::Pg, query_builder::DebugQuery};
 use futures::TryStreamExt;
 use std::iter;
 use teloxide::{
@@ -125,8 +125,8 @@ pub fn plural(n: i64) -> i64 {
 }
 
 #[allow(unused)]
-pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Mysql> {
-    debug_query::<Mysql, _>(query)
+pub fn db_debug<T>(query: &T) -> DebugQuery<'_, T, Pg> {
+    debug_query::<Pg, _>(query)
 }
 
 pub fn mass_addition_on_status(user: &User) -> i32 {

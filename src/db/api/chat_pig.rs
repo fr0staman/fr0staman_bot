@@ -20,7 +20,7 @@ impl ChatPig {
 
     pub async fn get_chat_pig(
         &self,
-        id_user: u64,
+        id_user: i64,
         id_chat: i64,
     ) -> MyResult<Option<Game>> {
         use crate::db::schema::game::dsl::*;
@@ -58,7 +58,7 @@ impl ChatPig {
 
     pub async fn get_biggest_chat_pig(
         &self,
-        id_user: u64,
+        id_user: i64,
     ) -> MyResult<Option<Game>> {
         use crate::db::schema::game::dsl::*;
         use crate::db::schema::users;
@@ -78,7 +78,7 @@ impl ChatPig {
 
     pub async fn set_chat_pig_name(
         &self,
-        id_user: u64,
+        id_user: i64,
         id_chat: i64,
         new_name: String,
     ) -> MyResult<()> {
@@ -110,7 +110,7 @@ impl ChatPig {
 
     pub async fn set_chat_pig_mass_n_date(
         &self,
-        id_user: u64,
+        id_user: i64,
         id_chat: i64,
         other_mass: i32,
         cur_date: NaiveDate,
@@ -143,7 +143,7 @@ impl ChatPig {
 
     pub async fn create_chat_pig(
         &self,
-        id_user: u32,
+        id_user: i32,
         id_group: i32,
         cur_name: &str,
         cur_date: NaiveDate,

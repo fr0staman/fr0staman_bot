@@ -2,36 +2,36 @@
 
 diesel::table! {
     achievements_users (id) {
-        id -> Unsigned<Integer>,
-        game_id -> Integer,
-        created_at -> Datetime,
-        code -> Unsigned<Smallint>,
+        id -> Int4,
+        game_id -> Int4,
+        created_at -> Timestamp,
+        code -> Int2,
     }
 }
 
 diesel::table! {
     game (id) {
-        id -> Integer,
-        group_id -> Integer,
-        mass -> Integer,
+        id -> Int4,
+        group_id -> Int4,
+        mass -> Int4,
         date -> Date,
         #[max_length = 64]
         name -> Varchar,
-        uid -> Unsigned<Integer>,
+        uid -> Int4,
     }
 }
 
 diesel::table! {
     groups (id) {
-        id -> Integer,
-        chat_id -> Bigint,
-        date -> Datetime,
-        settings -> Tinyint,
-        top10_setting -> Integer,
+        id -> Int4,
+        chat_id -> Int8,
+        date -> Timestamp,
+        settings -> Int2,
+        top10_setting -> Int4,
         #[max_length = 2]
         lang -> Nullable<Varchar>,
         active -> Bool,
-        ig_id -> Nullable<Integer>,
+        ig_id -> Nullable<Int4>,
         #[max_length = 64]
         username -> Nullable<Varchar>,
         #[max_length = 128]
@@ -41,29 +41,29 @@ diesel::table! {
 
 diesel::table! {
     grow_log (id) {
-        id -> Unsigned<Integer>,
-        game_id -> Integer,
-        created_at -> Datetime,
-        weight_change -> Integer,
-        current_weight -> Unsigned<Integer>,
+        id -> Int4,
+        game_id -> Int4,
+        created_at -> Timestamp,
+        weight_change -> Int4,
+        current_weight -> Int4,
     }
 }
 
 diesel::table! {
     hryak_day (id) {
-        id -> Integer,
-        iug_id -> Integer,
+        id -> Int4,
+        iug_id -> Int4,
         date -> Date,
     }
 }
 
 diesel::table! {
     inline_gifs (id) {
-        id -> Smallint,
+        id -> Int2,
         #[max_length = 128]
         file_id -> Varchar,
-        status -> Smallint,
-        uid -> Unsigned<Integer>,
+        status -> Int2,
+        uid -> Int4,
         #[max_length = 64]
         file_unique_id -> Varchar,
     }
@@ -71,57 +71,57 @@ diesel::table! {
 
 diesel::table! {
     inline_groups (id) {
-        id -> Integer,
-        chat_instance -> Bigint,
-        invited_at -> Datetime,
+        id -> Int4,
+        chat_instance -> Int8,
+        invited_at -> Timestamp,
     }
 }
 
 diesel::table! {
     inline_users (id) {
-        id -> Integer,
-        weight -> Integer,
+        id -> Int4,
+        weight -> Int4,
         date -> Date,
-        win -> Unsigned<Smallint>,
-        rout -> Unsigned<Smallint>,
+        win -> Int4,
+        rout -> Int4,
         #[max_length = 64]
         name -> Varchar,
         gifted -> Bool,
         #[max_length = 17]
         flag -> Varchar,
-        uid -> Unsigned<Integer>,
+        uid -> Int4,
     }
 }
 
 diesel::table! {
     inline_users_groups (id) {
-        id -> Integer,
-        iu_id -> Integer,
-        ig_id -> Integer,
+        id -> Int4,
+        iu_id -> Int4,
+        ig_id -> Int4,
     }
 }
 
 diesel::table! {
     inline_voices (id) {
-        id -> Smallint,
+        id -> Int2,
         #[max_length = 128]
         url -> Varchar,
         #[max_length = 64]
         caption -> Varchar,
-        status -> Smallint,
-        uid -> Unsigned<Integer>,
+        status -> Int2,
+        uid -> Int4,
     }
 }
 
 diesel::table! {
     users (id) {
-        id -> Unsigned<Integer>,
-        user_id -> Unsigned<Bigint>,
+        id -> Int4,
+        user_id -> Int8,
         started -> Bool,
         subscribed -> Bool,
         supported -> Bool,
         banned -> Bool,
-        created_at -> Datetime,
+        created_at -> Timestamp,
         #[max_length = 2]
         lang -> Nullable<Varchar>,
         #[max_length = 64]

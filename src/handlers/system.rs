@@ -119,7 +119,7 @@ pub async fn handle_ban_or_unban_in_private(
         subscribed: user.subscribed,
     };
 
-    DB.other.change_user_status(member.from.id.0, user_status).await?;
+    DB.other.change_user_status(member.from.id.0 as i64, user_status).await?;
 
     if is_banned {
         log::info!("User ban bot [{}]", member.from.id);

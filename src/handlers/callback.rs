@@ -207,7 +207,7 @@ async fn callback_give_hand_pig_name(
 
     let new_name = data.2;
 
-    DB.hand_pig.update_hrundel_name(q.from.id.0, new_name).await?;
+    DB.hand_pig.update_hrundel_name(q.from.id.0 as i64, new_name).await?;
 
     let text = lng("HandPigNameChangedResponse", ltag);
     bot.answer_callback_query(q.id.clone()).text(text).await?;
@@ -259,7 +259,7 @@ async fn callback_find_day_pig(
             bot.answer_callback_query(q.id.clone().clone()).await?;
 
             let mention = user_mention(
-                UserId(current_chat.3.user_id),
+                UserId(current_chat.3.user_id as u64),
                 &current_chat.3.first_name,
             );
 
@@ -440,7 +440,7 @@ async fn callback_start_duel(
     }
 
     // Preliminary check, if pig really exist
-    let hrundel = DB.hand_pig.get_hrundel(q.from.id.0).await?;
+    let hrundel = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?;
     if hrundel.is_none() {
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id.clone()).text(text).await?;
@@ -677,11 +677,11 @@ fn _duel_get_status<'a>(
 async fn _start_duel_get_2_hrundels(
     ids: (UserId, UserId),
 ) -> MyResult<Option<[(InlineUser, User); 2]>> {
-    let Some(first) = DB.hand_pig.get_hrundel(ids.0.0).await? else {
+    let Some(first) = DB.hand_pig.get_hrundel(ids.0.0 as i64).await? else {
         return Ok(None);
     };
 
-    let Some(second) = DB.hand_pig.get_hrundel(ids.1.0).await? else {
+    let Some(second) = DB.hand_pig.get_hrundel(ids.1.0 as i64).await? else {
         return Ok(None);
     };
 
@@ -777,18 +777,22 @@ async fn callback_allow_voice(
         .reply_markup(keyboards::keyboard_empty())
         .await?;
 
-    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0 as i64).await?;
     if let Some(hrundel) = hrundel {
         let final_mass = hrundel.0.weight + INLINE_VOICE_REWARD_KG;
         let cur_date = get_date();
 
         DB.hand_pig
-            .update_hrundel_date_and_size(user_id.0, final_mass, cur_date)
+            .update_hrundel_date_and_size(
+                user_id.0 as i64,
+                final_mass,
+                cur_date,
+            )
             .await?;
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
 
-    let Some(user) = DB.other.get_user(user_id.0).await? else {
+    let Some(user) = DB.other.get_user(user_id.0 as i64).await? else {
         return Ok(());
     };
 
@@ -831,7 +835,7 @@ async fn callback_disallow_voice(
         .reply_markup(keyboards::keyboard_empty())
         .await?;
 
-    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0 as i64).await?;
     if let Some(hrundel) = hrundel {
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
@@ -856,7 +860,7 @@ async fn callback_change_flag(
     let probably_flag = Flags::from_code(data.2).unwrap_or(Flags::Us);
 
     DB.hand_pig
-        .update_hrundel_flag(q.from.id.0, probably_flag.to_code())
+        .update_hrundel_flag(q.from.id.0 as i64, probably_flag.to_code())
         .await?;
 
     let text = lng("HandPigFlagChangeResponse", ltag)
@@ -881,7 +885,7 @@ async fn callback_change_lang(
     let probably_code = data.2;
 
     let (text, res) = if probably_code == "-" {
-        DB.other.change_user_lang(q.from.id.0, None).await?;
+        DB.other.change_user_lang(q.from.id.0 as i64, None).await?;
 
         let text = lng("InlineLangDeleteResponse", ltag);
         (text, None)
@@ -896,7 +900,7 @@ async fn callback_change_lang(
         (text, Some(probably_code))
     };
 
-    DB.other.change_user_lang(q.from.id.0, res).await?;
+    DB.other.change_user_lang(q.from.id.0 as i64, res).await?;
 
     bot.edit_message_text_inline(im_id, &text).await?;
     bot.answer_callback_query(q.id.clone()).text(text).await?;
@@ -950,18 +954,22 @@ async fn _cb_allow_gif(
         .reply_markup(keyboards::keyboard_empty())
         .await?;
 
-    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0 as i64).await?;
     if let Some(hrundel) = hrundel {
         let final_mass = hrundel.0.weight + INLINE_GIF_REWARD_KG;
         let cur_date = get_date();
 
         DB.hand_pig
-            .update_hrundel_date_and_size(user_id.0, final_mass, cur_date)
+            .update_hrundel_date_and_size(
+                user_id.0 as i64,
+                final_mass,
+                cur_date,
+            )
             .await?;
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
 
-    let Some(user) = DB.other.get_user(user_id.0).await? else {
+    let Some(user) = DB.other.get_user(user_id.0 as i64).await? else {
         crate::myerr!("Some not working...");
         return Ok(());
     };
@@ -1022,7 +1030,7 @@ async fn _cb_disallow_gif(
         .reply_markup(keyboards::keyboard_empty())
         .await?;
 
-    let hrundel = DB.hand_pig.get_hrundel(user_id.0).await?;
+    let hrundel = DB.hand_pig.get_hrundel(user_id.0 as i64).await?;
     if let Some(hrundel) = hrundel {
         ltag = tag_one_or(hrundel.1.lang.as_deref(), DEFAULT_LANG_TAG);
     }
@@ -1032,7 +1040,7 @@ async fn _cb_disallow_gif(
     Ok(())
 }
 
-async fn _get_biggest_chat_pig_mass(id_user: u64) -> MyResult<i32> {
+async fn _get_biggest_chat_pig_mass(id_user: i64) -> MyResult<i32> {
     let biggest = DB.chat_pig.get_biggest_chat_pig(id_user).await?;
     let biggest_mass = biggest.map_or(0, |b| b.mass);
 
@@ -1054,7 +1062,8 @@ async fn callback_gift<'a>(
         return Ok(());
     }
 
-    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?
+    else {
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
@@ -1097,7 +1106,8 @@ async fn callback_check_subscribe<'a>(
         return Ok(());
     }
 
-    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0).await? else {
+    let Some(hrundel) = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?
+    else {
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
@@ -1123,7 +1133,7 @@ async fn callback_check_subscribe<'a>(
         supported: hrundel.1.supported,
     };
     DB.hand_pig.update_hrundel(hrundel_on_update).await?;
-    DB.other.change_user_status(q.from.id.0, user_status).await?;
+    DB.other.change_user_status(q.from.id.0 as i64, user_status).await?;
 
     let text =
         lng("GiftThanksReceive100", ltag).args(&[("amount", SUBSCRIBE_GIFT)]);
@@ -1137,7 +1147,7 @@ async fn _check_or_insert_user_or_chat(
     chat_instance: &str,
 ) -> MyResult<()> {
     let user_in_group =
-        DB.hand_pig.get_group_user(chat_instance, user_id).await?;
+        DB.hand_pig.get_group_user(chat_instance, user_id as i64).await?;
 
     // check if actually user or chat does exist, and insert missing
     if user_in_group.is_some() {
@@ -1146,7 +1156,7 @@ async fn _check_or_insert_user_or_chat(
 
     // and insert missing chat, or user to chat join
     // user dont be created without his consent
-    let user = DB.hand_pig.get_hrundel(user_id).await?;
+    let user = DB.hand_pig.get_hrundel(user_id as i64).await?;
     let chat = DB.hand_pig.get_inline_group(chat_instance).await?;
 
     if let Some(user) = user {

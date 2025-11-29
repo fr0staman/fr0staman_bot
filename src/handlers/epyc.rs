@@ -28,7 +28,7 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     let Some(from) = &m.from else { return Ok(()) };
 
-    let user_info = DB.other.get_user(from.id.0).await?;
+    let user_info = DB.other.get_user(from.id.0 as i64).await?;
     let chat_info = DB.other.get_chat(m.chat.id.0).await?;
 
     let ltag = tag_one_two_or(
