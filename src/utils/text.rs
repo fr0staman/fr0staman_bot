@@ -26,7 +26,7 @@ pub fn generate_top10_text(
     let mut result = String::with_capacity(512) + &header + "\n";
 
     for (index, item) in top10_info.iter().enumerate() {
-        let value = if is_win { item.win as i32 } else { item.weight };
+        let value = if is_win { item.win } else { item.weight };
 
         let code = Flags::from_code(&item.flag).unwrap_or(Flags::Us);
         let flag = code.to_emoji();

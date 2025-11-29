@@ -51,7 +51,11 @@ pub async fn maybe_get_or_insert_user(
         first_name: &from.first_name,
         last_name: from.last_name.as_deref(),
         username: from.username.as_deref(),
+        lang: None,
         started,
+        banned: false,
+        supported: false,
+        subscribed: false,
     };
 
     DB.other.register_user(new_user).await?;
@@ -98,6 +102,11 @@ pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {
         date: get_datetime(),
         title: chat.title().unwrap_or(""),
         username: chat.username(),
+        lang: None,
+        active: true,
+        top10_setting: 0,
+        settings: 0,
+        ig_id: None,
     };
 
     DB.other.add_chat(new_chat).await?;

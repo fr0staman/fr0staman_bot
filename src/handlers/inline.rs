@@ -128,6 +128,9 @@ async fn _get_hryak(
             name: f_name,
             date: cur_date,
             flag: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
+            gifted: false,
+            rout: 0,
+            win: 0,
         };
         DB.hand_pig.add_hrundel(hrundel).await?;
         return Box::pin(_get_hryak(q, ltag)).await;

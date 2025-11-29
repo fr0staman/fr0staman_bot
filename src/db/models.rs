@@ -30,6 +30,11 @@ pub struct Game {
 pub struct NewGroup<'a> {
     pub chat_id: i64,
     pub date: NaiveDateTime,
+    pub settings: i16,
+    pub top10_setting: i32,
+    pub lang: Option<&'a str>,
+    pub active: bool,
+    pub ig_id: Option<i32>,
     pub username: Option<&'a str>,
     pub title: &'a str,
 }
@@ -126,7 +131,10 @@ pub struct NewInlineUser<'a> {
     pub weight: i32,
     pub date: NaiveDate,
     pub flag: &'a str,
+    pub win: i32,
+    pub rout: i32,
     pub name: &'a str,
+    pub gifted: bool,
 }
 
 #[derive(Queryable)]
@@ -163,7 +171,11 @@ pub struct InlineGif {
 pub struct NewUser<'a> {
     pub user_id: i64,
     pub started: bool,
+    pub banned: bool,
+    pub supported: bool,
+    pub subscribed: bool,
     pub created_at: NaiveDateTime,
+    pub lang: Option<&'a str>,
     pub username: Option<&'a str>,
     pub first_name: &'a str,
     pub last_name: Option<&'a str>,
