@@ -1,5 +1,8 @@
 use chrono::{NaiveDate, NaiveDateTime};
-use diesel::prelude::*;
+use diesel::{
+    dsl::{case_when, sql},
+    prelude::*,
+};
 use diesel_async::RunQueryDsl;
 
 use crate::{
@@ -28,7 +31,6 @@ impl HandPig {
     ) -> MyResult<()> {
         use crate::db::schema::inline_users::dsl::*;
         use crate::db::schema::users;
-        use diesel::dsl::sql;
 
         if is_win {
             diesel::update(inline_users)
@@ -43,11 +45,6 @@ impl HandPig {
                 .execute(&mut self.pool.get().await?)
                 .await?;
         } else {
-            let condition = sql(&format!(
-                "IF(weight > {}, weight - {}, weight - (weight - 1))",
-                offset, offset
-            ));
-
             diesel::update(inline_users)
                 .filter(
                     uid.eq_any(
@@ -56,7 +53,11 @@ impl HandPig {
                             .filter(users::user_id.eq(&id_user)),
                     ),
                 )
-                .set((weight.eq(condition), rout.eq(rout + 1)))
+                .set((
+                    weight.eq(case_when(weight.gt(offset), weight - offset)
+                        .otherwise(1)),
+                    rout.eq(rout + 1),
+                ))
                 .execute(&mut self.pool.get().await?)
                 .await?;
         }
@@ -270,14 +271,12 @@ impl HandPig {
         use crate::db::schema::inline_groups;
         use crate::db::schema::inline_users_groups;
 
-        define_sql_function!(fn rand() -> Text);
-
         let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
         let results = inline_users_groups::table
             .inner_join(inline_groups::table)
             .filter(inline_groups::chat_instance.eq(parsed_instance))
             .select(InlineUsersGroup::as_select())
-            .order_by(rand())
+            .order_by(sql::<diesel::sql_types::Float>("RANDOM()"))
             .first(&mut self.pool.get().await?)
             .await
             .optional()?;
