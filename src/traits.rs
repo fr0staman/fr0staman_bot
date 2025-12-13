@@ -1,7 +1,9 @@
 use teloxide::payloads::{
     SendMessageSetters, SendPhotoSetters, SendStickerSetters, SendVoiceSetters,
 };
-use teloxide::types::{ChatKind, LinkPreviewOptions, Message, PublicChatKind};
+use teloxide::types::{
+    ChatKind, LinkPreviewOptions, Message, PublicChatKind, ReplyParameters,
+};
 
 macro_rules! define_maybe_setter {
     ($setter:ident, $trait:ident) => {
@@ -26,6 +28,11 @@ macro_rules! define_maybe_setter {
                 let Some(thread_id) = m.thread_id else {
                     return self;
                 };
+
+                // When message from thread_id is not visible for Bot API (1 m messages back)- force reply to message in thread
+                if thread_id.0.0 < (m.id.0 - 1000000) {
+                    return self.reply_parameters(ReplyParameters::new(m.id));
+                }
 
                 self.message_thread_id(thread_id)
             }
