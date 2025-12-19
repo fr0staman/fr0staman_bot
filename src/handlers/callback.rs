@@ -622,11 +622,18 @@ async fn callback_change_top(
 
     let is_end = pig_count < (TOP_LIMIT * offset);
     let markup = keyboards::keyboard_top50(ltag, offset, from.id, is_end);
-    bot.edit_message_text(m.chat().id, m.id(), text)
-        .link_preview_options(LinkPreviewOptions::disable(true))
-        .reply_markup(markup)
-        .await?;
 
+    if msg.photo().is_some() {
+        bot.edit_message_caption(m.chat().id, m.id())
+            .caption(text)
+            .reply_markup(markup)
+            .await?;
+    } else {
+        bot.edit_message_text(m.chat().id, m.id(), text)
+            .link_preview_options(LinkPreviewOptions::disable(true))
+            .reply_markup(markup)
+            .await?;
+    }
     Ok(())
 }
 

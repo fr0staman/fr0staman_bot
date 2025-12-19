@@ -236,7 +236,7 @@ pub struct UserStatus {
     pub subscribed: bool,
 }
 
-#[derive(Queryable, Selectable, Debug)]
+#[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = grow_log)]
 pub struct GrowLog {
     pub id: i32,

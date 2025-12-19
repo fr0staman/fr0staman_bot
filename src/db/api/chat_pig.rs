@@ -1,4 +1,5 @@
-use chrono::NaiveDate;
+use ahash::AHashMap;
+use chrono::{Duration, NaiveDate};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
@@ -6,6 +7,7 @@ use crate::{
     config::consts::TOP_LIMIT,
     db::models::{Game, GrowLog, GrowLogAdd},
     types::{DbPool, MyResult},
+    utils::date::get_datetime,
 };
 
 #[derive(Clone)]
@@ -234,5 +236,51 @@ impl ChatPig {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_top10_by_7days_growth(
+        &self,
+        id_chat: i64,
+    ) -> MyResult<Vec<(Game, Vec<GrowLog>)>> {
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::groups;
+        use crate::db::schema::grow_log::dsl::*;
+
+        let pool = &mut self.pool.get().await?;
+        let today = get_datetime();
+        let start_date = today - Duration::days(6);
+
+        let top_users = game
+            .filter(groups::chat_id.eq(id_chat))
+            .order_by(mass.desc())
+            .limit(10)
+            .select(Game::as_select())
+            .inner_join(groups::table)
+            .load(pool)
+            .await?;
+
+        let top_user_ids: Vec<_> = top_users.iter().map(|g| g.id).collect();
+
+        let grow_logs: Vec<GrowLog> = grow_log
+            .filter(game_id.eq_any(&top_user_ids))
+            .filter(created_at.ge(start_date).and(created_at.le(today)))
+            .load(pool)
+            .await?;
+
+        let mut logs_by_game: AHashMap<_, Vec<_>> = AHashMap::default();
+
+        for log in grow_logs {
+            logs_by_game.entry(log.game_id).or_default().push(log);
+        }
+
+        let result: Vec<_> = top_users
+            .into_iter()
+            .map(|v| {
+                let logs = logs_by_game.remove(&v.id).unwrap_or_default();
+                (v, logs)
+            })
+            .collect();
+
+        Ok(result)
     }
 }

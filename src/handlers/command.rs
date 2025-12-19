@@ -18,10 +18,12 @@ use crate::enums::MyCommands;
 use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, get_tag_opt, lng, tag_one_two_or};
 use crate::services::achievements::{self, Ach};
+use crate::services::charts::generate_charts;
 use crate::traits::{
-    MaybeMessageSetter, MaybeVoiceSetter, SimpleDisableWebPagePreview,
+    MaybeMessageSetter, MaybePhotoSetter, MaybeVoiceSetter,
+    SimpleDisableWebPagePreview,
 };
-use crate::types::{MyBot, MyResult};
+use crate::types::{MyBot, MyError, MyResult};
 use crate::utils::date::{
     get_datetime, get_datetime_from_message_date, get_timediff,
 };
@@ -121,14 +123,14 @@ async fn command_start(
             ("channel", &BOT_CONFIG.channel_name),
         ]);
 
-        if let Some(user) = DB.other.get_user(from.id.0  as i64).await? {
+        if let Some(user) = DB.other.get_user(from.id.0 as i64).await? {
             let user_status = UserStatus {
                 banned: false,
                 started: true,
                 supported: user.supported,
                 subscribed: user.subscribed,
             };
-            DB.other.change_user_status(from.id.0  as i64, user_status).await?;
+            DB.other.change_user_status(from.id.0 as i64, user_status).await?;
         } else {
             shortcuts::maybe_get_or_insert_user(from, true).await?;
         };
@@ -283,7 +285,7 @@ async fn command_grow(
             .await?;
 
         let Some(new_pig) =
-            DB.chat_pig.get_chat_pig(from.id.0  as i64, m.chat.id.0).await?
+            DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?
         else {
             return Ok(());
         };
@@ -332,7 +334,12 @@ async fn command_grow(
     let current = pig.mass + offset;
 
     DB.chat_pig
-        .set_chat_pig_mass_n_date(from.id.0  as i64, m.chat.id.0, current, cur_date)
+        .set_chat_pig_mass_n_date(
+            from.id.0 as i64,
+            m.chat.id.0,
+            current,
+            cur_date,
+        )
         .await?;
 
     let grow_log_info = GrowLogAdd {
@@ -415,7 +422,9 @@ async fn command_name(
 
     let text = lng("GameNameNewPig", ltag).args(&[("new_name", &payload)]);
 
-    DB.chat_pig.set_chat_pig_name(from.id.0 as i64, m.chat.id.0, payload).await?;
+    DB.chat_pig
+        .set_chat_pig_name(from.id.0 as i64, m.chat.id.0, payload)
+        .await?;
 
     bot.send_message(m.chat.id, text)
         .link_preview_options(LinkPreviewOptions::disable(true))
@@ -486,6 +495,8 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     };
 
+    let user = DB.other.get_user(from.id.0 as i64).await?;
+
     let limit = chat_settings.top10_setting;
 
     let top50_pigs =
@@ -503,12 +514,35 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     let is_end = pig_count < 50;
     let markup = keyboards::keyboard_top50(ltag, 1, from.id, is_end);
-    bot.send_message(m.chat.id, text)
-        .reply_markup(markup)
-        .link_preview_options(LinkPreviewOptions::disable(true))
-        .maybe_thread_id(m)
-        .await?;
 
+    if user.is_some_and(|u| u.supported) {
+        let data = DB.chat_pig.get_top10_by_7days_growth(m.chat.id.0).await?;
+
+        let Some(chart) = generate_charts(
+            data,
+            m.chat.title().unwrap_or_default().to_string(),
+            ltag,
+        )
+        .await
+        else {
+            return Err(MyError::Unknown(
+                "Charts generation error".to_string(),
+            ));
+        };
+
+        let file = InputFile::memory(chart);
+        bot.send_photo(m.chat.id, file)
+            .caption(text)
+            .reply_markup(markup)
+            .maybe_thread_id(m)
+            .await?;
+    } else {
+        bot.send_message(m.chat.id, text)
+            .reply_markup(markup)
+            .link_preview_options(LinkPreviewOptions::disable(true))
+            .maybe_thread_id(m)
+            .await?;
+    }
     Ok(())
 }
 
@@ -727,6 +761,7 @@ async fn command_achievements(
 
     Ok(())
 }
+
 async fn _game_only_for_chats(
     bot: MyBot,
     m: &Message,
