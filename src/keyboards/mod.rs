@@ -102,7 +102,7 @@ pub fn keyboard_startgroup(ltag: LocaleTag) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(keyboard)
 }
 
-pub fn keyboard_top50(
+pub fn keyboard_top(
     ltag: LocaleTag,
     offset: i64,
     id_user: UserId,
@@ -112,7 +112,7 @@ pub fn keyboard_top50(
 
     let left_offset = offset - 1;
     if left_offset != 0 {
-        let button_left = lng("GameTop50Button_left", ltag);
+        let button_left = lng("GameTopButton_left", ltag);
 
         let button_left_data = encode_callback_data(
             CbActions::TopLeft,
@@ -124,7 +124,7 @@ pub fn keyboard_top50(
     }
 
     if !is_end {
-        let button_right = lng("GameTop50Button_right", ltag);
+        let button_right = lng("GameTopButton_right", ltag);
 
         let right_offset = offset + 1;
         let button_right_data = encode_callback_data(

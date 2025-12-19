@@ -7,6 +7,8 @@ use tokio::sync::{Mutex, RwLock};
 pub const BOT_PARSE_MODE: ParseMode = ParseMode::Html;
 pub const DEFAULT_LANG_TAG: &str = "uk";
 pub const TOP_LIMIT: i64 = 50;
+pub const TOP_LIMIT_WITH_CHARTS: i64 = 30;
+
 pub const INLINE_QUERY_LIMIT: usize = 50;
 
 pub const SUBSCRIBE_GIFT: i32 = 100;

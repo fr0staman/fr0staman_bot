@@ -13,28 +13,31 @@ use tokio::{
 };
 
 use crate::{
-    config::consts::{
-        DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
-        INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
-        TOP_LIMIT,
+    config::{
+        consts::{
+            DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
+            INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
+            TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
+        },
+        env::BOT_CONFIG,
     },
-    config::env::BOT_CONFIG,
-    db::DB,
-    db::models::{InlineUser, UpdateInlineUser, User, UserStatus},
-    db::shortcuts,
+    db::{
+        DB,
+        models::{InlineUser, UpdateInlineUser, User, UserStatus},
+        shortcuts,
+    },
     enums::{CbActions, DuelResult, Top10Variant},
     keyboards,
     lang::{InnerLang, LocaleTag, get_tag, lng, tag, tag_one_or},
     traits::{MaybeMessageSetter, SimpleDisableWebPagePreview},
-    types::ParsedCallbackData,
-    types::{MyBot, MyError, MyResult},
+    types::{MyBot, MyError, MyResult, ParsedCallbackData},
     utils::{
         date::{get_date, get_datetime},
         decode::decode_inline_message_id,
         flag::Flags,
         formulas,
         helpers::{self, get_hash},
-        text::{generate_chat_top50_text, generate_top10_text},
+        text::{generate_chat_top_text, generate_top10_text},
     },
 };
 
@@ -601,13 +604,14 @@ async fn callback_change_top(
     let limit = chat_info.top10_setting;
 
     let offset = data.2.parse::<i64>().unwrap();
+    let is_with_chart = msg.photo().is_some();
 
-    let top50_pigs = DB
+    let top_pigs = DB
         .chat_pig
-        .get_top50_chat_pigs(m.chat().id.0, limit, offset - 1)
+        .get_top_chat_pigs(m.chat().id.0, limit, offset - 1, is_with_chart)
         .await?;
 
-    if top50_pigs.is_empty() {
+    if top_pigs.is_empty() {
         let text = lng("GameNoChatPigs", ltag);
         let Some(msg) = m.regular_message() else {
             return Ok(());
@@ -618,12 +622,16 @@ async fn callback_change_top(
 
     let pig_count = DB.chat_pig.count_chat_pig(m.chat().id.0, limit).await?;
 
-    let text = generate_chat_top50_text(ltag, top50_pigs, offset - 1);
+    let text =
+        generate_chat_top_text(ltag, top_pigs, offset - 1, is_with_chart);
 
-    let is_end = pig_count < (TOP_LIMIT * offset);
-    let markup = keyboards::keyboard_top50(ltag, offset, from.id, is_end);
+    let top_limit =
+        if is_with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT };
 
-    if msg.photo().is_some() {
+    let is_end = pig_count < (top_limit * offset);
+    let markup = keyboards::keyboard_top(ltag, offset, from.id, is_end);
+
+    if is_with_chart {
         bot.edit_message_caption(m.chat().id, m.id())
             .caption(text)
             .reply_markup(markup)

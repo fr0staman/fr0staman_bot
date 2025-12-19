@@ -7,7 +7,7 @@ use teloxide::types::{
 };
 use teloxide::utils::html::{italic, user_mention};
 
-use crate::config::consts::LOUDER_PREMIUM_VOICE_LIMIT;
+use crate::config::consts::{LOUDER_PREMIUM_VOICE_LIMIT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS};
 use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::config::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
 use crate::config::env::BOT_CONFIG;
@@ -30,7 +30,7 @@ use crate::utils::date::{
 use crate::utils::formulas::calculate_chat_pig_grow;
 use crate::utils::helpers::{escape, get_file_from_stream, plural, truncate};
 use crate::utils::ogg::increase_sound;
-use crate::utils::text::generate_chat_top50_text;
+use crate::utils::text::generate_chat_top_text;
 
 pub async fn filter_commands(
     bot: MyBot,
@@ -499,10 +499,14 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     let limit = chat_settings.top10_setting;
 
-    let top50_pigs =
-        DB.chat_pig.get_top50_chat_pigs(m.chat.id.0, limit, 0).await?;
+    let with_chart = user.is_some_and(|u| u.supported);
 
-    if top50_pigs.is_empty() {
+    let top_pigs = DB
+        .chat_pig
+        .get_top_chat_pigs(m.chat.id.0, limit, 0, with_chart)
+        .await?;
+
+    if top_pigs.is_empty() {
         let text = lng("GameNoChatPigs", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         return Ok(());
@@ -510,12 +514,12 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     let pig_count = DB.chat_pig.count_chat_pig(m.chat.id.0, limit).await?;
 
-    let text = generate_chat_top50_text(ltag, top50_pigs, 0);
+    let text = generate_chat_top_text(ltag, top_pigs, 0, with_chart);
 
-    let is_end = pig_count < 50;
-    let markup = keyboards::keyboard_top50(ltag, 1, from.id, is_end);
+    let is_end = pig_count < (if with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT });
+    let markup = keyboards::keyboard_top(ltag, 1, from.id, is_end);
 
-    if user.is_some_and(|u| u.supported) {
+    if with_chart {
         let data = DB.chat_pig.get_top10_by_7days_growth(m.chat.id.0).await?;
 
         let Some(chart) = generate_charts(

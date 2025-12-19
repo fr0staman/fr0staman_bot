@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    config::consts::TOP_LIMIT,
+    config::consts::{TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
     db::models::{Game, GrowLog, GrowLogAdd},
     types::{DbPool, MyResult},
     utils::date::get_datetime,
@@ -167,21 +167,25 @@ impl ChatPig {
         Ok(())
     }
 
-    pub async fn get_top50_chat_pigs(
+    pub async fn get_top_chat_pigs(
         &self,
         id_chat: i64,
         min: i32,
         offset_multiplier: i64,
+        with_chart: bool,
     ) -> MyResult<Vec<Game>> {
         use crate::db::schema::game::dsl::*;
         use crate::db::schema::groups;
+
+        let top_limit =
+            if with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT };
 
         let results = game
             .filter(groups::chat_id.eq(id_chat))
             .filter(mass.gt(min))
             .order(mass.desc())
-            .limit(TOP_LIMIT)
-            .offset(TOP_LIMIT * offset_multiplier)
+            .limit(top_limit)
+            .offset(top_limit * offset_multiplier)
             .select(Game::as_select())
             .inner_join(groups::table)
             .load(&mut self.pool.get().await?)

@@ -1,7 +1,7 @@
 use teloxide::utils::html::bold;
 
 use crate::{
-    config::consts::TOP_LIMIT,
+    config::consts::{TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
     db::models::{Game, InlineUser},
     enums::Top10Variant,
     lang::{InnerLang, LocaleTag, lng},
@@ -44,21 +44,25 @@ pub fn generate_top10_text(
     result
 }
 
-pub fn generate_chat_top50_text(
+pub fn generate_chat_top_text(
     ltag: LocaleTag,
-    top50_info: Vec<Game>,
+    top_info: Vec<Game>,
     offset_multiplier: i64,
+    with_chart: bool,
 ) -> String {
-    let text = lng("GameTop50Header", ltag);
+    let top_limit = if with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT };
+
+    let text = lng("GameTopHeader", ltag).args(&[("limit", top_limit)]);
     let header = bold(&text);
 
     let mut result = String::with_capacity(512) + &header;
 
-    for (index, item) in top50_info.iter().enumerate() {
+    for (index, item) in top_info.iter().enumerate() {
         let value = item.mass;
-        let index = (index as i64) + (offset_multiplier * TOP_LIMIT);
 
-        let line = lng("GameTop50Line", ltag).args(&[
+        let index = (index as i64) + (offset_multiplier * top_limit);
+
+        let line = lng("GameTopLine", ltag).args(&[
             ("number", (index + 1).to_string()),
             ("name", helpers::escape_links(&item.name)),
             ("value", value.to_string()),
