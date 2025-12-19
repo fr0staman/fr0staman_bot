@@ -44,6 +44,16 @@ fn generate_charts_inner(
 
     let dates: Vec<_> = all_dates.into_iter().collect();
 
+    let min_value = data
+        .iter()
+        .flat_map(|(_, logs)| logs.iter())
+        .map(|log| log.current_weight)
+        .min()
+        // force lib to show chart from lowest weight
+        // without -0.001 in some cases not working
+        // maybe due to float precision issues
+        .map_or(0.0, |f| (f as f32) - 0.001);
+
     let chart_data: Vec<_> = data
         .into_iter()
         .map(|(pig, logs)| {
@@ -87,6 +97,8 @@ fn generate_charts_inner(
     line_chart.title_text =
         lng("TopChartsTitle", ltag).args(&[("chat_name", chat_name)]);
     line_chart.font_family = "Roboto".to_string();
+
+    line_chart.y_axis_configs[0].axis_min = Some(min_value);
 
     let svg = line_chart.svg().ok()?;
 
