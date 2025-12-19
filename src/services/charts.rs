@@ -118,7 +118,9 @@ fn normalize_data(
 
     for (game, grow_logs) in data {
         let mut normalized = Vec::with_capacity(user_dates.len());
-        let mut last_weight = game.mass;
+
+        let mut first_fix_weight =
+            grow_logs.first().map_or(game.mass, |v| v.current_weight);
 
         let mut logs_by_date = AHashMap::with_capacity(grow_logs.len());
         for log in grow_logs {
@@ -127,7 +129,7 @@ fn normalize_data(
 
         for day in &user_dates {
             if let Some(log) = logs_by_date.get(day) {
-                last_weight = log.current_weight;
+                first_fix_weight = log.current_weight;
                 normalized.push(log.clone());
             } else if logs_by_date.is_empty() || !normalized.is_empty() {
                 normalized.push(GrowLog {
@@ -135,7 +137,7 @@ fn normalize_data(
                     game_id: game.id,
                     created_at: day.and_time(NaiveTime::MIN),
                     weight_change: 0,
-                    current_weight: last_weight,
+                    current_weight: first_fix_weight,
                 });
             } else {
                 // skip filling before first real log
@@ -157,7 +159,7 @@ fn normalize_data(
                         game_id: game.id,
                         created_at: day.and_time(chrono::NaiveTime::MIN),
                         weight_change: 0,
-                        current_weight: last_weight,
+                        current_weight: first_fix_weight,
                     });
                 }
             }
