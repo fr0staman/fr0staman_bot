@@ -17,7 +17,7 @@ chrono = { version = "0.4.42", default-features = false, features = [
     "clock",
     "std",
 ] }
-diesel = { version = "2.3.4", features = ["chrono"] }
+diesel = { version = "2.3.5", features = ["chrono"] }
 diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
