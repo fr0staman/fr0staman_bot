@@ -21,7 +21,7 @@ use crate::{
 
 pub async fn setup_listener(
     bot: &MyBot,
-) -> MyResult<impl UpdateListener<Err = std::convert::Infallible>> {
+) -> MyResult<impl UpdateListener<Err = std::convert::Infallible> + use<>> {
     let port = BOT_CONFIG.webhook_port;
     let host = &BOT_CONFIG.webhook_url;
 
