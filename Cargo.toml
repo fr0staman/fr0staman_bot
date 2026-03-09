@@ -11,16 +11,16 @@ axum = "0.8.8"
 axum-prometheus = "0.10.0"
 base64 = "0.22.1"
 byteorder = "1.5.0"
-bytes = "1.11.0"
-charts-rs = "0.3.27"
-chrono = { version = "0.4.43", default-features = false, features = [
+bytes = "1.11.1"
+charts-rs = "0.3.28"
+chrono = { version = "0.4.44", default-features = false, features = [
     "clock",
     "std",
 ] }
-diesel = { version = "2.3.5", features = ["chrono"] }
+diesel = { version = "2.3.6", features = ["chrono"] }
 diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
 dotenvy = "0.15.7"
-futures = "0.3.31"
+futures = "0.3.32"
 log = "0.4.29"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
@@ -31,16 +31,16 @@ rand = { version = "0.9.2", default-features = false, features = [
     "thread_rng",
 ] }
 rayon = "1.11.0"
-resvg = { version = "0.46.0", default-features = false, features = ["text"] }
+resvg = { version = "0.47.0", default-features = false, features = ["text"] }
 serde_json = "1.0.149"
-strum = { version = "0.27.2", features = ["derive"] }
-systemstat = "0.2.5"
+strum = { version = "0.28.0", features = ["derive"] }
+systemstat = "0.2.6"
 teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "b71c3f1d317dc5e147fc79c6c1af354ffc79bd5a", features = [
     "macros",
     "webhooks-axum",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.50.0", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.2"
 url = "2.5.8"
 walkdir = "2.5.0"
