@@ -220,7 +220,7 @@
   "CmdLouderFailedProcess": "❌ Не удалось обработать ваше голосове, попробуйте ещё раз",
   "CmdLouderFailedSend": "❌  Ошибка при отсылке голосового :(\n\nПопробуйте ещё раз или позже.",
   "InlineGifAlreadyExist": "🤜 Эта прекрасная гифка у меня уже есть.\n\nПопробуйте другую!",
-  "NewAchievementUnlocked": "<b>🏆 Достижено разблокировано!</b>\n{achievement_name}\n\n💬 <b>{chat_count}/{chat_all_count}</b> | 🌎 <b>{global_count}/{global_all_count}</b>",
+  "NewAchievementUnlocked": "<b>🏆 Достижение разблокировано!</b>\n{achievement_name}\n\n💬 <b>{chat_count}/{chat_all_count}</b> | 🌎 <b>{global_count}/{global_all_count}</b>",
   "AchievementList": "<b>🏆 Список достижений {mention}</b>\n\n   💬 | 🌎\n   ————\n{done_achievements}<blockquote expandable>{not_done_achievements}</blockquote>\n💬 <b>{chat_count}/{chat_all_count}</b> | 🌎 <b>{global_count}/{global_all_count}</b>",
   "AchievementListOne": "{chat_emoji} | {global_emoji} {achievement}",
   "Achievement_101": "Ой... 😳",
