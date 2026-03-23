@@ -17,8 +17,8 @@ chrono = { version = "0.4.44", default-features = false, features = [
     "clock",
     "std",
 ] }
-diesel = { version = "2.3.6", features = ["chrono"] }
-diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
+diesel = { version = "2.3.7", features = ["chrono"] }
+diesel-async = { version = "0.8.0", features = ["postgres", "deadpool"] }
 dotenvy = "0.15.7"
 futures = "0.3.32"
 log = "0.4.29"
