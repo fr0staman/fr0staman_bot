@@ -3,13 +3,8 @@
 
 use axum::{Router, body::Body, http::Request, routing::get};
 use axum_prometheus::PrometheusMetricLayer;
-use prometheus_client::{
-    metrics::{counter::Counter, gauge::Gauge},
-    registry::Registry,
-};
-use std::sync::{LazyLock, OnceLock, atomic::AtomicI64};
-use systemstat::{Platform, System};
-use tokio::time::{Duration, sleep};
+use prometheus_client::{metrics::counter::Counter, registry::Registry};
+use std::sync::{LazyLock, OnceLock};
 
 use crate::config::env::BOT_CONFIG;
 
@@ -42,12 +37,6 @@ pub static UNHANDLED_COUNTER: LazyLock<Counter<u64>> =
 
 pub static DUEL_NUMBERS: LazyLock<Counter<u64>> =
     LazyLock::new(Counter::default);
-
-static CPU_USAGE: LazyLock<Gauge<i64, AtomicI64>> =
-    LazyLock::new(Gauge::default);
-
-static MEM_USAGE: LazyLock<Gauge<i64, AtomicI64>> =
-    LazyLock::new(Gauge::default);
 
 pub fn init() -> axum::Router {
     let mut prometheus = Registry::default();
@@ -104,23 +93,9 @@ pub fn init() -> axum::Router {
         DUEL_NUMBERS.clone(),
     );
 
-    prometheus.register(
-        "cpu_usage",
-        "Current CPU usage in percent",
-        CPU_USAGE.clone(),
-    );
-
-    prometheus.register(
-        "mem_usage",
-        "Current memory usage in percent",
-        MEM_USAGE.clone(),
-    );
-
     REGISTRY.set(prometheus).unwrap();
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
-
-    init_interval_listener();
 
     let metrics_endpoint = |req: Request<Body>| async move {
         let headers = req.headers();
@@ -153,37 +128,4 @@ pub fn init() -> axum::Router {
     Router::new()
         .route("/metrics", get(metrics_endpoint))
         .layer(prometheus_layer)
-}
-
-fn init_interval_listener() {
-    let sys = System::new();
-
-    tokio::spawn(async move {
-        sleep(Duration::from_secs(1)).await;
-        loop {
-            match sys.cpu_load_aggregate() {
-                Ok(cpu) => {
-                    sleep(Duration::from_secs(1)).await;
-
-                    let cpu = cpu.done().expect("CPU metrics crash!");
-                    let percentage = (cpu.system + cpu.user) as f64 * 100.0;
-
-                    CPU_USAGE.set(percentage.trunc() as i64);
-                },
-                Err(x) => crate::myerr!("CPU load: error: {x}"),
-            }
-
-            match sys.memory() {
-                Ok(mem) => {
-                    let mem_used = mem.total.0 - mem.free.0;
-                    let percentage =
-                        (mem_used as f64 / mem.total.0 as f64) * 100.0;
-
-                    MEM_USAGE.set(percentage.trunc() as i64);
-                },
-                Err(x) => crate::myerr!("Memory: error: {x}"),
-            }
-            sleep(Duration::from_secs(5)).await;
-        }
-    });
 }

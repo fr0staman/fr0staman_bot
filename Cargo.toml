@@ -37,7 +37,6 @@ rayon = "1.12.0"
 resvg = { version = "0.47.0", default-features = false, features = ["text"] }
 serde_json = "1.0.149"
 strum = { version = "0.28.0", features = ["derive"] }
-systemstat = "0.2.6"
 teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "b71c3f1d317dc5e147fc79c6c1af354ffc79bd5a", features = [
     "macros",
     "webhooks-axum",
