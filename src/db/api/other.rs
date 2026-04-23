@@ -20,13 +20,14 @@ impl Other {
         Self { pool }
     }
 
-    pub async fn register_user(&self, new_user: NewUser<'_>) -> MyResult<()> {
+    pub async fn register_user(&self, new_user: NewUser<'_>) -> MyResult<User> {
         use crate::db::schema::users::dsl::*;
-        diesel::insert_into(users)
+        let result = diesel::insert_into(users)
             .values(new_user)
-            .execute(&mut self.pool.get().await?)
+            .returning(User::as_returning())
+            .get_result(&mut self.pool.get().await?)
             .await?;
-        Ok(())
+        Ok(result)
     }
 
     pub async fn get_user(&self, id_user: i64) -> MyResult<Option<User>> {
@@ -158,15 +159,16 @@ impl Other {
         Ok(results)
     }
 
-    pub async fn add_chat(&self, new_group: NewGroup<'_>) -> MyResult<()> {
+    pub async fn add_chat(&self, new_group: NewGroup<'_>) -> MyResult<Groups> {
         use crate::db::schema::groups::dsl::*;
 
-        diesel::insert_into(groups)
+        let result = diesel::insert_into(groups)
             .values(new_group)
-            .execute(&mut self.pool.get().await?)
+            .returning(Groups::as_returning())
+            .get_result(&mut self.pool.get().await?)
             .await?;
 
-        Ok(())
+        Ok(result)
     }
 
     pub async fn update_chat(

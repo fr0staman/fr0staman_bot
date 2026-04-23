@@ -39,7 +39,12 @@ pub async fn maybe_get_or_insert_user(
 
             DB.other.update_user(from.id.0 as i64, update_info).await?;
 
-            return DB.other.get_user(from.id.0 as i64).await;
+            return Ok(Some(User {
+                first_name: first_name.clone(),
+                last_name: last_name.clone(),
+                username: username.clone(),
+                ..user
+            }));
         }
 
         return Ok(Some(user));
@@ -58,8 +63,8 @@ pub async fn maybe_get_or_insert_user(
         subscribed: false,
     };
 
-    DB.other.register_user(new_user).await?;
-    DB.other.get_user(from.id.0 as i64).await
+    let user = DB.other.register_user(new_user).await?;
+    Ok(Some(user))
 }
 
 pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {
@@ -83,15 +88,22 @@ pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {
         }
 
         if update {
+            let title_str = title.to_string();
+            let username_opt = username.map(|v| v.to_string());
             let update_group = UpdateGroups {
-                title: title.to_string(),
-                username: username.map(|v| v.to_string()),
+                title: title_str.clone(),
+                username: username_opt.clone(),
                 active: true,
                 ..group_info.to_update()
             };
             DB.other.update_chat(chat.id.0, update_group).await?;
 
-            return DB.other.get_chat(chat.id.0).await;
+            return Ok(Some(Groups {
+                title: title_str,
+                username: username_opt,
+                active: true,
+                ..group_info
+            }));
         }
 
         return Ok(Some(group_info));
@@ -109,6 +121,6 @@ pub async fn maybe_get_or_insert_chat(chat: &Chat) -> MyResult<Option<Groups>> {
         ig_id: None,
     };
 
-    DB.other.add_chat(new_chat).await?;
-    DB.other.get_chat(chat.id.0).await
+    let group = DB.other.add_chat(new_chat).await?;
+    Ok(Some(group))
 }

@@ -74,16 +74,16 @@ pub struct UpdateGroups {
 // TODO: split models
 impl Groups {
     #[allow(clippy::wrong_self_convention)]
-    pub fn to_update(self) -> UpdateGroups {
+    pub fn to_update(&self) -> UpdateGroups {
         UpdateGroups {
             chat_id: self.chat_id,
             settings: self.settings,
             top10_setting: self.top10_setting,
-            lang: self.lang,
+            lang: self.lang.clone(),
             active: self.active,
             ig_id: self.ig_id,
-            username: self.username,
-            title: self.title,
+            username: self.username.clone(),
+            title: self.title.clone(),
             reset_at: self.reset_at,
         }
     }
@@ -216,16 +216,16 @@ pub struct UpdateUser {
 // TODO: split models
 impl User {
     #[allow(clippy::wrong_self_convention)]
-    pub fn to_update(self) -> UpdateUser {
+    pub fn to_update(&self) -> UpdateUser {
         UpdateUser {
             started: self.started,
             banned: self.banned,
             supported: self.supported,
             subscribed: self.subscribed,
-            lang: self.lang,
-            username: self.username,
-            first_name: self.first_name,
-            last_name: self.last_name,
+            lang: self.lang.clone(),
+            username: self.username.clone(),
+            first_name: self.first_name.clone(),
+            last_name: self.last_name.clone(),
         }
     }
 }
