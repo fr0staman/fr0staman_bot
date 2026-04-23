@@ -36,6 +36,7 @@ diesel::table! {
         username -> Nullable<Varchar>,
         #[max_length = 128]
         title -> Varchar,
+        reset_at -> Nullable<Timestamp>,
     }
 }
 

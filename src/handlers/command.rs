@@ -1,5 +1,6 @@
 use ahash::AHashSet;
 use futures::FutureExt;
+use std::sync::Arc;
 use strum::{EnumCount, VariantArray};
 use teloxide::prelude::*;
 use teloxide::types::{
@@ -9,7 +10,10 @@ use teloxide::utils::html::{italic, user_mention};
 
 use crate::config::consts::{LOUDER_PREMIUM_VOICE_LIMIT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS};
 use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
-use crate::config::consts::{LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT};
+use crate::config::consts::{
+    LOUDER_DEFAULT_VOICE_LIMIT, RESET_VOTES, SUBSCRIBE_GIFT,
+};
+use crate::config::consts::ResetVoteState;
 use crate::config::env::BOT_CONFIG;
 use crate::db::DB;
 use crate::db::models::{GrowLogAdd, UserStatus};
@@ -73,6 +77,7 @@ pub async fn filter_commands(
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
         MyCommands::Louder => command_louder(bot, &m, ltag).boxed(),
         MyCommands::Achievements => command_achievements(bot, &m, ltag).boxed(),
+        MyCommands::ResetPigs => command_reset_pigs(bot, &m, ltag).boxed(),
     };
 
     let response = function.await;
@@ -828,6 +833,111 @@ pub async fn _handle_new_achievements(
 
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
     }
+
+    Ok(())
+}
+
+async fn command_reset_pigs(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+
+    // Only in group chats
+    if let ChatKind::Private(_) = m.chat.kind {
+        return Ok(());
+    }
+
+    let Some(from) = &m.from else { return Ok(()) };
+
+    // Check Telegram admin status
+    let member = bot.get_chat_member(m.chat.id, from.id).await?;
+    if !member.is_privileged() {
+        let text = lng("ResetPigsNotAdmin", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    }
+
+    let chat_id_raw = m.chat.id.0;
+
+    // Fast-path: check if a vote is already active (avoids DB round-trips)
+    {
+        let votes = RESET_VOTES.read().await;
+        if let Some(state) = votes.get(&chat_id_raw) {
+            let state = state.lock().await;
+            let text = lng("ResetPigsVoteActive", ltag).args(&[
+                ("current", &state.yes_votes.len().to_string()),
+                ("quorum", &state.quorum.to_string()),
+            ]);
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            return Ok(());
+        }
+    }
+
+    // Fetch group to check cooldown
+    let Some(group) = DB.other.get_chat(chat_id_raw).await? else {
+        return Ok(());
+    };
+
+    let now = get_datetime();
+    if let Some(last_reset) = group.reset_at {
+        let days_passed = (now - last_reset).num_days();
+        if days_passed < 7 {
+            let days_left = 7 - days_passed;
+            let text = lng("ResetPigsCooldown", ltag)
+                .args(&[("days", &days_left.to_string())]);
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            return Ok(());
+        }
+    }
+
+    // Count active pigs
+    let total_players = DB.chat_pig.count_active_pigs(group.id).await?;
+    if total_players == 0 {
+        let text = lng("ResetPigsNoPigs", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    }
+
+    let quorum = total_players / 2 + 1;
+
+    let new_state = ResetVoteState {
+        initiator_id: from.id,
+        yes_votes: AHashSet::default(),
+        total_players,
+        quorum,
+        completed: false,
+    };
+
+    // Authoritative check-and-insert under write lock — prevents two admins
+    // racing past the fast-path read and both starting a vote.
+    {
+        let mut votes = RESET_VOTES.write().await;
+        if let Some(existing) = votes.get(&chat_id_raw) {
+            let state = existing.lock().await;
+            let text = lng("ResetPigsVoteActive", ltag).args(&[
+                ("current", &state.yes_votes.len().to_string()),
+                ("quorum", &state.quorum.to_string()),
+            ]);
+            drop(state);
+            drop(votes);
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            return Ok(());
+        }
+        votes.insert(chat_id_raw, Arc::new(tokio::sync::Mutex::new(new_state)));
+    }
+
+    let mention = user_mention(from.id, &from.first_name);
+    let text = lng("ResetPigsVoteStarted", ltag).args(&[
+        ("mention", &mention),
+        ("quorum", &quorum.to_string()),
+        ("total", &total_players.to_string()),
+    ]);
+
+    bot.send_message(m.chat.id, text)
+        .maybe_thread_id(m)
+        .reply_markup(keyboards::keyboard_reset_vote(ltag, from.id))
+        .await?;
 
     Ok(())
 }

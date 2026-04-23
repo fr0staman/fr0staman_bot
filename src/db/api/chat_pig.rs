@@ -4,10 +4,10 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    config::consts::{TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
+    config::consts::{CHAT_PIG_START_MASS, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
     db::models::{Game, GrowLog, GrowLogAdd},
     types::{DbPool, MyResult},
-    utils::date::get_datetime,
+    utils::date::{get_date, get_datetime},
 };
 
 #[derive(Clone)]
@@ -237,6 +237,45 @@ impl ChatPig {
         diesel::insert_into(grow_log)
             .values(about_grow)
             .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn count_active_pigs(&self, group_id_val: i32) -> MyResult<i64> {
+        use crate::db::schema::game::dsl::*;
+
+        let result = game
+            .filter(group_id.eq(group_id_val))
+            .count()
+            .first(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn soft_reset_pigs(&self, group_id_val: i32) -> MyResult<()> {
+        use crate::db::schema::achievements_users::dsl::*;
+        use crate::db::schema::game;
+
+        let conn = &mut self.pool.get().await?;
+        let today = get_date();
+
+        diesel::update(game::table)
+            .set((game::mass.eq(CHAT_PIG_START_MASS), game::date.eq(today)))
+            .filter(game::group_id.eq(group_id_val))
+            .execute(conn)
+            .await?;
+
+        diesel::delete(achievements_users)
+            .filter(
+                game_id.eq_any(
+                    game::table
+                        .select(game::id)
+                        .filter(game::group_id.eq(group_id_val)),
+                ),
+            )
+            .execute(conn)
             .await?;
 
         Ok(())

@@ -1,7 +1,7 @@
 use std::sync::{Arc, LazyLock};
 
-use ahash::{HashMap, HashSet};
-use teloxide::types::ParseMode;
+use ahash::{AHashSet, HashMap, HashSet};
+use teloxide::types::{ParseMode, UserId};
 use tokio::sync::{Mutex, RwLock};
 
 pub const BOT_PARSE_MODE: ParseMode = ParseMode::Html;
@@ -31,3 +31,14 @@ pub static DUEL_LOCKS: LazyLock<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
     LazyLock::new(|| RwLock::new(HashMap::default()));
 pub static DUEL_LIST: LazyLock<RwLock<HashSet<u64>>> =
     LazyLock::new(|| RwLock::new(HashSet::default()));
+
+pub struct ResetVoteState {
+    pub initiator_id: UserId,
+    pub yes_votes: AHashSet<u64>,
+    pub total_players: i64,
+    pub quorum: i64,
+    pub completed: bool,
+}
+
+pub static RESET_VOTES: LazyLock<RwLock<HashMap<i64, Arc<Mutex<ResetVoteState>>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::default()));

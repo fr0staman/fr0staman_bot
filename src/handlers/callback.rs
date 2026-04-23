@@ -16,8 +16,8 @@ use crate::{
     config::{
         consts::{
             DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
-            INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, SUBSCRIBE_GIFT,
-            TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
+            INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, RESET_VOTES,
+            SUBSCRIBE_GIFT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
         },
         env::BOT_CONFIG,
     },
@@ -116,6 +116,7 @@ fn _inner_filter<'a>(
         CbActions::GifDecision => {
             callback_gif_decision(bot, q, ltag, d).boxed()
         },
+        CbActions::ResetVote => callback_reset_vote(bot, q, ltag, d).boxed(),
     }
 }
 
@@ -1252,4 +1253,114 @@ fn _maybe_get_chat_id(q: &CallbackQuery) -> Option<i64> {
     } else {
         None
     }
+}
+
+async fn callback_reset_vote(
+    bot: MyBot,
+    q: &CallbackQuery,
+    ltag: LocaleTag,
+    _data: ParsedCallbackData<'_>,
+) -> MyResult<()> {
+    let Some(msg) = &q.message else {
+        bot.answer_callback_query(q.id.clone()).await?;
+        return Ok(());
+    };
+
+    let chat_id = msg.chat().id;
+    let message_id = msg.id();
+    let chat_id_raw = chat_id.0;
+
+    // Fetch group to get its primary key
+    let Some(group) = DB.other.get_chat(chat_id_raw).await? else {
+        bot.answer_callback_query(q.id.clone()).await?;
+        return Ok(());
+    };
+
+    // Check if voter has an active pig in this chat
+    let pig_count = DB.chat_pig.count_active_pigs(group.id).await?;
+    if pig_count == 0 {
+        // Chat has no pigs at all (edge case); no point voting
+        bot.answer_callback_query(q.id.clone()).await?;
+        return Ok(());
+    }
+
+    let voter_id = q.from.id;
+
+    // Check if voter has a pig: look up by user_id + chat_id
+    let voter_pig = DB.chat_pig.get_chat_pig(voter_id.0 as i64, chat_id_raw).await?;
+    if voter_pig.is_none() {
+        let text = lng("ResetPigsNoPigVoter", ltag);
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
+        return Ok(());
+    }
+
+    let votes_map = RESET_VOTES.read().await;
+    let Some(state_arc) = votes_map.get(&chat_id_raw) else {
+        // Vote no longer active (race condition or restart)
+        drop(votes_map);
+        bot.answer_callback_query(q.id.clone()).await?;
+        let text = lng("ResetPigsVoteExpired", ltag);
+        bot.edit_message_text(chat_id, message_id, text).await?;
+        return Ok(());
+    };
+    let state_arc = state_arc.clone();
+    drop(votes_map);
+
+    let mut state = state_arc.lock().await;
+
+    // Another voter already reached quorum and is processing the reset.
+    if state.completed {
+        drop(state);
+        bot.answer_callback_query(q.id.clone()).await?;
+        return Ok(());
+    }
+
+    if state.yes_votes.contains(&voter_id.0) {
+        drop(state);
+        let text = lng("ResetPigsAlreadyVoted", ltag);
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
+        return Ok(());
+    }
+
+    state.yes_votes.insert(voter_id.0);
+    let current_votes = state.yes_votes.len() as i64;
+    let quorum = state.quorum;
+    let total = state.total_players;
+
+    let bot_c = bot.clone();
+    let q_id = q.id.clone();
+    tokio::spawn(async move {
+        let _ = bot_c.answer_callback_query(q_id).await;
+    });
+
+    if current_votes * 2 > total {
+        // Mark completed under the mutex before releasing it so any concurrent
+        // voter that already cloned the Arc will bail out on the completed check.
+        state.completed = true;
+        drop(state);
+
+        // Quorum reached — execute soft reset
+        DB.chat_pig.soft_reset_pigs(group.id).await?;
+
+        let now = get_datetime();
+        DB.other.set_group_reset_at(group.id, now).await?;
+
+        RESET_VOTES.write().await.remove(&chat_id_raw);
+
+        let text = lng("ResetPigsDone", ltag)
+            .args(&[("n", &current_votes.to_string())]);
+        bot.edit_message_text(chat_id, message_id, text.clone()).await?;
+        bot.send_message(chat_id, text).await?;
+    } else {
+        let text = lng("ResetPigsVoteUpdated", ltag).args(&[
+            ("current", &current_votes.to_string()),
+            ("quorum", &quorum.to_string()),
+            ("total", &total.to_string()),
+        ]);
+        bot.edit_message_text(chat_id, message_id, text)
+            .reply_markup(keyboards::keyboard_reset_vote(ltag, state.initiator_id))
+            .await?;
+    }
+
+    Ok(())
 }

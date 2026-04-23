@@ -248,6 +248,12 @@ pub fn keyboard_more_info(ltag: LocaleTag) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(keyboard)
 }
 
+pub fn keyboard_reset_vote(ltag: LocaleTag, initiator_id: UserId) -> InlineKeyboardMarkup {
+    let data = encode_callback_data(CbActions::ResetVote, initiator_id, "");
+    let text = lng("ResetPigsVoteButton", ltag);
+    InlineKeyboardMarkup::new([[InlineKeyboardButton::callback(text, data)]])
+}
+
 pub fn keyboard_empty() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::default()
 }

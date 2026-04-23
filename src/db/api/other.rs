@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
@@ -389,6 +390,22 @@ impl Other {
             .await?;
 
         Ok(results)
+    }
+
+    pub async fn set_group_reset_at(
+        &self,
+        group_id_val: i32,
+        reset_at_val: NaiveDateTime,
+    ) -> MyResult<()> {
+        use crate::db::schema::groups::dsl::*;
+
+        diesel::update(groups)
+            .set(reset_at.eq(reset_at_val))
+            .filter(id.eq(group_id_val))
+            .execute(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get_chats(&self) -> MyResult<Vec<Groups>> {

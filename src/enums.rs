@@ -28,6 +28,7 @@ pub enum MyCommands {
     Lang,
     Louder,
     Achievements,
+    ResetPigs,
 }
 
 #[derive(BotCommands, Clone, Debug)]
@@ -141,6 +142,7 @@ pub enum CbActions {
     SubCheck,
     SubGift,
     GifDecision,
+    ResetVote,
 }
 
 #[derive(IntoStaticStr, EnumString, Display)]

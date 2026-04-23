@@ -52,6 +52,7 @@ pub struct Groups {
     pub ig_id: Option<i32>,
     pub username: Option<String>,
     pub title: String,
+    pub reset_at: Option<NaiveDateTime>,
 }
 
 #[derive(Queryable, AsChangeset)]
@@ -67,6 +68,7 @@ pub struct UpdateGroups {
     pub ig_id: Option<i32>,
     pub username: Option<String>,
     pub title: String,
+    pub reset_at: Option<NaiveDateTime>,
 }
 
 // TODO: split models
@@ -82,6 +84,7 @@ impl Groups {
             ig_id: self.ig_id,
             username: self.username,
             title: self.title,
+            reset_at: self.reset_at,
         }
     }
 }
