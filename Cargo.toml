@@ -7,12 +7,12 @@ edition = "2024"
 
 [dependencies]
 ahash = "0.8.12"
-axum = "0.8.8"
+axum = "0.8.9"
 axum-prometheus = "0.10.0"
 base64 = "0.22.1"
 byteorder = "1.5.0"
 bytes = "1.11.1"
-charts-rs = "0.3.28"
+charts-rs = "0.4.1"
 chrono = { version = "0.4.44", default-features = false, features = [
     "clock",
     "std",
@@ -29,11 +29,11 @@ num-derive = "0.4.2"
 num-traits = "0.2.19"
 ogg-opus = { git = "https://github.com/fr0staman/ogg-opus" }
 pretty_env_logger = "0.5"
-prometheus-client = "0.24.0"
+prometheus-client = "0.24.1"
 rand = { version = "0.9.2", default-features = false, features = [
     "thread_rng",
 ] }
-rayon = "1.11.0"
+rayon = "1.12.0"
 resvg = { version = "0.47.0", default-features = false, features = ["text"] }
 serde_json = "1.0.149"
 strum = { version = "0.28.0", features = ["derive"] }
@@ -43,7 +43,7 @@ teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "b71c3f1d31
     "webhooks-axum",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.50.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.52.1", features = ["rt-multi-thread", "macros"] }
 unicode-width = "0.2.2"
 url = "2.5.8"
 walkdir = "2.5.0"
