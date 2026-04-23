@@ -15,8 +15,8 @@ use tokio::{
 use crate::{
     config::{
         consts::{
-            DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, DUEL_LIST, DUEL_LOCKS,
-            INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG, RESET_VOTES,
+            DAILY_GIFT_AMOUNT, DEFAULT_LANG_TAG, GameState,
+            INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG,
             SUBSCRIBE_GIFT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
         },
         env::BOT_CONFIG,
@@ -44,6 +44,7 @@ use crate::{
 pub async fn filter_callback_commands(
     bot: MyBot,
     q: CallbackQuery,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
     crate::metrics::CALLBACK_COUNTER.inc();
 
@@ -67,14 +68,14 @@ pub async fn filter_callback_commands(
         q.data.as_deref().and_then(helpers::decode_callback_data);
 
     let function = match decoded_data {
-        Some(payload) => _inner_filter(bot, &q, ltag, payload),
+        Some(payload) => _inner_filter(bot, &q, ltag, payload, game_state.clone()),
         None => callback_empty(bot, &q, ltag).boxed(),
     };
 
     let response = function.await;
 
     if let Err(err) = response {
-        _handle_error(temp_bot, q, ltag, err).await?;
+        _handle_error(temp_bot, q, ltag, err, game_state).await?;
     } else {
         log::info!("Handled callback [{}]: user: [{}]", q.id, q.from.id);
     }
@@ -87,6 +88,7 @@ fn _inner_filter<'a>(
     q: &'a CallbackQuery,
     ltag: LocaleTag,
     d: ParsedCallbackData<'a>,
+    game_state: Arc<GameState>,
 ) -> BoxFuture<'a, MyResult<()>> {
     let Ok(matched_enum) = CbActions::from_str(d.0) else {
         return callback_empty(bot, q, ltag).boxed();
@@ -99,7 +101,7 @@ fn _inner_filter<'a>(
         CbActions::FindHryak => callback_find_day_pig(bot, q, ltag, d).boxed(),
         CbActions::AddChat => callback_add_inline_chat(bot, q, ltag, d).boxed(),
         CbActions::Top10 => callback_top10(bot, q, ltag, d).boxed(),
-        CbActions::StartDuel => callback_start_duel(bot, q, ltag, d).boxed(),
+        CbActions::StartDuel => callback_start_duel(bot, q, ltag, d, game_state).boxed(),
         CbActions::TopLeft | CbActions::TopRight => {
             callback_change_top(bot, q, ltag, d).boxed()
         },
@@ -116,7 +118,7 @@ fn _inner_filter<'a>(
         CbActions::GifDecision => {
             callback_gif_decision(bot, q, ltag, d).boxed()
         },
-        CbActions::ResetVote => callback_reset_vote(bot, q, ltag, d).boxed(),
+        CbActions::ResetVote => callback_reset_vote(bot, q, ltag, d, game_state).boxed(),
     }
 }
 
@@ -125,6 +127,7 @@ async fn _handle_error(
     q: CallbackQuery,
     ltag: LocaleTag,
     err: MyError,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
     let Some(im_id) = &q.inline_message_id else {
         crate::myerr!("Error in non-inline callback: {:?}", err);
@@ -139,14 +142,14 @@ async fn _handle_error(
 
     tokio::spawn(async move {
         {
-            let read_locks = DUEL_LOCKS.read().await;
+            let read_locks = game_state.duel_locks.read().await;
 
             if let Some(locks) = read_locks.get(&key) {
                 let cloned_locks = locks.clone();
                 drop(read_locks);
                 cloned_locks.lock().await.retain(|&x| x != thread_identifier);
                 drop(cloned_locks);
-                DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
+                game_state.duel_list.write().await.retain(|&x| x != thread_identifier);
                 log::warn!(
                     "Cleaned errored duel [{}] for user [{}]",
                     thread_identifier,
@@ -434,6 +437,7 @@ async fn callback_start_duel(
     q: &CallbackQuery,
     ltag: LocaleTag,
     data: ParsedCallbackData<'_>,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
     let Some(im_id) = &q.inline_message_id else { return Ok(()) };
 
@@ -463,16 +467,16 @@ async fn callback_start_duel(
     );
 
     {
-        if DUEL_LIST.read().await.contains(&thread_identifier) {
+        if game_state.duel_list.read().await.contains(&thread_identifier) {
             log::warn!("Pending duel here!");
             return Ok(());
         } else {
-            DUEL_LIST.write().await.insert(thread_identifier);
+            game_state.duel_list.write().await.insert(thread_identifier);
         };
     }
 
     {
-        let read_locked_threads = DUEL_LOCKS.read().await;
+        let read_locked_threads = game_state.duel_locks.read().await;
 
         if let Some(user_threads) = read_locked_threads.get(&key) {
             let user_threads = user_threads.clone();
@@ -485,14 +489,15 @@ async fn callback_start_duel(
             locked_threads.push(thread_identifier);
         } else {
             drop(read_locked_threads);
-            DUEL_LOCKS
+            game_state
+                .duel_locks
                 .write()
                 .await
                 .insert(key, Arc::new(Mutex::new(vec![thread_identifier])));
         }
     }
 
-    let read_locked_threads = DUEL_LOCKS.read().await;
+    let read_locked_threads = game_state.duel_locks.read().await;
     let Some(user_threads) = read_locked_threads.get(&key) else {
         crate::myerr!("User threads cleaned after insert or locked!");
         return Ok(());
@@ -506,7 +511,7 @@ async fn callback_start_duel(
     let Some([first, second]) = hrundels else {
         user_locked_threads.retain(|&x| x != thread_identifier);
         drop(user_locked_threads);
-        DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
+        game_state.duel_list.write().await.retain(|&x| x != thread_identifier);
         let text = lng("HandPigNoInBarn", ltag);
         bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());
@@ -573,7 +578,7 @@ async fn callback_start_duel(
 
     user_locked_threads.retain(|&x| x != thread_identifier);
     drop(user_locked_threads);
-    DUEL_LIST.write().await.retain(|&x| x != thread_identifier);
+    game_state.duel_list.write().await.retain(|&x| x != thread_identifier);
 
     log::info!(
         "Ended duel [{}] from user [{}] to [{}]",
@@ -1260,6 +1265,7 @@ async fn callback_reset_vote(
     q: &CallbackQuery,
     ltag: LocaleTag,
     _data: ParsedCallbackData<'_>,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
     let Some(msg) = &q.message else {
         bot.answer_callback_query(q.id.clone()).await?;
@@ -1294,7 +1300,7 @@ async fn callback_reset_vote(
         return Ok(());
     }
 
-    let votes_map = RESET_VOTES.read().await;
+    let votes_map = game_state.reset_votes.read().await;
     let Some(state_arc) = votes_map.get(&chat_id_raw) else {
         // Vote no longer active (race condition or restart)
         drop(votes_map);
@@ -1345,7 +1351,7 @@ async fn callback_reset_vote(
         let now = get_datetime();
         DB.other.set_group_reset_at(group.id, now).await?;
 
-        RESET_VOTES.write().await.remove(&chat_id_raw);
+        game_state.reset_votes.write().await.remove(&chat_id_raw);
 
         let text = lng("ResetPigsDone", ltag)
             .args(&[("n", &current_votes.to_string())]);

@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use ahash::{AHashSet, HashMap, HashSet};
 use teloxide::types::{ParseMode, UserId};
@@ -26,12 +26,6 @@ pub const INLINE_GIF_REWARD_KG: i32 = 250;
 pub const HAND_PIG_ADDITION_ON_SUPPORTED: i32 = 500;
 pub const HAND_PIG_ADDITION_ON_SUBSCRIBED: i32 = 100;
 
-#[allow(clippy::type_complexity)]
-pub static DUEL_LOCKS: LazyLock<RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>> =
-    LazyLock::new(|| RwLock::new(HashMap::default()));
-pub static DUEL_LIST: LazyLock<RwLock<HashSet<u64>>> =
-    LazyLock::new(|| RwLock::new(HashSet::default()));
-
 pub struct ResetVoteState {
     pub initiator_id: UserId,
     pub yes_votes: AHashSet<u64>,
@@ -40,5 +34,20 @@ pub struct ResetVoteState {
     pub completed: bool,
 }
 
-pub static RESET_VOTES: LazyLock<RwLock<HashMap<i64, Arc<Mutex<ResetVoteState>>>>> =
-    LazyLock::new(|| RwLock::new(HashMap::default()));
+pub struct GameState {
+    #[allow(clippy::type_complexity)]
+    pub duel_locks: RwLock<HashMap<u64, Arc<Mutex<Vec<u64>>>>>,
+    pub duel_list: RwLock<HashSet<u64>>,
+    pub reset_votes: RwLock<HashMap<i64, Arc<Mutex<ResetVoteState>>>>,
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        Self {
+            duel_locks: RwLock::new(HashMap::default()),
+            duel_list: RwLock::new(HashSet::default()),
+            reset_votes: RwLock::new(HashMap::default()),
+        }
+    }
+}
+

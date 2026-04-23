@@ -15,8 +15,10 @@ pub use utils::mylog;
 
 use teloxide::{dispatching::UpdateFilterExt, prelude::*, types::MessageKind};
 
+use std::sync::Arc;
+
 use crate::{
-    config::{consts::BOT_PARSE_MODE, env::BOT_CONFIG},
+    config::{consts::{BOT_PARSE_MODE, GameState}, env::BOT_CONFIG},
     enums::{AdminCommands, EpycCommands, MyCommands},
     handlers::{
         admin, callback, command, epyc, feedback, inline, message, system,
@@ -128,7 +130,10 @@ async fn run() {
                 .endpoint(feedback::filter_inline_feedback_commands),
         );
 
+    let game_state = Arc::new(GameState::new());
+
     Dispatcher::builder(bot, handler)
+        .dependencies(dptree::deps![game_state])
         .default_handler(default_log_handler)
         .enable_ctrlc_handler()
         .build()

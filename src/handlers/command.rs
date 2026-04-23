@@ -11,7 +11,7 @@ use teloxide::utils::html::{italic, user_mention};
 use crate::config::consts::{LOUDER_PREMIUM_VOICE_LIMIT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS};
 use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::config::consts::{
-    LOUDER_DEFAULT_VOICE_LIMIT, RESET_VOTES, SUBSCRIBE_GIFT,
+    GameState, LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT,
 };
 use crate::config::consts::ResetVoteState;
 use crate::config::env::BOT_CONFIG;
@@ -40,6 +40,7 @@ pub async fn filter_commands(
     bot: MyBot,
     m: Message,
     cmd: MyCommands,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
     crate::metrics::CMD_COUNTER.inc();
 
@@ -77,7 +78,7 @@ pub async fn filter_commands(
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
         MyCommands::Louder => command_louder(bot, &m, ltag).boxed(),
         MyCommands::Achievements => command_achievements(bot, &m, ltag).boxed(),
-        MyCommands::ResetPigs => command_reset_pigs(bot, &m, ltag).boxed(),
+        MyCommands::ResetPigs => command_reset_pigs(bot, &m, ltag, game_state).boxed(),
     };
 
     let response = function.await;
@@ -228,9 +229,8 @@ async fn command_print(
         };
 
         tokio::spawn(async move {
-            let res = request.await;
-            if res.is_err() {
-                log::error!("Print error {:?}", res);
+            if let Err(err) = request.await {
+                crate::myerr!("command_print send error: {:?}", err);
             }
         });
     }
@@ -841,6 +841,7 @@ async fn command_reset_pigs(
     bot: MyBot,
     m: &Message,
     ltag: LocaleTag,
+    game_state: Arc<GameState>,
 ) -> MyResult<()> {
 
     // Only in group chats
@@ -862,7 +863,7 @@ async fn command_reset_pigs(
 
     // Fast-path: check if a vote is already active (avoids DB round-trips)
     {
-        let votes = RESET_VOTES.read().await;
+        let votes = game_state.reset_votes.read().await;
         if let Some(state) = votes.get(&chat_id_raw) {
             let state = state.lock().await;
             let text = lng("ResetPigsVoteActive", ltag).args(&[
@@ -912,7 +913,7 @@ async fn command_reset_pigs(
     // Authoritative check-and-insert under write lock — prevents two admins
     // racing past the fast-path read and both starting a vote.
     {
-        let mut votes = RESET_VOTES.write().await;
+        let mut votes = game_state.reset_votes.write().await;
         if let Some(existing) = votes.get(&chat_id_raw) {
             let state = existing.lock().await;
             let text = lng("ResetPigsVoteActive", ltag).args(&[
