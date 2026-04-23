@@ -1,2 +1,2 @@
-CREATE INDEX CONCURRENTLY grow_log_game_id_created_at_idx
+CREATE INDEX grow_log_game_id_created_at_idx
     ON grow_log (game_id, created_at DESC);
