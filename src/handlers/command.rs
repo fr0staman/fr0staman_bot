@@ -557,7 +557,7 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let markup = keyboards::keyboard_top(ltag, 1, from.id, is_end);
 
     if with_chart {
-        let data = DB.chat_pig.get_top10_by_7days_growth(m.chat.id.0).await?;
+        let data = DB.chat_pig.get_top10_by_14days_growth(m.chat.id.0).await?;
 
         let Some(chart) = generate_charts(
             data,

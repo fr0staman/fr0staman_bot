@@ -22,7 +22,7 @@ pub async fn generate_charts(
     let (send, recv) = tokio::sync::oneshot::channel();
 
     rayon::spawn(move || {
-        let encoded = generate_charts_inner(data, title, 7);
+        let encoded = generate_charts_inner(data, title, 14);
         let _ = send.send(encoded);
     });
 
@@ -147,53 +147,48 @@ fn normalize_data(
         game.name = chars.into_iter().collect();
     }
 
-    for (game, grow_logs) in data {
-        let mut normalized = Vec::with_capacity(user_dates.len());
-
-        let mut first_fix_weight =
-            grow_logs.first().map_or(game.mass, |v| v.current_weight);
+    for (game, mut grow_logs) in data {
+        grow_logs.sort_unstable_by_key(|l| l.created_at);
 
         let mut logs_by_date = AHashMap::with_capacity(grow_logs.len());
         for log in grow_logs {
             logs_by_date.insert(log.created_at.date(), log);
         }
 
+        // Pig had history before the window if its earliest in-window log is
+        // not its very first ever log (current_weight == weight_change + 1
+        // only holds for the first-ever grow starting from mass 1).
+        let first_in_window = logs_by_date
+            .keys()
+            .min()
+            .and_then(|d| logs_by_date.get(d));
+        let had_prior_history = first_in_window
+            .map(|l| l.current_weight != l.weight_change + 1)
+            .unwrap_or(false);
+
+        let mut current_weight = first_in_window
+            .map(|l| l.current_weight)
+            .unwrap_or(game.mass);
+
+        let mut normalized = Vec::with_capacity(user_dates.len());
+
         for day in &user_dates {
             if let Some(log) = logs_by_date.get(day) {
-                first_fix_weight = log.current_weight;
+                current_weight = log.current_weight;
                 normalized.push(log.clone());
-            } else if logs_by_date.is_empty() || !normalized.is_empty() {
+            } else if logs_by_date.is_empty()
+                || !normalized.is_empty()
+                || had_prior_history
+            {
                 normalized.push(GrowLog {
                     id: 0,
                     game_id: game.id,
                     created_at: day.and_time(NaiveTime::MIN),
                     weight_change: 0,
-                    current_weight: first_fix_weight,
+                    current_weight,
                 });
-            } else {
-                // skip filling before first real log
-                // if first log exists but weight != weight_change + 1, treat as not real first
-                let mut real_first = false;
-                if !logs_by_date.is_empty() {
-                    let mut keys: Vec<_> = logs_by_date.keys().collect();
-                    keys.sort();
-                    let first_date = keys[0];
-                    let first_log = logs_by_date.get(first_date).unwrap();
-                    if first_log.current_weight != first_log.weight_change + 1 {
-                        real_first = true;
-                    }
-                }
-
-                if real_first {
-                    normalized.push(GrowLog {
-                        id: 0,
-                        game_id: game.id,
-                        created_at: day.and_time(chrono::NaiveTime::MIN),
-                        weight_change: 0,
-                        current_weight: first_fix_weight,
-                    });
-                }
             }
+            // else: pig started within the window but hasn't grown yet on this day — skip
         }
 
         result.push((game, normalized));

@@ -320,7 +320,7 @@ impl ChatPig {
         Ok(())
     }
 
-    pub async fn get_top10_by_7days_growth(
+    pub async fn get_top10_by_14days_growth(
         &self,
         id_chat: i64,
     ) -> MyResult<Vec<(Game, Vec<GrowLog>)>> {
@@ -330,7 +330,7 @@ impl ChatPig {
 
         let pool = &mut self.pool.get().await?;
         let today = get_datetime();
-        let start_date = today - Duration::days(6);
+        let start_date = today - Duration::days(13);
 
         let top_users = game
             .filter(groups::chat_id.eq(id_chat))
