@@ -273,5 +273,6 @@
   "Achievement_601": "Donuz yaydı 🐷💬",
   "Achievement_602": "Donuzluq səfiri 🎖️🐷",
   "Achievement_603": "HRUKLID-19 🦠🐷",
-  "TopChartsTitle": "Graph top-10 Çoşqalotuşların {chat_name}"
+  "TopChartsTitle": "Graph top-10 Çoşqalotuşların {chat_name}",
+  "MyPigChartTitle": "{name} üçün 14 günlük artım"
 }

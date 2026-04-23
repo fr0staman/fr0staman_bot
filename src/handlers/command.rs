@@ -22,7 +22,7 @@ use crate::enums::MyCommands;
 use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, get_tag_opt, lng, tag_one_two_or};
 use crate::services::achievements::{self, Ach};
-use crate::services::charts::generate_charts;
+use crate::services::charts::{generate_charts, generate_my_chart};
 use crate::traits::{
     MaybeMessageSetter, MaybePhotoSetter, MaybeVoiceSetter,
     SimpleDisableWebPagePreview,
@@ -490,12 +490,31 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         });
     }
 
+    let user = DB.other.get_user(from.id.0 as i64).await?;
+    let supported = user.is_some_and(|u| u.supported);
+
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
-    bot.send_message(m.chat.id, text)
-        .link_preview_options(LinkPreviewOptions::disable(true))
-        .maybe_thread_id(m)
-        .await?;
+
+    if supported {
+        let logs =
+            DB.chat_pig.get_grow_log_by_game_14days(pig.id).await?;
+        let Some(chart) = generate_my_chart(pig, logs, ltag).await else {
+            return Err(MyError::Unknown(
+                "Charts generation error".to_string(),
+            ));
+        };
+
+        bot.send_photo(m.chat.id, InputFile::memory(chart))
+            .caption(text)
+            .maybe_thread_id(m)
+            .await?;
+    } else {
+        bot.send_message(m.chat.id, text)
+            .link_preview_options(LinkPreviewOptions::disable(true))
+            .maybe_thread_id(m)
+            .await?;
+    }
     Ok(())
 }
 

@@ -6,6 +6,7 @@ use chrono::{Duration, NaiveTime};
 use unicode_width::UnicodeWidthChar;
 
 use crate::{
+    config::consts::CHARTS_PIXELS_WIDTH,
     db::models::{Game, GrowLog},
     lang::{InnerLang, LocaleTag, lng},
     services::save_image::svg_to_png,
@@ -17,10 +18,28 @@ pub async fn generate_charts(
     chat_name: String,
     ltag: LocaleTag,
 ) -> Option<Vec<u8>> {
+    let title = lng("TopChartsTitle", ltag).args(&[("chat_name", &chat_name)]);
     let (send, recv) = tokio::sync::oneshot::channel();
 
     rayon::spawn(move || {
-        let encoded = generate_charts_inner(data, chat_name, ltag);
+        let encoded = generate_charts_inner(data, title, 7);
+        let _ = send.send(encoded);
+    });
+
+    recv.await.ok()?
+}
+
+pub async fn generate_my_chart(
+    game: Game,
+    logs: Vec<GrowLog>,
+    ltag: LocaleTag,
+) -> Option<Vec<u8>> {
+    let title = lng("MyPigChartTitle", ltag).args(&[("name", &game.name)]);
+    let data = vec![(game, logs)];
+    let (send, recv) = tokio::sync::oneshot::channel();
+
+    rayon::spawn(move || {
+        let encoded = generate_charts_inner(data, title, 14);
         let _ = send.send(encoded);
     });
 
@@ -29,10 +48,10 @@ pub async fn generate_charts(
 
 fn generate_charts_inner(
     data: Vec<(Game, Vec<GrowLog>)>,
-    chat_name: String,
-    ltag: LocaleTag,
+    title: String,
+    days: i64,
 ) -> Option<Vec<u8>> {
-    let data = normalize_data(data);
+    let data = normalize_data(data, days);
 
     let mut all_dates = BTreeSet::new();
 
@@ -94,27 +113,27 @@ fn generate_charts_inner(
         bottom: 20.0,
         ..Default::default()
     });
-    line_chart.title_text =
-        lng("TopChartsTitle", ltag).args(&[("chat_name", chat_name)]);
+    line_chart.title_text = title;
     line_chart.font_family = "Roboto".to_string();
 
     line_chart.y_axis_configs[0].axis_min = Some(min_value);
 
     let svg = line_chart.svg().ok()?;
 
-    svg_to_png(&svg).ok()
+    svg_to_png(&svg, CHARTS_PIXELS_WIDTH).ok()
 }
 
 fn normalize_data(
     mut data: Vec<(Game, Vec<GrowLog>)>,
+    days: i64,
 ) -> Vec<(Game, Vec<GrowLog>)> {
     let mut result = Vec::new();
 
     let today = get_datetime();
-    let start_date = today - Duration::days(6);
+    let start_date = today - Duration::days(days - 1);
 
     let user_dates: Vec<_> =
-        (0..7).map(|i| (start_date + Duration::days(i)).date()).collect();
+        (0..days).map(|i| (start_date + Duration::days(i)).date()).collect();
 
     for (game, _) in data.iter_mut() {
         let mut chars: Vec<_> = game.name.chars().collect();

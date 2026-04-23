@@ -272,5 +272,6 @@
   "Achievement_601": "Насвинячив 🐷💬",
   "Achievement_602": "Посол свинства 🎖️🐷",
   "Achievement_603": "HRUKLID-19 🦠🐷",
-  "TopChartsTitle": "График топ-10 швайнокарасей {chat_name}"
+  "TopChartsTitle": "График топ-10 швайнокарасей {chat_name}",
+  "MyPigChartTitle": "Динамика роста {name} за 14 дней"
 }

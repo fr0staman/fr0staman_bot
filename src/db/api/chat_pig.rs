@@ -249,6 +249,24 @@ impl ChatPig {
         Ok(results)
     }
 
+    pub async fn get_grow_log_by_game_14days(
+        &self,
+        id_game: i32,
+    ) -> MyResult<Vec<GrowLog>> {
+        use crate::db::schema::grow_log::dsl::*;
+
+        let today = get_datetime();
+        let start_date = today - Duration::days(13);
+
+        let results = grow_log
+            .filter(game_id.eq(id_game))
+            .filter(created_at.ge(start_date).and(created_at.le(today)))
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
     pub async fn add_grow_log_by_game(
         &self,
         about_grow: GrowLogAdd,

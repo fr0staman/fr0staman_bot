@@ -25,6 +25,7 @@ pub const INLINE_VOICE_REWARD_KG: i32 = 250;
 pub const INLINE_GIF_REWARD_KG: i32 = 250;
 pub const HAND_PIG_ADDITION_ON_SUPPORTED: i32 = 500;
 pub const HAND_PIG_ADDITION_ON_SUBSCRIBED: i32 = 100;
+pub const CHARTS_PIXELS_WIDTH: u32 = 1280;
 
 pub struct ResetVoteState {
     pub initiator_id: UserId,

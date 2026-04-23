@@ -24,19 +24,28 @@ static GLOBAL_FONT_DB: LazyLock<Arc<fontdb::Database>> = LazyLock::new(|| {
     Arc::new(fontdb)
 });
 
-pub fn svg_to_png(svg: &str) -> SaveResult<Vec<u8>> {
+pub fn svg_to_png(svg: &str, w: u32) -> SaveResult<Vec<u8>> {
     let tree = usvg::Tree::from_str(
         svg,
         &usvg::Options { fontdb: GLOBAL_FONT_DB.clone(), ..Default::default() },
     )?;
     let pixmap_size = tree.size().to_int_size();
+
+    let sx = w as f32 / pixmap_size.width() as f32;
+
+    let sy = sx;
+    let h = (pixmap_size.height() as f32 * sx).round() as u32;
+
     let mut pixmap =
-        tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height())
-            .ok_or_else(|| SavingError::Size {
-                width: pixmap_size.width(),
-                height: pixmap_size.height(),
-            })?;
-    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+        tiny_skia::Pixmap::new(w, h).ok_or_else(|| SavingError::Size {
+            width: pixmap_size.width(),
+            height: pixmap_size.height(),
+        })?;
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::from_scale(sx, sy),
+        &mut pixmap.as_mut(),
+    );
 
     let data = pixmap.encode_png().map_err(|_| SavingError::Image)?;
 

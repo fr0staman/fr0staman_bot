@@ -272,5 +272,6 @@
   "Achievement_601": "Pigged Around 🐷💬",
   "Achievement_602": "Ambassador of Swinery 🎖️🐷",
   "Achievement_603": "HRUKLID-19 🦠🐷",
-  "TopChartsTitle": "Graph top-10 schweinehryaks {chat_name}"
+  "TopChartsTitle": "Graph top-10 schweinehryaks {chat_name}",
+  "MyPigChartTitle": "14-day growth of {name}"
 }
