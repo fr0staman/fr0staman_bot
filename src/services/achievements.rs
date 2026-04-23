@@ -28,6 +28,9 @@ pub enum Ach {
     FiveMetersOfFat = 204,
     TonOfPig = 205,
     Jackpot = 206,
+    DemonPig = 207,
+    AdultPig = 208,
+    PlanetPig = 209,
 
     // Cyclic
     FeederOfTheYear = 301,
@@ -37,17 +40,29 @@ pub enum Ach {
     Pendulum = 305,
     GroundhogDay = 306,
     NoChangeThreeDays = 307,
+    WeeklyDedication = 308,
+    Fortnight = 309,
+    HungryStreak = 310,
 
     // Special
     InfinityWar = 401,
     EternalGenin = 402,
     NewYearPig = 403,
     //PigOfTheDay = 404,
+    Pigolator = 405,
 
     // Date or time
     ZeroHour = 501,
     Agent007 = 502,
     NewHope = 503,
+    LovePig = 504,
+    HalloweenPig = 505,
+    PeremogaBude = 506,
+
+    // Social
+    PigInTwoChats = 601,
+    PigEverywhere = 602,
+    Hruklid19 = 603,
 }
 
 pub async fn check_achievements(
@@ -132,6 +147,15 @@ pub async fn check_achievements(
 
     // 10. "Джекпот" — набрати 777 кг
     let jackpot = || chat_pig.mass == 777;
+
+    // 11. "Демон" — набрати 666 кг
+    let demon_pig = || chat_pig.mass == 666;
+
+    // 12. "Дорослий" — набрати 18 кг
+    let adult_pig = || chat_pig.mass == 18;
+
+    // 13. "Мати-Земля" — набрати 5000+ кг
+    let planet_pig = || chat_pig.mass >= 5000;
 
     // 1. "Годувальник року" — 5 разів підряд +20 кг
     let feeder_of_the_year = || {
@@ -233,6 +257,40 @@ pub async fn check_achievements(
             .is_some_and(|last| last.iter().all(|v| v.weight_change == 0))
     };
 
+    // 8. "Тижнева відданість" — 7 днів підряд
+    let weekly_dedication = || {
+        let n = 7usize;
+        if grow_log.len() < n {
+            return false;
+        }
+        let last_n = &grow_log[grow_log.len() - n..];
+        let first_date = last_n[0].created_at.date();
+        let last_date = last_n[n - 1].created_at.date();
+        last_date == now.date()
+            && last_date - first_date == Duration::days((n - 1) as i64)
+    };
+
+    // 9. "Два тижні" — 14 днів підряд
+    let fortnight = || {
+        let n = 14usize;
+        if grow_log.len() < n {
+            return false;
+        }
+        let last_n = &grow_log[grow_log.len() - n..];
+        let first_date = last_n[0].created_at.date();
+        let last_date = last_n[n - 1].created_at.date();
+        last_date == now.date()
+            && last_date - first_date == Duration::days((n - 1) as i64)
+    };
+
+    // 10. "Голодний стрік" — 5 днів підряд будь-який приріст
+    let hungry_streak = || {
+        grow_log
+            .windows(5)
+            .last()
+            .is_some_and(|days| days.iter().all(|d| d.weight_change > 0))
+    };
+
     // 8. "Війна Хрюконечності" — схуд до 1 кг і останній дельта -20
     let infinity_war = || {
         grow_log
@@ -268,6 +326,15 @@ pub async fn check_achievements(
     // 3. "Нова надія" — погодувати 1 числа
     let new_hope = || now.day() == 1;
 
+    // 4. "Свиня кохання" — погодувати 14 лютого
+    let love_pig = || now.month() == 2 && now.day() == 14;
+
+    // 5. "Хеловін" — погодувати 31 жовтня
+    let halloween_pig = || now.month() == 10 && now.day() == 31;
+
+    // 6. "Перемога буде" — погодувати 15 травня
+    let peremoga_bude = || now.month() == 5 && now.day() == 15;
+
     // Try to economy compute, in future database requests
     push_if(&mut new, first_loss, Ach::FirstLoss, &achieved);
     push_if(&mut new, kama_sutra, Ach::KamaSutra, &achieved);
@@ -278,6 +345,9 @@ pub async fn check_achievements(
     push_if(&mut new, five_meters_of_fat, Ach::FiveMetersOfFat, &achieved);
     push_if(&mut new, ton_of_pig, Ach::TonOfPig, &achieved);
     push_if(&mut new, jackpot, Ach::Jackpot, &achieved);
+    push_if(&mut new, demon_pig, Ach::DemonPig, &achieved);
+    push_if(&mut new, adult_pig, Ach::AdultPig, &achieved);
+    push_if(&mut new, planet_pig, Ach::PlanetPig, &achieved);
     push_if(&mut new, rollercoaster, Ach::Rollercoaster, &achieved);
     push_if(&mut new, feeder_of_the_year, Ach::FeederOfTheYear, &achieved);
     push_if(&mut new, schrodinger_pig, Ach::SchrodingerPig, &achieved);
@@ -291,12 +361,35 @@ pub async fn check_achievements(
     push_if(&mut new, pendulum, Ach::Pendulum, &achieved);
     push_if(&mut new, groundhog_day, Ach::GroundhogDay, &achieved);
     push_if(&mut new, no_change_three_days, Ach::NoChangeThreeDays, &achieved);
+    push_if(&mut new, weekly_dedication, Ach::WeeklyDedication, &achieved);
+    push_if(&mut new, fortnight, Ach::Fortnight, &achieved);
+    push_if(&mut new, hungry_streak, Ach::HungryStreak, &achieved);
     push_if(&mut new, infinity_war, Ach::InfinityWar, &achieved);
     push_if(&mut new, eternal_genin, Ach::EternalGenin, &achieved);
     push_if(&mut new, new_year_pig, Ach::NewYearPig, &achieved);
     push_if(&mut new, zero_hour, Ach::ZeroHour, &achieved);
     push_if(&mut new, agent_007, Ach::Agent007, &achieved);
     push_if(&mut new, new_hope, Ach::NewHope, &achieved);
+    push_if(&mut new, love_pig, Ach::LovePig, &achieved);
+    push_if(&mut new, halloween_pig, Ach::HalloweenPig, &achieved);
+    push_if(&mut new, peremoga_bude, Ach::PeremogaBude, &achieved);
+
+    if !achieved.contains(&Ach::PigInTwoChats)
+        || !achieved.contains(&Ach::PigEverywhere)
+        || !achieved.contains(&Ach::Hruklid19)
+    {
+        let chat_count =
+            DB.chat_pig.count_active_chats_by_uid(chat_pig.uid).await?;
+        if !achieved.contains(&Ach::PigInTwoChats) && chat_count >= 2 {
+            new.push(Ach::PigInTwoChats);
+        }
+        if !achieved.contains(&Ach::PigEverywhere) && chat_count >= 5 {
+            new.push(Ach::PigEverywhere);
+        }
+        if !achieved.contains(&Ach::Hruklid19) && chat_count >= 10 {
+            new.push(Ach::Hruklid19);
+        }
+    }
 
     for new_achievement in &new {
         let new_achievement = AchievementUserAdd {
@@ -308,6 +401,28 @@ pub async fn check_achievements(
     }
 
     Ok(new)
+}
+
+pub async fn check_name_achievements(id_game: i32) -> MyResult<Vec<Ach>> {
+    use crate::utils::date::get_datetime;
+
+    let achieved = DB.other.get_achievements_by_game_id(id_game).await?;
+    let achieved: Vec<_> =
+        achieved.iter().filter_map(|v| Ach::from_i16(v.code)).collect();
+
+    if achieved.contains(&Ach::Pigolator) {
+        return Ok(vec![]);
+    }
+
+    DB.other
+        .add_achievement(AchievementUserAdd {
+            game_id: id_game,
+            created_at: get_datetime(),
+            code: Ach::Pigolator as i16,
+        })
+        .await?;
+
+    Ok(vec![Ach::Pigolator])
 }
 
 fn push_if<F: FnOnce() -> bool>(

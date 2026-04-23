@@ -431,6 +431,19 @@ async fn command_name(
         .set_chat_pig_name(from.id.0 as i64, m.chat.id.0, payload)
         .await?;
 
+    let pig_id = pig.id;
+    let pig_uid = pig.uid;
+    let message = m.clone();
+    let outer_bot = bot.clone();
+    tokio::spawn(async move {
+        let new_achievements = achievements::check_name_achievements(pig_id).await;
+        if let Ok(new) = new_achievements {
+            let _ =
+                _handle_new_achievements(outer_bot, &message, ltag, pig_id, pig_uid, new)
+                    .await;
+        }
+    });
+
     bot.send_message(m.chat.id, text)
         .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)

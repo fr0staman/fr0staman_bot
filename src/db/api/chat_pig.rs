@@ -194,6 +194,27 @@ impl ChatPig {
         Ok(results)
     }
 
+    pub async fn count_active_chats_by_uid(&self, id_uid: i32) -> MyResult<i64> {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+
+        let row: Row = diesel::sql_query(
+            "SELECT COUNT(*) AS count \
+             FROM game \
+             WHERE uid = $1 \
+             AND group_id IN \
+               (SELECT group_id FROM game GROUP BY group_id HAVING COUNT(*) >= 4)",
+        )
+        .bind::<diesel::sql_types::Integer, _>(id_uid)
+        .get_result(&mut self.pool.get().await?)
+        .await?;
+
+        Ok(row.count)
+    }
+
     pub async fn count_chat_pig(
         &self,
         id_chat: i64,
