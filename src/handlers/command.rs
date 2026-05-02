@@ -8,12 +8,14 @@ use teloxide::types::{
 };
 use teloxide::utils::html::{italic, user_mention};
 
-use crate::config::consts::{LOUDER_PREMIUM_VOICE_LIMIT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS};
+use crate::config::consts::ResetVoteState;
 use crate::config::consts::{CHAT_PIG_START_MASS, LOUDER_DEFAULT_RATIO};
 use crate::config::consts::{
     GameState, LOUDER_DEFAULT_VOICE_LIMIT, SUBSCRIBE_GIFT,
 };
-use crate::config::consts::ResetVoteState;
+use crate::config::consts::{
+    LOUDER_PREMIUM_VOICE_LIMIT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
+};
 use crate::config::env::BOT_CONFIG;
 use crate::db::DB;
 use crate::db::models::{GrowLogAdd, UserStatus};
@@ -78,7 +80,9 @@ pub async fn filter_commands(
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
         MyCommands::Louder => command_louder(bot, &m, ltag).boxed(),
         MyCommands::Achievements => command_achievements(bot, &m, ltag).boxed(),
-        MyCommands::ResetPigs => command_reset_pigs(bot, &m, ltag, game_state).boxed(),
+        MyCommands::ResetPigs => {
+            command_reset_pigs(bot, &m, ltag, game_state).boxed()
+        },
     };
 
     let response = function.await;
@@ -436,11 +440,13 @@ async fn command_name(
     let message = m.clone();
     let outer_bot = bot.clone();
     tokio::spawn(async move {
-        let new_achievements = achievements::check_name_achievements(pig_id).await;
+        let new_achievements =
+            achievements::check_name_achievements(pig_id).await;
         if let Ok(new) = new_achievements {
-            let _ =
-                _handle_new_achievements(outer_bot, &message, ltag, pig_id, pig_uid, new)
-                    .await;
+            let _ = _handle_new_achievements(
+                outer_bot, &message, ltag, pig_id, pig_uid, new,
+            )
+            .await;
         }
     });
 
@@ -490,31 +496,19 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         });
     }
 
-    let user = DB.other.get_user(from.id.0 as i64).await?;
-    let supported = user.is_some_and(|u| u.supported);
-
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
 
-    if supported {
-        let logs =
-            DB.chat_pig.get_grow_log_by_game_14days(pig.id).await?;
-        let Some(chart) = generate_my_chart(pig, logs, ltag).await else {
-            return Err(MyError::Unknown(
-                "Charts generation error".to_string(),
-            ));
-        };
+    let logs = DB.chat_pig.get_grow_log_by_game_14days(pig.id).await?;
+    let Some(chart) = generate_my_chart(pig, logs, ltag).await else {
+        return Err(MyError::Unknown("Charts generation error".to_string()));
+    };
 
-        bot.send_photo(m.chat.id, InputFile::memory(chart))
-            .caption(text)
-            .maybe_thread_id(m)
-            .await?;
-    } else {
-        bot.send_message(m.chat.id, text)
-            .link_preview_options(LinkPreviewOptions::disable(true))
-            .maybe_thread_id(m)
-            .await?;
-    }
+    bot.send_photo(m.chat.id, InputFile::memory(chart))
+        .caption(text)
+        .maybe_thread_id(m)
+        .await?;
+
     Ok(())
 }
 
@@ -553,7 +547,8 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     let text = generate_chat_top_text(ltag, top_pigs, 0, with_chart);
 
-    let is_end = pig_count < (if with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT });
+    let is_end = pig_count
+        < (if with_chart { TOP_LIMIT_WITH_CHARTS } else { TOP_LIMIT });
     let markup = keyboards::keyboard_top(ltag, 1, from.id, is_end);
 
     if with_chart {
@@ -875,7 +870,6 @@ async fn command_reset_pigs(
     ltag: LocaleTag,
     game_state: Arc<GameState>,
 ) -> MyResult<()> {
-
     // Only in group chats
     if let ChatKind::Private(_) = m.chat.kind {
         return Ok(());
