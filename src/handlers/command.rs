@@ -5,7 +5,7 @@ use strum::{EnumCount, VariantArray};
 use teloxide::prelude::*;
 use teloxide::RequestError;
 use teloxide::types::{
-    ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds,
+    ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds, UserId,
 };
 use teloxide::utils::html::{italic, user_mention};
 
@@ -76,6 +76,8 @@ pub async fn filter_commands(
         MyCommands::Name(arg) => command_name(bot, &m, ltag, arg).boxed(),
         MyCommands::My => command_my(bot, &m, ltag).boxed(),
         MyCommands::Top => command_top(bot, &m, ltag).boxed(),
+        MyCommands::DayPig => command_day_pig(bot, &m, ltag).boxed(),
+        MyCommands::DayPigs => command_daypigs(bot, &m, ltag).boxed(),
         MyCommands::Game => command_game(bot, &m, ltag).boxed(),
         MyCommands::Lang => command_lang(bot, &m, ltag).boxed(),
         MyCommands::Id => command_id(bot, &m, ltag).boxed(),
@@ -580,6 +582,178 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
             .maybe_thread_id(m)
             .await?;
     }
+    Ok(())
+}
+
+async fn command_day_pig(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    use teloxide::types::PublicChatKind;
+    use tokio::time::{Duration, sleep};
+
+    use crate::services;
+    use crate::utils::date::get_date;
+
+    let ChatKind::Public(ref public) = m.chat.kind else {
+        let text = lng("DayPigCommandNotSupergroup", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    };
+
+    if !matches!(public.kind, PublicChatKind::Supergroup(_)) {
+        let text = lng("DayPigCommandNotSupergroup", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    }
+
+    let Some(chat_info) = shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
+        return Ok(());
+    };
+
+    let Some(ig_id) = chat_info.ig_id else {
+        let text = lng("DayPigCommandNoInlineGroup", ltag);
+        bot.send_message(m.chat.id, text)
+            .reply_markup(keyboards::keyboard_day_pig_to_inline_current_chat(
+                ltag,
+            ))
+            .maybe_thread_id(m)
+            .await?;
+        return Ok(());
+    };
+
+    let cur_date = get_date();
+
+    let result =
+        services::day_pig::select_and_record(ig_id, chat_info.id, cur_date)
+            .await?;
+
+    match result {
+        None => {
+            let inline_group =
+                DB.hand_pig.get_inline_group_by_id(ig_id).await?;
+            let chat_instance = inline_group
+                .map(|ig| ig.chat_instance.to_string())
+                .unwrap_or_default();
+
+            if let Some(today) = DB
+                .hand_pig
+                .get_hryak_day_in_chat(&chat_instance, cur_date)
+                .await?
+            {
+                let text = lng("DayPigAlreadyFound", ltag)
+                    .args(&[("name", today.3.first_name)]);
+                bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            } else {
+                let text = lng("HandPigNoInBarn", ltag);
+                bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+            }
+        },
+        Some(selected) => {
+            let mention = user_mention(
+                UserId(selected.user.user_id as u64),
+                &selected.user.first_name,
+            );
+            let msg = bot
+                .send_message(m.chat.id, lng("DayPigLabel1", ltag))
+                .maybe_thread_id(m)
+                .await?;
+            sleep(Duration::from_secs(2)).await;
+            bot.edit_message_text(
+                m.chat.id,
+                msg.id,
+                lng("DayPigLabel2", ltag),
+            )
+            .await?;
+            sleep(Duration::from_secs(2)).await;
+            bot.edit_message_text(
+                m.chat.id,
+                msg.id,
+                lng("DayPigLabel3", ltag),
+            )
+            .await?;
+            sleep(Duration::from_secs(2)).await;
+            bot.edit_message_text(
+                m.chat.id,
+                msg.id,
+                lng("DayPigFound", ltag).args(&[("mention", mention)]),
+            )
+            .await?;
+
+            if let Some(gid) = selected.game_id {
+                let _ = services::day_pig::notify_achievements(
+                    &bot,
+                    m.chat.id,
+                    ltag,
+                    gid,
+                    selected.user.id,
+                    &selected.new_achievements,
+                )
+                .await;
+            }
+        },
+    }
+
+    Ok(())
+}
+
+async fn command_daypigs(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+) -> MyResult<()> {
+    if let ChatKind::Private(_) = m.chat.kind {
+        _game_only_for_chats(bot, m, ltag).await?;
+        return Ok(());
+    }
+
+    let Some(chat_info) = shortcuts::maybe_get_or_insert_chat(&m.chat).await?
+    else {
+        return Ok(());
+    };
+
+    let Some(ig_id) = chat_info.ig_id else {
+        let text = lng("DayPigCommandNoInlineGroup", ltag);
+        bot.send_message(m.chat.id, text)
+            .reply_markup(keyboards::keyboard_day_pig_to_inline_current_chat(
+                ltag,
+            ))
+            .maybe_thread_id(m)
+            .await?;
+        return Ok(());
+    };
+
+    use crate::utils::flag::Flags;
+    use crate::utils::helpers::escape_links;
+    use teloxide::utils::html::bold;
+
+    let rows = DB.hand_pig.get_day_pig_counts_by_chat(ig_id).await?;
+
+    if rows.is_empty() {
+        let text = lng("DayPigsEmpty", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    }
+
+    let header = bold(&lng("DayPigsHeader", ltag));
+    let mut text = String::with_capacity(512) + &header;
+    for (index, (name, flag, count)) in rows.iter().enumerate() {
+        let flag_emoji = Flags::from_code(flag)
+            .map(|f| f.to_emoji())
+            .unwrap_or("🐷");
+        let line = lng("DayPigsLine", ltag).args(&[
+            ("number", (index + 1).to_string()),
+            ("flag", flag_emoji.to_string()),
+            ("name", escape_links(name)),
+            ("value", count.to_string()),
+        ]);
+        text += &("\n".to_owned() + &line);
+    }
+
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+
     Ok(())
 }
 

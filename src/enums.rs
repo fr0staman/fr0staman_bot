@@ -24,6 +24,8 @@ pub enum MyCommands {
     Name(String),
     My,
     Top,
+    DayPig,
+    DayPigs,
     Game,
     Lang,
     Louder,

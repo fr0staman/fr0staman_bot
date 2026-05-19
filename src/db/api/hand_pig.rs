@@ -1,6 +1,6 @@
 use chrono::{NaiveDate, NaiveDateTime};
 use diesel::{
-    dsl::{case_when, sql},
+    dsl::case_when,
     prelude::*,
 };
 use diesel_async::RunQueryDsl;
@@ -264,26 +264,6 @@ impl HandPig {
         Ok(())
     }
 
-    pub async fn get_rand_inline_user_group_by_chat(
-        &self,
-        instance_chat: &str,
-    ) -> MyResult<Option<InlineUsersGroup>> {
-        use crate::db::schema::inline_groups;
-        use crate::db::schema::inline_users_groups;
-
-        let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
-        let results = inline_users_groups::table
-            .inner_join(inline_groups::table)
-            .filter(inline_groups::chat_instance.eq(parsed_instance))
-            .select(InlineUsersGroup::as_select())
-            .order_by(sql::<diesel::sql_types::Float>("RANDOM()"))
-            .first(&mut self.pool.get().await?)
-            .await
-            .optional()?;
-
-        Ok(results)
-    }
-
     pub async fn get_group_user(
         &self,
         instance_chat: &str,
@@ -327,6 +307,92 @@ impl HandPig {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_inline_users_with_user_by_chat(
+        &self,
+        chat_instance: &str,
+    ) -> MyResult<Vec<(InlineUsersGroup, User)>> {
+        use crate::db::schema::inline_groups;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::inline_users_groups;
+        use crate::db::schema::users;
+
+        let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
+        let results = inline_users_groups::table
+            .inner_join(inline_groups::table)
+            .inner_join(inline_users::table.inner_join(users::table))
+            .filter(inline_groups::chat_instance.eq(parsed_instance))
+            .select((InlineUsersGroup::as_select(), User::as_select()))
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_iug_by_ids(
+        &self,
+        id_iu: i32,
+        id_ig: i32,
+    ) -> MyResult<Option<InlineUsersGroup>> {
+        use crate::db::schema::inline_users_groups::dsl::*;
+
+        let result = inline_users_groups
+            .filter(iu_id.eq(id_iu))
+            .filter(ig_id.eq(id_ig))
+            .select(InlineUsersGroup::as_select())
+            .first(&mut self.pool.get().await?)
+            .await
+            .optional()?;
+
+        Ok(result)
+    }
+
+    pub async fn get_day_pig_counts_by_chat(
+        &self,
+        ig_id_val: i32,
+    ) -> MyResult<Vec<(String, String, i64)>> {
+        use crate::db::schema::hryak_day;
+        use crate::db::schema::inline_users;
+        use crate::db::schema::inline_users_groups;
+        use diesel::dsl::count;
+
+        let results = hryak_day::table
+            .inner_join(
+                inline_users_groups::table.inner_join(inline_users::table),
+            )
+            .filter(inline_users_groups::ig_id.eq(ig_id_val))
+            .group_by((
+                inline_users::id,
+                inline_users::name,
+                inline_users::flag,
+            ))
+            .select((
+                inline_users::name,
+                inline_users::flag,
+                count(hryak_day::id),
+            ))
+            .order(count(hryak_day::id).desc())
+            .limit(10)
+            .load::<(String, String, i64)>(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_or_create_iug(
+        &self,
+        id_iu: i32,
+        id_ig: i32,
+    ) -> MyResult<InlineUsersGroup> {
+        if let Some(existing) = self.get_iug_by_ids(id_iu, id_ig).await? {
+            return Ok(existing);
+        }
+        self.add_group_to_user(id_iu, id_ig).await?;
+        let iug = self.get_iug_by_ids(id_iu, id_ig).await?.ok_or_else(|| {
+            crate::types::MyError::Unknown("IUG not found after insert".to_owned())
+        })?;
+        Ok(iug)
     }
 
     pub async fn add_hryak_day_to_chat(

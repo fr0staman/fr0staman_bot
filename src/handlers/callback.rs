@@ -235,64 +235,104 @@ async fn callback_find_day_pig(
     ltag: LocaleTag,
     _data: ParsedCallbackData<'_>,
 ) -> MyResult<()> {
+    use crate::services;
+
     let Some(im_id) = &q.inline_message_id else {
         return Ok(());
     };
 
-    let result =
-        DB.hand_pig.get_hryak_day_in_chat(&q.chat_instance, get_date()).await?;
+    // Resolve ig_id, group_id, and chat_id for achievement notifications.
+    // chat_info may not exist if the group never ran a command, but the inline
+    // group always exists if someone pressed this button.
+    let decoded_chat_id = decode_inline_message_id(im_id)
+        .map(|mut d| { d.normalize(); d.chat_id });
 
-    if let Some(hryak_today) = result {
+    let (ig_id, group_id) = {
+        let chat_info = if let Some(chat_id) = decoded_chat_id {
+            DB.other.get_chat(chat_id).await?
+        } else {
+            None
+        };
+
+        match chat_info.and_then(|c| c.ig_id.map(|ig| (ig, c.id))) {
+            Some((ig, gid)) => (ig, gid),
+            None => {
+                // Fall back: look up inline group via chat_instance (hand pigs only)
+                let Some(ig) =
+                    DB.hand_pig.get_inline_group(&q.chat_instance).await?
+                else {
+                    bot.answer_callback_query(q.id.clone())
+                        .text(lng("HandPigNoInBarn", ltag))
+                        .await?;
+                    return Ok(());
+                };
+                (ig.id, 0)
+            },
+        }
+    };
+
+    let cur_date = get_date();
+    let chat_instance = q.chat_instance.as_str();
+
+    // Check already found before calling the service (to show name)
+    if let Some(today) =
+        DB.hand_pig.get_hryak_day_in_chat(chat_instance, cur_date).await?
+    {
         let text = lng("DayPigAlreadyFound", ltag)
-            .args(&[("name", hryak_today.3.first_name)]);
+            .args(&[("name", today.3.first_name)]);
         bot.answer_callback_query(q.id.clone()).await?;
         bot.edit_message_text_inline(im_id, text).await?;
         return Ok(());
     }
 
-    let hryak_chat = DB
-        .hand_pig
-        .get_rand_inline_user_group_by_chat(&q.chat_instance)
-        .await?;
+    let result =
+        services::day_pig::select_and_record(ig_id, group_id, cur_date).await?;
 
-    if let Some(chat) = hryak_chat {
-        let cur_date = get_date();
-        DB.hand_pig.add_hryak_day_to_chat(chat.id, cur_date).await?;
-        let result = DB
-            .hand_pig
-            .get_hryak_day_in_chat(&q.chat_instance, cur_date)
-            .await?;
-        if let Some(current_chat) = result {
-            bot.answer_callback_query(q.id.clone().clone()).await?;
+    match result {
+        None => {
+            bot.answer_callback_query(q.id.clone())
+                .text(lng("HandPigNoInBarn", ltag))
+                .await?;
+        },
+        Some(selected) => {
+            bot.answer_callback_query(q.id.clone()).await?;
 
             let mention = user_mention(
-                UserId(current_chat.3.user_id as u64),
-                &current_chat.3.first_name,
+                UserId(selected.user.user_id as u64),
+                &selected.user.first_name,
             );
 
-            let text1 = lng("DayPigLabel1", ltag);
-            bot.edit_message_text_inline(im_id, text1).await?;
-
+            bot.edit_message_text_inline(im_id, lng("DayPigLabel1", ltag))
+                .await?;
             sleep(Duration::from_secs(2)).await;
-
-            let text2 = lng("DayPigLabel2", ltag);
-            bot.edit_message_text_inline(im_id, text2).await?;
-
+            bot.edit_message_text_inline(im_id, lng("DayPigLabel2", ltag))
+                .await?;
             sleep(Duration::from_secs(2)).await;
-            let text3 = lng("DayPigLabel3", ltag);
-            bot.edit_message_text_inline(im_id, text3).await?;
-
+            bot.edit_message_text_inline(im_id, lng("DayPigLabel3", ltag))
+                .await?;
             sleep(Duration::from_secs(2)).await;
-
-            let res = lng("DayPigFound", ltag).args(&[("mention", mention)]);
-            bot.edit_message_text_inline(im_id, res).await?;
-        }
-    } else {
-        bot.answer_callback_query(q.id.clone())
-            .text(lng("HandPigNoInBarn", ltag))
+            bot.edit_message_text_inline(
+                im_id,
+                lng("DayPigFound", ltag).args(&[("mention", mention)]),
+            )
             .await?;
-        return Ok(());
+
+            if let (Some(gid), Some(chat_id)) =
+                (selected.game_id, decoded_chat_id)
+            {
+                let _ = services::day_pig::notify_achievements(
+                    &bot,
+                    ChatId(chat_id),
+                    ltag,
+                    gid,
+                    selected.user.id,
+                    &selected.new_achievements,
+                )
+                .await;
+            }
+        },
     }
+
     Ok(())
 }
 
@@ -1295,6 +1335,13 @@ async fn callback_reset_vote(
     // Check if voter has a pig: look up by user_id + chat_id
     let voter_pig = DB.chat_pig.get_chat_pig(voter_id.0 as i64, chat_id_raw).await?;
     if voter_pig.is_none() {
+        let text = lng("ResetPigsNoPigVoter", ltag);
+        bot.answer_callback_query(q.id.clone()).text(text).await?;
+        return Ok(());
+    }
+
+    let voter_member = bot.get_chat_member(chat_id, voter_id).await?;
+    if !voter_member.is_present() {
         let text = lng("ResetPigsNoPigVoter", ltag);
         bot.answer_callback_query(q.id.clone()).text(text).await?;
         return Ok(());

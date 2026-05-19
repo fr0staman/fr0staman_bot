@@ -5,7 +5,7 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     config::consts::{CHAT_PIG_START_MASS, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
-    db::models::{Game, GrowLog, GrowLogAdd},
+    db::models::{Game, GrowLog, GrowLogAdd, User},
     types::{DbPool, MyResult},
     utils::date::{get_date, get_datetime},
 };
@@ -279,6 +279,40 @@ impl ChatPig {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_game_users_by_group(
+        &self,
+        group_id_val: i32,
+    ) -> MyResult<Vec<(Game, User)>> {
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::users;
+
+        let results = game
+            .inner_join(users::table)
+            .filter(group_id.eq(group_id_val))
+            .select((Game::as_select(), User::as_select()))
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
+    }
+
+    pub async fn get_pig_user_ids_by_group(
+        &self,
+        group_id_val: i32,
+    ) -> MyResult<Vec<i64>> {
+        use crate::db::schema::game::dsl::*;
+        use crate::db::schema::users;
+
+        let results = game
+            .inner_join(users::table)
+            .filter(group_id.eq(group_id_val))
+            .select(users::user_id)
+            .load(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(results)
     }
 
     pub async fn count_active_pigs(&self, group_id_val: i32) -> MyResult<i64> {

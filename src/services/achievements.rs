@@ -48,7 +48,7 @@ pub enum Ach {
     InfinityWar = 401,
     EternalGenin = 402,
     NewYearPig = 403,
-    //PigOfTheDay = 404,
+    PigOfTheDay = 404,
     Pigolator = 405,
 
     // Date or time
@@ -423,6 +423,28 @@ pub async fn check_name_achievements(id_game: i32) -> MyResult<Vec<Ach>> {
         .await?;
 
     Ok(vec![Ach::Pigolator])
+}
+
+pub async fn check_day_pig_achievement(id_game: i32) -> MyResult<Vec<Ach>> {
+    use crate::utils::date::get_datetime;
+
+    let achieved = DB.other.get_achievements_by_game_id(id_game).await?;
+    let achieved: Vec<_> =
+        achieved.iter().filter_map(|v| Ach::from_i16(v.code)).collect();
+
+    if achieved.contains(&Ach::PigOfTheDay) {
+        return Ok(vec![]);
+    }
+
+    DB.other
+        .add_achievement(AchievementUserAdd {
+            game_id: id_game,
+            created_at: get_datetime(),
+            code: Ach::PigOfTheDay as i16,
+        })
+        .await?;
+
+    Ok(vec![Ach::PigOfTheDay])
 }
 
 fn push_if<F: FnOnce() -> bool>(

@@ -49,6 +49,19 @@ pub fn keyboard_day_pig_to_inline(ltag: LocaleTag) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(keyboard)
 }
 
+pub fn keyboard_day_pig_to_inline_current_chat(
+    ltag: LocaleTag,
+) -> InlineKeyboardMarkup {
+    let button = InlineKeyboardButton::switch_inline_query_current_chat(
+        lng("InlineDayPigButton", ltag),
+        lng("InlineMenuButtonDayPigSwitch", ltag),
+    );
+
+    let keyboard = [[button]];
+
+    InlineKeyboardMarkup::new(keyboard)
+}
+
 pub fn keyboard_add_inline_top10(
     ltag: LocaleTag,
     id_user: UserId,
