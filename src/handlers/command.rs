@@ -3,6 +3,7 @@ use futures::FutureExt;
 use std::sync::Arc;
 use strum::{EnumCount, VariantArray};
 use teloxide::prelude::*;
+use teloxide::RequestError;
 use teloxide::types::{
     ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds,
 };
@@ -918,8 +919,30 @@ async fn command_reset_pigs(
         }
     }
 
-    // Count active pigs
-    let total_players = DB.chat_pig.count_active_pigs(group.id).await?;
+    // Collect pig owners and filter to those actually present in the chat
+    let pig_user_ids = DB.chat_pig.get_pig_user_ids_by_group(group.id).await?;
+    if pig_user_ids.is_empty() {
+        let text = lng("ResetPigsNoPigs", ltag);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
+    }
+
+    let mut total_players: i64 = 0;
+    for raw_uid in &pig_user_ids {
+        let member_result = loop {
+            match bot.get_chat_member(m.chat.id, UserId(*raw_uid as u64)).await {
+                Ok(member) => break Some(member),
+                Err(RequestError::RetryAfter(sec)) => {
+                    tokio::time::sleep(sec.duration()).await;
+                }
+                Err(_) => break None,
+            }
+        };
+        if member_result.is_some_and(|m| m.is_present()) {
+            total_players += 1;
+        }
+    }
+
     if total_players == 0 {
         let text = lng("ResetPigsNoPigs", ltag);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
