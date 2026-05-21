@@ -626,9 +626,14 @@ async fn command_day_pig(
 
     let cur_date = get_date();
 
-    let result =
-        services::day_pig::select_and_record(ig_id, chat_info.id, cur_date)
-            .await?;
+    let result = services::day_pig::select_and_record(
+        &bot,
+        ig_id,
+        chat_info.id,
+        Some(m.chat.id),
+        cur_date,
+    )
+    .await?;
 
     match result {
         None => {
@@ -651,7 +656,11 @@ async fn command_day_pig(
                 bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
             }
         },
-        Some(selected) => {
+        Some(services::day_pig::DayPigSelectResult::Escaped) => {
+            let text = lng("DayPigEscaped", ltag);
+            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        },
+        Some(services::day_pig::DayPigSelectResult::Selected(selected)) => {
             let mention = user_mention(
                 UserId(selected.user.user_id as u64),
                 &selected.user.first_name,

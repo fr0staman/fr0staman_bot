@@ -1,7 +1,10 @@
 use ahash::{AHashMap, AHashSet};
 use chrono::NaiveDate;
 use strum::EnumCount as _;
-use teloxide::{prelude::Requester, types::ChatId};
+use teloxide::{
+    prelude::Requester,
+    types::{ChatId, UserId},
+};
 
 use crate::{
     config::consts::DEFAULT_LANG_TAG,
@@ -27,6 +30,11 @@ pub struct SelectedDayPig {
     pub has_chat_pig: bool,
 }
 
+pub enum DayPigSelectResult {
+    Selected(SelectedDayPig),
+    Escaped,
+}
+
 struct Candidate {
     user: User,
     iug: Option<InlineUsersGroup>,
@@ -34,10 +42,12 @@ struct Candidate {
 }
 
 pub async fn select_and_record(
+    bot: &MyBot,
     ig_id: i32,
     group_id: i32,
+    telegram_chat_id: Option<ChatId>,
     cur_date: NaiveDate,
-) -> MyResult<Option<SelectedDayPig>> {
+) -> MyResult<Option<DayPigSelectResult>> {
     let Some(inline_group) = DB.hand_pig.get_inline_group_by_id(ig_id).await?
     else {
         return Ok(None);
@@ -136,6 +146,17 @@ pub async fn select_and_record(
         },
     };
 
+    if let Some(chat_id) = telegram_chat_id {
+        let user_id = UserId(chosen.user.user_id as u64);
+        let in_chat = match bot.get_chat_member(chat_id, user_id).await {
+            Ok(member) => member.is_present(),
+            Err(_) => true,
+        };
+        if !in_chat {
+            return Ok(Some(DayPigSelectResult::Escaped));
+        }
+    }
+
     DB.hand_pig.add_hryak_day_to_chat(iug_id, cur_date).await?;
 
     let has_chat_pig = chosen.game.is_some();
@@ -158,7 +179,12 @@ pub async fn select_and_record(
         vec![]
     };
 
-    Ok(Some(SelectedDayPig { user, game_id, new_achievements, has_chat_pig }))
+    Ok(Some(DayPigSelectResult::Selected(SelectedDayPig {
+        user,
+        game_id,
+        new_achievements,
+        has_chat_pig,
+    })))
 }
 
 pub async fn notify_achievements(

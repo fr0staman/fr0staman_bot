@@ -285,8 +285,14 @@ async fn callback_find_day_pig(
         return Ok(());
     }
 
-    let result =
-        services::day_pig::select_and_record(ig_id, group_id, cur_date).await?;
+    let result = services::day_pig::select_and_record(
+        &bot,
+        ig_id,
+        group_id,
+        decoded_chat_id.map(ChatId),
+        cur_date,
+    )
+    .await?;
 
     match result {
         None => {
@@ -294,7 +300,12 @@ async fn callback_find_day_pig(
                 .text(lng("HandPigNoInBarn", ltag))
                 .await?;
         },
-        Some(selected) => {
+        Some(services::day_pig::DayPigSelectResult::Escaped) => {
+            bot.answer_callback_query(q.id.clone())
+                .text(lng("DayPigEscaped", ltag))
+                .await?;
+        },
+        Some(services::day_pig::DayPigSelectResult::Selected(selected)) => {
             bot.answer_callback_query(q.id.clone()).await?;
 
             let mention = user_mention(
