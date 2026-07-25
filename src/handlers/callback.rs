@@ -1,5 +1,5 @@
 use futures::{FutureExt, future::BoxFuture};
-use rand::Rng;
+use rand::RngExt;
 use std::{cmp::Ordering, str::FromStr, sync::Arc};
 use teloxide::{
     prelude::*,

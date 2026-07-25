@@ -85,9 +85,9 @@ fn generate_charts_inner(
             let start_index =
                 dates.iter().position(|d| d == &first_date).unwrap();
 
-            let aligned_data: Vec<f32> = dates[start_index..]
+            let aligned_data: Vec<_> = dates[start_index..]
                 .iter()
-                .map(|d| map.get(d).copied().unwrap_or_default())
+                .map(|d| map.get(d).copied())
                 .collect();
 
             Series {

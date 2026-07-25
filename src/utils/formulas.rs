@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use chrono::Datelike;
-use rand::Rng;
+use rand::RngExt;
 
 use crate::enums::PigGrowthStatus;
 
