@@ -239,10 +239,10 @@ pub struct UserStatus {
     pub subscribed: bool,
 }
 
+// NOTE: Removed id column from select for effective INDEX ONLY scan search.
 #[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = grow_log)]
 pub struct GrowLog {
-    pub id: i32,
     pub game_id: i32,
     pub created_at: NaiveDateTime,
     pub weight_change: i32,

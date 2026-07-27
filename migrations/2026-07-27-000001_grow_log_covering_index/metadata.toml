@@ -1,0 +1,4 @@
+# CREATE/DROP INDEX CONCURRENTLY cannot run inside a transaction block, and
+# building an index on a table this size would otherwise lock out writes for
+# the duration.
+run_in_transaction = false

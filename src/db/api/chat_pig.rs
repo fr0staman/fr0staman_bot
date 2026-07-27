@@ -234,7 +234,6 @@ impl ChatPig {
         Ok(results)
     }
 
-    #[allow(unused)]
     pub async fn get_grow_log_by_game(
         &self,
         id_game: i32,
@@ -243,6 +242,8 @@ impl ChatPig {
 
         let results = grow_log
             .filter(game_id.eq(id_game))
+            .order(created_at.asc())
+            .select(GrowLog::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
 
@@ -261,6 +262,8 @@ impl ChatPig {
         let results = grow_log
             .filter(game_id.eq(id_game))
             .filter(created_at.ge(start_date).and(created_at.le(today)))
+            .order(created_at.asc())
+            .select(GrowLog::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
 
@@ -380,6 +383,7 @@ impl ChatPig {
         let grow_logs: Vec<GrowLog> = grow_log
             .filter(game_id.eq_any(&top_user_ids))
             .filter(created_at.ge(start_date).and(created_at.le(today)))
+            .select(GrowLog::as_select())
             .load(pool)
             .await?;
 
