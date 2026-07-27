@@ -181,7 +181,6 @@ fn normalize_data(
                 || had_prior_history
             {
                 normalized.push(GrowLog {
-                    id: 0,
                     game_id: game.id,
                     created_at: day.and_time(NaiveTime::MIN),
                     weight_change: 0,
