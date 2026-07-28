@@ -313,14 +313,7 @@ async fn command_grow(
     let (offset, status) = calculate_chat_pig_grow(pig.mass);
     let current = pig.mass + offset;
 
-    DB.chat_pig
-        .set_chat_pig_mass_n_date(
-            from.id.0 as i64,
-            m.chat.id.0,
-            current,
-            cur_date,
-        )
-        .await?;
+    DB.chat_pig.set_chat_pig_mass_n_date(pig.id, current, cur_date).await?;
 
     let grow_log_info = GrowLogAdd {
         game_id: pig.id,

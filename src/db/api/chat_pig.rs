@@ -115,31 +115,15 @@ impl ChatPig {
 
     pub async fn set_chat_pig_mass_n_date(
         &self,
-        id_user: i64,
-        id_chat: i64,
+        id_game: i32,
         other_mass: i32,
         cur_date: NaiveDate,
     ) -> MyResult<()> {
         use crate::db::schema::game::dsl::*;
-        use crate::db::schema::groups;
-        use crate::db::schema::users;
 
         diesel::update(game)
             .set((mass.eq(other_mass), date.eq(cur_date)))
-            .filter(
-                uid.eq_any(
-                    users::table
-                        .select(users::id)
-                        .filter(users::user_id.eq(&id_user)),
-                ),
-            )
-            .filter(
-                group_id.eq_any(
-                    groups::table
-                        .select(groups::id)
-                        .filter(groups::chat_id.eq(id_chat)),
-                ),
-            )
+            .filter(id.eq(id_game))
             .execute(&mut self.pool.get().await?)
             .await?;
 
