@@ -15,6 +15,8 @@ pub const SUBSCRIBE_GIFT: i32 = 100;
 pub const DAILY_GIFT_AMOUNT: i32 = 500;
 
 pub const CHAT_PIG_START_MASS: i32 = 1;
+/// A group counts as active once this many chat pigs live in it.
+pub const ACTIVE_GROUP_MIN_PIGS: i64 = 4;
 // I'm too lazy to do this properly
 pub const IGNORED_COMMANDS: [&str; 4] = ["/lang", "/p", "/start", "/id"];
 pub const LOUDER_DEFAULT_VOICE_LIMIT: u32 = 60;

@@ -195,24 +195,26 @@ impl ChatPig {
     }
 
     pub async fn count_active_chats_by_uid(&self, id_uid: i32) -> MyResult<i64> {
-        #[derive(QueryableByName)]
-        struct Row {
-            #[diesel(sql_type = diesel::sql_types::BigInt)]
-            count: i64,
-        }
+        use crate::db::schema::game::dsl::*;
+        use diesel::dsl::count_star;
 
-        let row: Row = diesel::sql_query(
-            "SELECT COUNT(*) AS count \
-             FROM game \
-             WHERE uid = $1 \
-             AND group_id IN \
-               (SELECT group_id FROM game GROUP BY group_id HAVING COUNT(*) >= 4)",
-        )
-        .bind::<diesel::sql_types::Integer, _>(id_uid)
-        .get_result(&mut self.pool.get().await?)
-        .await?;
+        let active = diesel::alias!(crate::db::schema::game as game_active);
 
-        Ok(row.count)
+        let result = game
+            .filter(uid.eq(id_uid))
+            .filter(
+                group_id.eq_any(
+                    active
+                        .select(active.field(group_id))
+                        .group_by(active.field(group_id))
+                        .having(count_star().ge(ACTIVE_GROUP_MIN_PIGS)),
+                ),
+            )
+            .count()
+            .get_result(&mut self.pool.get().await?)
+            .await?;
+
+        Ok(result)
     }
 
     pub async fn count_chat_pig(
