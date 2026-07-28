@@ -363,14 +363,20 @@ impl Other {
         Ok(results)
     }
 
-    pub async fn add_achievement(
+    /// Writes every freshly earned achievement in one statement — a single
+    /// `/grow` can unlock several at once, and they all belong to the same pig.
+    pub async fn add_achievements(
         &self,
-        new_achievement: AchievementUserAdd,
+        new_achievements: &[AchievementUserAdd],
     ) -> MyResult<()> {
         use crate::db::schema::achievements_users::dsl::*;
 
+        if new_achievements.is_empty() {
+            return Ok(());
+        }
+
         diesel::insert_into(achievements_users)
-            .values(new_achievement)
+            .values(new_achievements)
             .execute(&mut self.pool.get().await?)
             .await?;
 

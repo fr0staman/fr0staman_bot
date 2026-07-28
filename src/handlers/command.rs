@@ -324,19 +324,21 @@ async fn command_grow(
 
     DB.chat_pig.add_grow_log_by_game(grow_log_info).await?;
 
+    let fed_pig = achievements::PigSnapshot { mass: current, ..(&pig).into() };
+
     let message = m.clone();
     let outer_bot = bot.clone();
     tokio::spawn(async move {
         let new_achievements =
-            achievements::check_achievements(pig.id, cur_datetime).await;
+            achievements::check_achievements(fed_pig, cur_datetime).await;
 
         if let Ok(achievements) = new_achievements {
             let _ = _handle_new_achievements(
                 outer_bot,
                 &message,
                 ltag,
-                pig.id,
-                pig.uid,
+                fed_pig.id,
+                fed_pig.uid,
                 achievements,
             )
             .await;
@@ -478,20 +480,21 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
 
     // Chance to get achievements without weight change
     if achievements.is_empty() {
+        let snapshot = achievements::PigSnapshot::from(&pig);
         let message = m.clone();
         let outer_bot = bot.clone();
         tokio::spawn(async move {
             let cur_datetime = get_datetime_from_message_date(message.date);
             let new_achievements =
-                achievements::check_achievements(pig.id, cur_datetime).await;
+                achievements::check_achievements(snapshot, cur_datetime).await;
 
             if let Ok(achievements) = new_achievements {
                 let _ = _handle_new_achievements(
                     outer_bot,
                     &message,
                     ltag,
-                    pig.id,
-                    pig.uid,
+                    snapshot.id,
+                    snapshot.uid,
                     achievements,
                 )
                 .await;

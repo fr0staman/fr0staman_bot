@@ -1,0 +1,3 @@
+DROP INDEX CONCURRENTLY IF EXISTS users_user_id_idx;
+DROP INDEX CONCURRENTLY IF EXISTS groups_chat_id_idx;
+DROP INDEX CONCURRENTLY IF EXISTS achievements_users_game_id_idx;

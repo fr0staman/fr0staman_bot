@@ -45,22 +45,6 @@ impl ChatPig {
         Ok(results)
     }
 
-    pub async fn get_chat_pig_by_id(
-        &self,
-        id_game: i32,
-    ) -> MyResult<Option<Game>> {
-        use crate::db::schema::game::dsl::*;
-
-        let results = game
-            .filter(id.eq(id_game))
-            .select(Game::as_select())
-            .first(&mut self.pool.get().await?)
-            .await
-            .optional()?;
-
-        Ok(results)
-    }
-
     pub async fn get_biggest_chat_pig(
         &self,
         id_user: i64,
@@ -182,22 +166,27 @@ impl ChatPig {
         Ok(results)
     }
 
+    /// Counts how many of this user's chats are "active" — i.e. hold at least
+    /// [`ACTIVE_GROUP_MIN_PIGS`] pigs.
+    ///
+    /// The pig count is a correlated subquery, so it only runs for the groups
+    /// this user actually plays in (a handful), instead of aggregating every
+    /// row of `game` to rank groups the answer never depends on. Both halves
+    /// ride `game_uid_group_id_idx` / `game_group_id_mass_idx`.
     pub async fn count_active_chats_by_uid(&self, id_uid: i32) -> MyResult<i64> {
         use crate::db::schema::game::dsl::*;
-        use diesel::dsl::count_star;
 
-        let active = diesel::alias!(crate::db::schema::game as game_active);
+        let same_group = diesel::alias!(crate::db::schema::game as game_peers);
+
+        let pigs_in_group = same_group
+            .filter(same_group.field(group_id).eq(group_id))
+            .count()
+            .single_value()
+            .assume_not_null();
 
         let result = game
             .filter(uid.eq(id_uid))
-            .filter(
-                group_id.eq_any(
-                    active
-                        .select(active.field(group_id))
-                        .group_by(active.field(group_id))
-                        .having(count_star().ge(ACTIVE_GROUP_MIN_PIGS)),
-                ),
-            )
+            .filter(pigs_in_group.ge(ACTIVE_GROUP_MIN_PIGS))
             .count()
             .get_result(&mut self.pool.get().await?)
             .await?;
@@ -394,4 +383,5 @@ impl ChatPig {
         Ok(result)
     }
 }
+
 

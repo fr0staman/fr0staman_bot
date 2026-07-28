@@ -1,0 +1,4 @@
+# CREATE/DROP INDEX CONCURRENTLY cannot run inside a transaction block. users
+# and groups are written on the hot path of every update, so a blocking build
+# would stall the bot.
+run_in_transaction = false

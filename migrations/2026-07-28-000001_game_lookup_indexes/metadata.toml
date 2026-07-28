@@ -1,0 +1,4 @@
+# CREATE/DROP INDEX CONCURRENTLY cannot run inside a transaction block, and
+# `game` is written on every /grow — a plain CREATE INDEX would lock those out
+# for the duration of the build.
+run_in_transaction = false

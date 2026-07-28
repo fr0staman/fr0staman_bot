@@ -6,9 +6,29 @@ use num_traits::FromPrimitive;
 use strum::{EnumCount, IntoStaticStr, VariantArray};
 
 use crate::{
-    db::{DB, models::AchievementUserAdd},
+    db::{
+        DB,
+        models::{AchievementUserAdd, Game},
+    },
     types::MyResult,
 };
+
+/// The pig fields the checks below actually look at.
+///
+/// Callers reach here already holding the `Game` — `/grow` even knows the mass
+/// it just wrote — so they hand it over instead of making this re-read the row.
+#[derive(Clone, Copy)]
+pub struct PigSnapshot {
+    pub id: i32,
+    pub uid: i32,
+    pub mass: i32,
+}
+
+impl From<&Game> for PigSnapshot {
+    fn from(game: &Game) -> Self {
+        Self { id: game.id, uid: game.uid, mass: game.mass }
+    }
+}
 
 #[derive(
     PartialEq, IntoStaticStr, EnumCount, VariantArray, FromPrimitive, Clone,
@@ -66,13 +86,9 @@ pub enum Ach {
 }
 
 pub async fn check_achievements(
-    id_game: i32,
+    chat_pig: PigSnapshot,
     message_time: NaiveDateTime,
 ) -> MyResult<Vec<Ach>> {
-    let Some(chat_pig) = DB.chat_pig.get_chat_pig_by_id(id_game).await? else {
-        return Ok(vec![]);
-    };
-
     let grow_log = DB.chat_pig.get_grow_log_by_game(chat_pig.id).await?;
     let achieved = DB.other.get_achievements_by_game_id(chat_pig.id).await?;
 
@@ -391,14 +407,16 @@ pub async fn check_achievements(
         }
     }
 
-    for new_achievement in &new {
-        let new_achievement = AchievementUserAdd {
+    let to_insert: Vec<_> = new
+        .iter()
+        .map(|new_achievement| AchievementUserAdd {
             game_id: chat_pig.id,
             created_at: now,
             code: new_achievement.clone() as i16,
-        };
-        DB.other.add_achievement(new_achievement).await?;
-    }
+        })
+        .collect();
+
+    DB.other.add_achievements(&to_insert).await?;
 
     Ok(new)
 }
@@ -415,11 +433,11 @@ pub async fn check_name_achievements(id_game: i32) -> MyResult<Vec<Ach>> {
     }
 
     DB.other
-        .add_achievement(AchievementUserAdd {
+        .add_achievements(&[AchievementUserAdd {
             game_id: id_game,
             created_at: get_datetime(),
             code: Ach::Pigolator as i16,
-        })
+        }])
         .await?;
 
     Ok(vec![Ach::Pigolator])
@@ -437,11 +455,11 @@ pub async fn check_day_pig_achievement(id_game: i32) -> MyResult<Vec<Ach>> {
     }
 
     DB.other
-        .add_achievement(AchievementUserAdd {
+        .add_achievements(&[AchievementUserAdd {
             game_id: id_game,
             created_at: get_datetime(),
             code: Ach::PigOfTheDay as i16,
-        })
+        }])
         .await?;
 
     Ok(vec![Ach::PigOfTheDay])
