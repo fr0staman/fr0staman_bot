@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS users_user_id_idx;

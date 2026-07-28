@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS game_uid_group_id_idx;

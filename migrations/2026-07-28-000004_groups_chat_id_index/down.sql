@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS groups_chat_id_idx;

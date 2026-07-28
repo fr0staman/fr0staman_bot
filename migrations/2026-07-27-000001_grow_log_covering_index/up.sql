@@ -6,10 +6,10 @@
 --
 -- Carrying weight_change/current_weight as index payload makes those reads
 -- index-only scans. GrowLog does not select `id`, which is what allows it.
+--
+-- The superseded index is dropped by the next migration: CONCURRENTLY needs
+-- one statement per migration, since Postgres runs a multi-statement batch in
+-- an implicit transaction.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS grow_log_game_id_created_at_covering_idx
     ON grow_log (game_id, created_at DESC)
     INCLUDE (weight_change, current_weight);
-
--- Superseded: identical key columns, no payload. Keeping both would double
--- the index maintenance on every insert for no read benefit.
-DROP INDEX CONCURRENTLY IF EXISTS grow_log_game_id_created_at_idx;

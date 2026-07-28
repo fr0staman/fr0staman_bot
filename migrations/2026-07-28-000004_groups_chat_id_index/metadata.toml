@@ -1,0 +1,4 @@
+# CREATE/DROP INDEX CONCURRENTLY cannot run inside a transaction block. Note
+# that one statement per migration is also required: Postgres wraps a
+# multi-statement batch in an implicit transaction, which trips the same error.
+run_in_transaction = false
