@@ -7,7 +7,7 @@ use crate::{
         AchievementUser, AchievementUserAdd, Groups, InlineGif, InlineVoice,
         NewGroup, NewUser, UpdateGroups, UpdateUser, User, UserStatus,
     },
-    types::{DbPool, MyResult},
+    types::{DbPool, MyError, MyResult},
 };
 
 #[derive(Clone)]
@@ -363,6 +363,39 @@ impl Other {
         Ok(results)
     }
 
+    pub async fn count_achievements_for_notice(
+        &self,
+        id_game: i32,
+        id_uid: i32,
+    ) -> MyResult<(i64, i64)> {
+        use crate::db::schema::achievements_users::dsl::*;
+        use crate::db::schema::game;
+        use diesel::dsl::count;
+
+        let in_this_chat = async {
+            let count = achievements_users
+                .filter(game_id.eq(id_game))
+                .count()
+                .get_result::<i64>(&mut self.pool.get().await?)
+                .await?;
+
+            Ok::<_, MyError>(count)
+        };
+
+        let unique_everywhere = async {
+            let count = achievements_users
+                .inner_join(game::table)
+                .filter(game::uid.eq(id_uid))
+                .select(count(code).aggregate_distinct())
+                .get_result::<i64>(&mut self.pool.get().await?)
+                .await?;
+
+            Ok::<_, MyError>(count)
+        };
+
+        tokio::try_join!(in_this_chat, unique_everywhere)
+    }
+
     /// Writes every freshly earned achievement in one statement — a single
     /// `/grow` can unlock several at once, and they all belong to the same pig.
     pub async fn add_achievements(
@@ -438,3 +471,4 @@ impl Other {
         Ok(results)
     }
 }
+

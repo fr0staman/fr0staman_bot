@@ -1,4 +1,4 @@
-use ahash::{AHashMap, AHashSet};
+use ahash::AHashMap;
 use chrono::NaiveDate;
 use strum::EnumCount as _;
 use teloxide::{
@@ -126,18 +126,7 @@ pub async fn select_and_record(
                     name,
                     gifted: false,
                 };
-                DB.hand_pig.add_hrundel(new_hand_pig).await?;
-
-                DB.hand_pig
-                    .get_hrundel(user.user_id)
-                    .await?
-                    .ok_or_else(|| {
-                        crate::types::MyError::Unknown(
-                            "InlineUser not found after creation".to_owned(),
-                        )
-                    })?
-                    .0
-                    .id
+                DB.hand_pig.add_hrundel(new_hand_pig).await?.id
             };
 
             let iug =
@@ -199,15 +188,12 @@ pub async fn notify_achievements(
         return Ok(());
     }
 
-    let all_in_db = DB.other.get_achievements_by_uid(uid).await?;
-    let in_this_chat: Vec<_> =
-        all_in_db.iter().filter(|v| v.game_id == game_id).collect();
-    let global_unique: AHashSet<_> =
-        all_in_db.iter().map(|v| v.code).collect();
+    let (in_this_chat, global_unique) =
+        DB.other.count_achievements_for_notice(game_id, uid).await?;
 
     let all_count = Ach::COUNT.to_string();
-    let chat_count = in_this_chat.len().to_string();
-    let global_count = global_unique.len().to_string();
+    let chat_count = in_this_chat.to_string();
+    let global_count = global_unique.to_string();
 
     for ach in achievements {
         let achievement_name =

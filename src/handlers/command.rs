@@ -48,17 +48,26 @@ pub async fn filter_commands(
 ) -> MyResult<()> {
     crate::metrics::CMD_COUNTER.inc();
 
-    let user_info = if let Some(from) = &m.from {
-        shortcuts::maybe_get_or_insert_user(from, false).await?
-    } else {
-        None
-    };
-
-    let chat_info = if let ChatKind::Public(_) = &m.chat.kind {
-        shortcuts::maybe_get_or_insert_chat(&m.chat).await?
-    } else {
-        None
-    };
+    // Neither lookup feeds the other, so they cost one round trip together
+    // instead of two — and this runs before every single command.
+    let (user_info, chat_info) = tokio::try_join!(
+        async {
+            match &m.from {
+                Some(from) => {
+                    shortcuts::maybe_get_or_insert_user(from, false).await
+                },
+                None => Ok(None),
+            }
+        },
+        async {
+            match &m.chat.kind {
+                ChatKind::Public(_) => {
+                    shortcuts::maybe_get_or_insert_chat(&m.chat).await
+                },
+                ChatKind::Private(_) => Ok(None),
+            }
+        },
+    )?;
 
     let ltag = tag_one_two_or(
         user_info.and_then(|c| c.lang).as_deref(),
@@ -272,15 +281,12 @@ async fn command_grow(
     let pig = if let Some(pig) = pig {
         pig
     } else {
-        let Some(chat_info) =
-            shortcuts::maybe_get_or_insert_chat(&m.chat).await?
-        else {
-            return Ok(());
-        };
+        let (chat_info, user) = tokio::try_join!(
+            shortcuts::maybe_get_or_insert_chat(&m.chat),
+            shortcuts::maybe_get_or_insert_user(from, false),
+        )?;
 
-        let Some(user) =
-            shortcuts::maybe_get_or_insert_user(from, false).await?
-        else {
+        let (Some(chat_info), Some(user)) = (chat_info, user) else {
             return Ok(());
         };
 
@@ -1017,21 +1023,13 @@ pub async fn _handle_new_achievements(
     id_uid: i32,
     new_achievements: Vec<Ach>,
 ) -> MyResult<()> {
-    let achievements_in_all_chats =
-        DB.other.get_achievements_by_uid(id_uid).await?;
-
-    let achievements_in_this_chat: Vec<_> = achievements_in_all_chats
-        .iter()
-        .filter(|v| v.game_id == game_id)
-        .collect();
-
-    let achievements_in_all_chats: AHashSet<_> =
-        achievements_in_all_chats.iter().map(|v| v.code).collect();
+    let (achievements_in_this_chat, achievements_in_all_chats) =
+        DB.other.count_achievements_for_notice(game_id, id_uid).await?;
 
     let all_count = Ach::COUNT.to_string();
 
-    let chat_count = achievements_in_this_chat.len().to_string();
-    let global_count = achievements_in_all_chats.len().to_string();
+    let chat_count = achievements_in_this_chat.to_string();
+    let global_count = achievements_in_all_chats.to_string();
 
     for achievement in new_achievements {
         let achievement_name =

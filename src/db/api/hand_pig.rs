@@ -151,15 +151,16 @@ impl HandPig {
     pub async fn add_hrundel(
         &self,
         hrundel: NewInlineUser<'_>,
-    ) -> MyResult<()> {
+    ) -> MyResult<InlineUser> {
         use crate::db::schema::inline_users::dsl::*;
 
-        diesel::insert_into(inline_users)
+        let result = diesel::insert_into(inline_users)
             .values(&hrundel)
-            .execute(&mut self.pool.get().await?)
+            .returning(InlineUser::as_returning())
+            .get_result(&mut self.pool.get().await?)
             .await?;
 
-        Ok(())
+        Ok(result)
     }
 
     pub async fn get_hrundel(
@@ -294,19 +295,22 @@ impl HandPig {
         Ok(results)
     }
 
+    /// Links a hand pig to a chat and returns the link row, so the caller
+    /// doesn't need a second round trip to read back the generated `id`.
     pub async fn add_group_to_user(
         &self,
         id_iu: i32,
         id_ig: i32,
-    ) -> MyResult<()> {
+    ) -> MyResult<InlineUsersGroup> {
         use crate::db::schema::inline_users_groups::dsl::*;
 
-        diesel::insert_into(inline_users_groups)
+        let result = diesel::insert_into(inline_users_groups)
             .values((iu_id.eq(id_iu), ig_id.eq(id_ig)))
-            .execute(&mut self.pool.get().await?)
+            .returning(InlineUsersGroup::as_returning())
+            .get_result(&mut self.pool.get().await?)
             .await?;
 
-        Ok(())
+        Ok(result)
     }
 
     pub async fn get_inline_users_with_user_by_chat(
@@ -388,11 +392,7 @@ impl HandPig {
         if let Some(existing) = self.get_iug_by_ids(id_iu, id_ig).await? {
             return Ok(existing);
         }
-        self.add_group_to_user(id_iu, id_ig).await?;
-        let iug = self.get_iug_by_ids(id_iu, id_ig).await?.ok_or_else(|| {
-            crate::types::MyError::Unknown("IUG not found after insert".to_owned())
-        })?;
-        Ok(iug)
+        self.add_group_to_user(id_iu, id_ig).await
     }
 
     pub async fn add_hryak_day_to_chat(
