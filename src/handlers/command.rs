@@ -1,9 +1,10 @@
 use ahash::AHashSet;
+use chrono::NaiveDateTime;
 use futures::FutureExt;
 use std::sync::Arc;
 use strum::{EnumCount, VariantArray};
-use teloxide::prelude::*;
 use teloxide::RequestError;
+use teloxide::prelude::*;
 use teloxide::types::{
     ChatKind, InputFile, LinkPreviewOptions, ReplyParameters, Seconds, UserId,
 };
@@ -268,7 +269,6 @@ async fn command_grow(
     let mention = user_mention(from.id, &from.first_name);
 
     let pig = DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?;
-    let mut skip_date_check = false;
     let pig = if let Some(pig) = pig {
         pig
     } else {
@@ -284,62 +284,30 @@ async fn command_grow(
             return Ok(());
         };
 
+        // A fresh pig has never been fed, so its date is set to yesterday.
+        let last_fed = cur_date.pred_opt().unwrap_or(cur_date);
+
         let escaped_f_name = escape(&from.first_name);
         let f_name = truncate(&escaped_f_name, 64).0;
-        DB.chat_pig
+        let new_pig = DB
+            .chat_pig
             .create_chat_pig(
                 user.id,
                 chat_info.id,
                 f_name,
-                cur_date,
+                last_fed,
                 CHAT_PIG_START_MASS,
             )
             .await?;
 
-        let Some(new_pig) =
-            DB.chat_pig.get_chat_pig(from.id.0 as i64, m.chat.id.0).await?
-        else {
-            return Ok(());
-        };
-
-        skip_date_check = true;
         let text =
             lng("GameStartGreeting", ltag).args(&[("mention", &mention)]);
         bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
         new_pig
     };
 
-    if (!skip_date_check) && (pig.date == cur_date) {
-        let (hours, minutes, seconds) = get_timediff(cur_datetime);
-
-        let h_rule = plural(hours);
-        let m_rule = plural(minutes);
-        let s_rule = plural(seconds);
-
-        let h_lang = format!("hour_{}", h_rule);
-        let m_lang = format!("minute_{}", m_rule);
-        let s_lang = format!("second_{}", s_rule);
-
-        let hours_text = format!("{} {}", hours, lng(&h_lang, ltag));
-        let minut_text = format!("{} {}", minutes, lng(&m_lang, ltag));
-
-        let next_feed = if hours != 0 {
-            lng("GameNextFeedingToHoursMinutes", ltag)
-                .args(&[("to_hours", &hours_text), ("to_minutes", &minut_text)])
-        } else if minutes != 0 {
-            lng("GameNextFeedingToMinutes", ltag)
-                .args(&[("to_minutes", &minut_text)])
-        } else {
-            let secnd_text = format!("{} {}", seconds, lng(&s_lang, ltag));
-
-            lng("GameNextFeedingToSeconds", ltag)
-                .args(&[("to_seconds", &secnd_text)])
-        };
-
-        let text = lng("GameAlreadyFeeded", ltag)
-            .args(&[("next_feed", &italic(&next_feed))]);
-        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
-        return Ok(());
+    if pig.date == cur_date {
+        return _game_already_feeded(bot, m, ltag, cur_datetime).await;
     }
 
     let (offset, status) = calculate_chat_pig_grow(pig.mass);
@@ -395,6 +363,45 @@ async fn command_grow(
         .link_preview_options(LinkPreviewOptions::disable(true))
         .maybe_thread_id(m)
         .await?;
+
+    Ok(())
+}
+
+async fn _game_already_feeded(
+    bot: MyBot,
+    m: &Message,
+    ltag: LocaleTag,
+    cur_datetime: NaiveDateTime,
+) -> MyResult<()> {
+    let (hours, minutes, seconds) = get_timediff(cur_datetime);
+
+    let h_rule = plural(hours);
+    let m_rule = plural(minutes);
+    let s_rule = plural(seconds);
+
+    let h_lang = format!("hour_{}", h_rule);
+    let m_lang = format!("minute_{}", m_rule);
+    let s_lang = format!("second_{}", s_rule);
+
+    let hours_text = format!("{} {}", hours, lng(&h_lang, ltag));
+    let minut_text = format!("{} {}", minutes, lng(&m_lang, ltag));
+
+    let next_feed = if hours != 0 {
+        lng("GameNextFeedingToHoursMinutes", ltag)
+            .args(&[("to_hours", &hours_text), ("to_minutes", &minut_text)])
+    } else if minutes != 0 {
+        lng("GameNextFeedingToMinutes", ltag)
+            .args(&[("to_minutes", &minut_text)])
+    } else {
+        let secnd_text = format!("{} {}", seconds, lng(&s_lang, ltag));
+
+        lng("GameNextFeedingToSeconds", ltag)
+            .args(&[("to_seconds", &secnd_text)])
+    };
+
+    let text = lng("GameAlreadyFeeded", ltag)
+        .args(&[("next_feed", &italic(&next_feed))]);
+    bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
 
     Ok(())
 }

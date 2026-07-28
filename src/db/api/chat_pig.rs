@@ -4,7 +4,10 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
-    config::consts::{CHAT_PIG_START_MASS, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS},
+    config::consts::{
+        ACTIVE_GROUP_MIN_PIGS, CHAT_PIG_START_MASS, TOP_LIMIT,
+        TOP_LIMIT_WITH_CHARTS,
+    },
     db::models::{Game, GrowLog, GrowLogAdd, User},
     types::{DbPool, MyResult},
     utils::date::{get_date, get_datetime},
@@ -150,10 +153,10 @@ impl ChatPig {
         cur_name: &str,
         cur_date: NaiveDate,
         start_mass: i32,
-    ) -> MyResult<()> {
+    ) -> MyResult<Game> {
         use crate::db::schema::game::dsl::*;
 
-        diesel::insert_into(game)
+        let result = diesel::insert_into(game)
             .values((
                 uid.eq(id_user),
                 group_id.eq(id_group),
@@ -161,10 +164,11 @@ impl ChatPig {
                 date.eq(cur_date),
                 mass.eq(start_mass),
             ))
-            .execute(&mut self.pool.get().await?)
+            .returning(Game::as_returning())
+            .get_result(&mut self.pool.get().await?)
             .await?;
 
-        Ok(())
+        Ok(result)
     }
 
     pub async fn get_top_chat_pigs(
@@ -406,3 +410,4 @@ impl ChatPig {
         Ok(result)
     }
 }
+
