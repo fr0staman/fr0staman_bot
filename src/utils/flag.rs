@@ -4,6 +4,7 @@ macro_rules! bidirectional_str_enum {
         $($property:ident => $code:expr => $emoji:expr),* $(,)?
     }) => {
         #[derive(Copy, Clone)]
+        #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
         pub enum $enum_name {
             $($property),*
         }
@@ -294,3 +295,77 @@ bidirectional_str_enum!(Flags, {
     PirateFlag => "pirate_flag" => "🏴‍☠️",
     UnitedNations => "united_nations" => "🇺🇳",
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_flag_round_trips_through_its_code() {
+        // `to_code`/`to_emoji` index three parallel arrays by `self as
+        // usize`, so a macro arm added to only one of them would silently
+        // shift every later flag's code and emoji.
+        for flag in Flags::FLAGS {
+            let code = flag.to_code();
+            assert_eq!(
+                Flags::from_code(code),
+                Some(*flag),
+                "code {code} did not round-trip"
+            );
+        }
+    }
+
+    #[test]
+    fn every_flag_round_trips_through_its_emoji() {
+        for flag in Flags::FLAGS {
+            let emoji = flag.to_emoji();
+            assert_eq!(
+                Flags::from_emoji(emoji),
+                Some(*flag),
+                "emoji {emoji} did not round-trip"
+            );
+        }
+    }
+
+    #[test]
+    fn the_three_parallel_arrays_are_the_same_length() {
+        assert_eq!(Flags::FLAGS.len(), Flags::CODES.len());
+        assert_eq!(Flags::FLAGS.len(), Flags::EMOJIS.len());
+    }
+
+    #[test]
+    fn codes_are_unique() {
+        let mut seen: Vec<&str> = Flags::CODES.to_vec();
+        seen.sort_unstable();
+        let before = seen.len();
+        seen.dedup();
+
+        assert_eq!(before, seen.len(), "duplicate country code");
+    }
+
+    #[test]
+    fn emojis_are_unique() {
+        let mut seen: Vec<&str> = Flags::EMOJIS.to_vec();
+        seen.sort_unstable();
+        let before = seen.len();
+        seen.dedup();
+
+        assert_eq!(before, seen.len(), "duplicate flag emoji");
+    }
+
+    #[test]
+    fn unknown_codes_and_emojis_yield_none() {
+        assert_eq!(Flags::from_code("zzz"), None);
+        assert_eq!(Flags::from_code(""), None);
+        assert_eq!(Flags::from_emoji("🐷"), None);
+    }
+
+    #[test]
+    fn the_default_language_tag_is_a_known_code() {
+        // `inline_users.flag` defaults to the user's language code, and the
+        // inline flag picker renders it via `from_code`.
+        assert!(
+            Flags::from_code(crate::config::consts::DEFAULT_LANG_TAG).is_some()
+        );
+    }
+}

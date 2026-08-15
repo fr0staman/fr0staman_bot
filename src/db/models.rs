@@ -55,8 +55,11 @@ pub struct Groups {
     pub reset_at: Option<NaiveDateTime>,
 }
 
+/// `treat_none_as_null` so a `None` writes NULL instead of skipping the
+/// column — without it `!epyc мова -` and a dropped `@username` were no-ops.
+/// Safe because every caller fills the rest from `to_update()`.
 #[derive(Queryable, AsChangeset)]
-#[diesel(table_name = groups)]
+#[diesel(table_name = groups, treat_none_as_null = true)]
 pub struct UpdateGroups {
     // chat_id can be changed during migration to supergroup
     pub chat_id: i64,
@@ -200,8 +203,9 @@ pub struct User {
     pub last_name: Option<String>,
 }
 
+/// See [`UpdateGroups`] on `treat_none_as_null`.
 #[derive(Queryable, AsChangeset)]
-#[diesel(table_name = users)]
+#[diesel(table_name = users, treat_none_as_null = true)]
 pub struct UpdateUser {
     pub started: bool,
     pub banned: bool,

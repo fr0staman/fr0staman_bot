@@ -7,15 +7,17 @@ use teloxide::utils::html::{bold, italic};
 use url::Url;
 
 use crate::config::consts::INLINE_NAME_SET_LIMIT;
-use crate::config::env::BOT_CONFIG;
+use crate::config::env::{BOT_CONFIG, bot_me};
 use crate::db::models::{InlineUser, User};
-use crate::enums::{Image, InlineResults, Top10Variant};
+use crate::enums::{CbActions, Image, InlineResults, Top10Variant};
 use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, lng};
 use crate::traits::SimpleDisableWebPagePreview;
 use crate::utils::flag::Flags;
 use crate::utils::formulas;
-use crate::utils::helpers::{get_photostock, truncate};
+use crate::utils::helpers::{
+    self, get_photostock, truncate,
+};
 
 pub fn get_start_duel(
     ltag: LocaleTag,
@@ -134,7 +136,7 @@ pub fn name_hryak_info(
 ) -> InlineQueryResultArticle {
     let caption = lng("HandPigNameGoCaption", ltag);
     let message = lng("HandPigNameGoMessage", ltag)
-        .args(&[("name", &*name), ("bot_name", BOT_CONFIG.me.username())]);
+        .args(&[("name", &*name), ("bot_name", bot_me().username())]);
 
     InlineQueryResultArticle::new(
         InlineResults::NameHryakInfo.to_string_with_args(),
@@ -154,8 +156,11 @@ pub fn rename_hryak_info(
     old_name: String,
     new_name: &str,
 ) -> InlineQueryResultArticle {
+    // Display width and callback-payload bytes are separate budgets; both
+    // apply here so the confirmed name matches the stored one.
     let (cutted_name, _) = truncate(new_name, INLINE_NAME_SET_LIMIT);
-    let cutted_name = cutted_name.to_string();
+    let room = helpers::callback_payload_room(CbActions::GiveName, id_user);
+    let cutted_name = helpers::truncate_bytes(cutted_name, room).to_string();
 
     let message = lng("HandPigNameChangeMessage", ltag)
         .args(&[("past_name", &old_name), ("future_name", &cutted_name)]);
@@ -208,7 +213,7 @@ pub fn flag_info(ltag: LocaleTag, flag: &str) -> InlineQueryResultArticle {
     let caption = lng("HandPigFlagGoCaption", ltag).args(&[("flag", flag)]);
     let desc = lng("HandPigFlagGoDesc", ltag);
     let message = lng("HandPigFlagGoMessage", ltag)
-        .args(&[("flag", flag), ("bot_name", BOT_CONFIG.me.username())]);
+        .args(&[("flag", flag), ("bot_name", bot_me().username())]);
 
     InlineQueryResultArticle::new(
         InlineResults::FlagInfo.to_string_with_args(),
@@ -282,7 +287,7 @@ pub fn lang_info(
     let message = lng("InlineLangGoMessage", ltag).args(&[
         ("flag", flag),
         ("code", code),
-        ("bot_name", BOT_CONFIG.me.username()),
+        ("bot_name", bot_me().username()),
     ]);
 
     let markup = keyboards::keyboard_change_lang(ltag, id_user, "-");
@@ -484,12 +489,76 @@ pub fn handle_no_results(ltag: LocaleTag) -> InlineQueryResultArticle {
     .description(desc)
 }
 
-fn _get_duel_winrate(ltag: LocaleTag, win: i32, rout: i32) -> String {
-    if rout == 0 || win == 0 {
-        return italic(&lng("InlineDuelNotEnoughBattles", ltag));
+/// `None` only for a pig that has never fought.
+pub fn winrate_percent(win: i32, rout: i32) -> Option<i32> {
+    let total = win.saturating_add(rout);
+
+    if total <= 0 || win < 0 {
+        return None;
     }
 
-    let percent_winrate = 100.0 / ((win + rout) as f32 / win as f32);
+    Some(((win as f32 / total as f32) * 100.0) as i32)
+}
 
-    bold(&format!("{} %", percent_winrate as i32))
+fn _get_duel_winrate(ltag: LocaleTag, win: i32, rout: i32) -> String {
+    let Some(percent_winrate) = winrate_percent(win, rout) else {
+        return italic(&lng("InlineDuelNotEnoughBattles", ltag));
+    };
+
+    bold(&format!("{} %", percent_winrate))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn winrate_is_the_share_of_wins() {
+        assert_eq!(winrate_percent(1, 1), Some(50));
+        assert_eq!(winrate_percent(3, 1), Some(75));
+        assert_eq!(winrate_percent(1, 3), Some(25));
+        assert_eq!(winrate_percent(2, 1), Some(66));
+    }
+
+    #[test]
+    fn an_unbeaten_record_reports_one_hundred_percent() {
+        // The guard used to be `rout == 0 || win == 0`, so a perfect record
+        // showed "not enough battles" instead of 100 %.
+        assert_eq!(winrate_percent(10, 0), Some(100));
+        assert_eq!(winrate_percent(1, 0), Some(100));
+    }
+
+    #[test]
+    fn a_winless_record_reports_zero_percent() {
+        assert_eq!(winrate_percent(0, 10), Some(0));
+        assert_eq!(winrate_percent(0, 1), Some(0));
+    }
+
+    #[test]
+    fn only_a_pig_that_has_never_fought_reports_nothing() {
+        assert_eq!(winrate_percent(0, 0), None);
+    }
+
+    #[test]
+    fn the_percentage_never_leaves_zero_to_one_hundred() {
+        for win in 0..80i32 {
+            for rout in 0..80i32 {
+                if win == 0 && rout == 0 {
+                    continue;
+                }
+                let pct = winrate_percent(win, rout).unwrap();
+                assert!((0..=100).contains(&pct), "{win}-{rout} -> {pct}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_percentage_is_truncated_not_rounded() {
+        // 2/3 = 66.66… -> 66
+        assert_eq!(winrate_percent(2, 1), Some(66));
+        // 1/3 = 33.33… -> 33
+        assert_eq!(winrate_percent(1, 2), Some(33));
+    }
+
+
 }

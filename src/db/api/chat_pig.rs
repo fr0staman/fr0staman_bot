@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use ahash::AHashMap;
-use chrono::{Duration, NaiveDate};
+use chrono::{Duration, NaiveDate, NaiveDateTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
@@ -10,16 +12,15 @@ use crate::{
     },
     db::models::{Game, GrowLog, GrowLogAdd, User},
     types::{DbPool, MyResult},
-    utils::date::{get_date, get_datetime},
 };
 
 #[derive(Clone)]
 pub struct ChatPig {
-    pool: &'static DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl ChatPig {
-    pub fn new(pool: &'static DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 
@@ -229,13 +230,15 @@ impl ChatPig {
         Ok(results)
     }
 
+    /// The 14-day window ending at `today`, which the caller supplies so the
+    /// window is pinnable in tests.
     pub async fn get_grow_log_by_game_14days(
         &self,
         id_game: i32,
+        today: NaiveDateTime,
     ) -> MyResult<Vec<GrowLog>> {
         use crate::db::schema::grow_log::dsl::*;
 
-        let today = get_datetime();
         let start_date = today - Duration::days(13);
 
         let results = grow_log
@@ -309,12 +312,15 @@ impl ChatPig {
         Ok(result)
     }
 
-    pub async fn soft_reset_pigs(&self, group_id_val: i32) -> MyResult<()> {
+    pub async fn soft_reset_pigs(
+        &self,
+        group_id_val: i32,
+        today: NaiveDate,
+    ) -> MyResult<()> {
         use crate::db::schema::achievements_users::dsl::*;
         use crate::db::schema::game;
 
         let conn = &mut self.pool.get().await?;
-        let today = get_date();
 
         diesel::update(game::table)
             .set((game::mass.eq(CHAT_PIG_START_MASS), game::date.eq(today)))
@@ -339,13 +345,13 @@ impl ChatPig {
     pub async fn get_top10_by_14days_growth(
         &self,
         id_chat: i64,
+        today: NaiveDateTime,
     ) -> MyResult<Vec<(Game, Vec<GrowLog>)>> {
         use crate::db::schema::game::dsl::*;
         use crate::db::schema::groups;
         use crate::db::schema::grow_log::dsl::*;
 
         let pool = &mut self.pool.get().await?;
-        let today = get_datetime();
         let start_date = today - Duration::days(13);
 
         let top_users = game

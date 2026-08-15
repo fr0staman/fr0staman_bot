@@ -27,6 +27,26 @@ use crate::utils::flag::Flags;
 use crate::utils::helpers::{escape, truncate};
 use crate::utils::{formulas, helpers, iq_results};
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+pub struct Page {
+    pub start: usize,
+    pub end: usize,
+    /// `None` on the last page.
+    pub next_offset: Option<String>,
+}
+
+/// An unparseable offset means the first page. `start` is clamped so an
+/// out-of-range offset yields an empty page instead of panicking.
+pub fn page_slice(total: usize, offset: &str, per_page: usize) -> Page {
+    let page_number = offset.parse::<usize>().unwrap_or(0);
+
+    let start = per_page.saturating_mul(page_number).min(total);
+    let end = start.saturating_add(per_page).min(total);
+    let next_offset = (end != total).then(|| (page_number + 1).to_string());
+
+    Page { start, end, next_offset }
+}
+
 pub async fn filter_inline_commands(
     bot: MyBot,
     q: InlineQuery,
@@ -287,19 +307,11 @@ async fn inline_hruks(
         return Ok(());
     }
 
-    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
-
-    let (start_index, end_index) = {
-        const ON_PAGE: usize = INLINE_QUERY_LIMIT;
-        let start_index = ON_PAGE * number_from_offset;
-        let probably_end_index = start_index + ON_PAGE;
-
-        (start_index, probably_end_index.min(voices.len()))
-    };
+    let page = page_slice(voices.len(), &q.offset, INLINE_QUERY_LIMIT);
 
     let url = "https://t.me".parse::<url::Url>().unwrap();
 
-    let paged_voices = &voices[start_index..end_index];
+    let paged_voices = &voices[page.start..page.end];
     let results: Vec<_> = paged_voices
         .iter()
         .map(|item| {
@@ -315,8 +327,7 @@ async fn inline_hruks(
 
     let query = bot.answer_inline_query(q.id.clone(), results).cache_time(30);
 
-    if end_index != voices.len() {
-        let next_offset = (number_from_offset + 1).to_string();
+    if let Some(next_offset) = page.next_offset {
         query.next_offset(next_offset).await?;
     } else {
         query.await?;
@@ -347,8 +358,6 @@ async fn inline_flag(
         results.push(InlineQueryResult::Article(start_info));
     }
 
-    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
-
     let searched_flags: Cow<[_]> = if payload.is_empty() {
         Flags::FLAGS.into()
     } else {
@@ -363,15 +372,15 @@ async fn inline_flag(
 
     let count = searched_flags.len();
 
+    // One slot is reserved for the "current flag" article above.
     const ON_PAGE: usize = INLINE_QUERY_LIMIT - 1;
-    let start_index = ON_PAGE * number_from_offset;
-    let end_index = (start_index + ON_PAGE).min(count);
+    let page = page_slice(count, &q.offset, ON_PAGE);
 
     if count == 0 {
         let empty_info = iq_results::flag_empty_info(ltag);
         results.push(InlineQueryResult::Article(empty_info));
     } else {
-        let selected_flags = &searched_flags[start_index..end_index];
+        let selected_flags = &searched_flags[page.start..page.end];
 
         for new_flag in selected_flags {
             let info = iq_results::flag_change_info(
@@ -381,12 +390,11 @@ async fn inline_flag(
         }
     }
 
-    let new_offset = number_from_offset + 1;
     let mut query =
         bot.answer_inline_query(q.id.clone(), results).cache_time(0);
 
-    if end_index != count {
-        query = query.next_offset(new_offset.to_string());
+    if let Some(next_offset) = page.next_offset {
+        query = query.next_offset(next_offset);
     }
 
     query.await?;
@@ -468,17 +476,9 @@ async fn inline_gif(
         return Ok(());
     }
 
-    let number_from_offset = q.offset.parse::<usize>().unwrap_or(0);
+    let page = page_slice(gifs.len(), &q.offset, INLINE_QUERY_LIMIT);
 
-    let (start_index, end_index) = {
-        const ON_PAGE: usize = INLINE_QUERY_LIMIT;
-        let start_index = ON_PAGE * number_from_offset;
-        let probably_end_index = start_index + ON_PAGE;
-
-        (start_index, probably_end_index.min(gifs.len()))
-    };
-
-    let paged_gifs = &gifs[start_index..end_index];
+    let paged_gifs = &gifs[page.start..page.end];
     let results: Vec<_> = paged_gifs
         .iter()
         .map(|item| {
@@ -491,8 +491,7 @@ async fn inline_gif(
 
     let query = bot.answer_inline_query(q.id.clone(), results).cache_time(30);
 
-    if end_index != gifs.len() {
-        let next_offset = (number_from_offset + 1).to_string();
+    if let Some(next_offset) = page.next_offset {
         query.next_offset(next_offset).await?;
     } else {
         query.await?;
@@ -556,5 +555,106 @@ fn get_accesibility_by_chattype(
             (Top10Variant::PGlobal, true, Top10Variant::PWin)
         },
         Some(_) => (Top10Variant::Global, false, Top10Variant::Chat),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn page(total: usize, offset: &str) -> Page {
+        page_slice(total, offset, 50)
+    }
+
+    #[test]
+    fn an_empty_offset_is_the_first_page() {
+        assert_eq!(
+            page(120, ""),
+            Page { start: 0, end: 50, next_offset: Some("1".to_owned()) }
+        );
+    }
+
+    #[test]
+    fn pages_walk_forward_and_the_last_one_has_no_next_offset() {
+        assert_eq!(
+            page(120, "1"),
+            Page { start: 50, end: 100, next_offset: Some("2".to_owned()) }
+        );
+        assert_eq!(page(120, "2"), Page {
+            start: 100,
+            end: 120,
+            next_offset: None
+        });
+    }
+
+    #[test]
+    fn an_exactly_full_page_is_the_last_one() {
+        assert_eq!(page(50, ""), Page {
+            start: 0,
+            end: 50,
+            next_offset: None
+        });
+    }
+
+    #[test]
+    fn a_short_list_fits_on_one_page() {
+        assert_eq!(page(3, ""), Page { start: 0, end: 3, next_offset: None });
+        assert_eq!(page(0, ""), Page { start: 0, end: 0, next_offset: None });
+    }
+
+    #[test]
+    fn an_unparseable_offset_falls_back_to_the_first_page() {
+        for offset in ["", "abc", "-1", "1.5", " 1"] {
+            assert_eq!(page(120, offset).start, 0, "offset {offset:?}");
+        }
+    }
+
+    #[test]
+    fn an_out_of_range_offset_yields_an_empty_page_instead_of_panicking() {
+        // The handlers slice with `&items[page.start..page.end]`, so an
+        // unclamped `start` past the end would panic.
+        let p = page(10, "99");
+        assert_eq!(p, Page { start: 10, end: 10, next_offset: None });
+        assert!(p.start <= p.end);
+    }
+
+    #[test]
+    fn start_never_exceeds_end_for_any_offset() {
+        for total in [0usize, 1, 49, 50, 51, 120] {
+            for n in 0..8usize {
+                let p = page(total, &n.to_string());
+                assert!(p.start <= p.end, "total {total} offset {n}");
+                assert!(p.end <= total, "total {total} offset {n}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_flag_picker_reserves_one_slot_per_page() {
+        // `inline_flag` pages by INLINE_QUERY_LIMIT - 1 to leave room for the
+        // "current flag" article.
+        let per_page = INLINE_QUERY_LIMIT - 1;
+        let p = page_slice(200, "", per_page);
+
+        assert_eq!(p.end, per_page);
+        assert_eq!(p.next_offset, Some("1".to_owned()));
+    }
+
+    #[test]
+    fn every_item_is_visited_exactly_once_walking_the_pages() {
+        let total = 137usize;
+        let mut seen = 0usize;
+        let mut offset = String::new();
+
+        loop {
+            let p = page(total, &offset);
+            seen += p.end - p.start;
+            match p.next_offset {
+                Some(next) => offset = next,
+                None => break,
+            }
+        }
+
+        assert_eq!(seen, total);
     }
 }

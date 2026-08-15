@@ -1,5 +1,5 @@
 use crate::{
-    config::env::BOT_CONFIG,
+    config::env::{BOT_CONFIG, bot_me},
     db::{
         DB,
         models::{UpdateGroups, UserStatus},
@@ -39,7 +39,7 @@ pub async fn handle_new_member(bot: MyBot, m: Message) -> MyResult<()> {
     for user in new_chat_members {
         let ltag = tag_one_or(settings.lang.as_deref(), get_tag(user));
 
-        if user.id == BOT_CONFIG.me.id {
+        if user.id == bot_me().id {
             let text = lng("ChatGreetingFirst", ltag)
                 .args(&[("channel", &BOT_CONFIG.channel_name)]);
             bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
@@ -68,7 +68,7 @@ pub async fn handle_left_member(bot: MyBot, m: Message) -> MyResult<()> {
         return Ok(());
     };
 
-    if member.id == BOT_CONFIG.me.id {
+    if member.id == bot_me().id {
         log::info!("Kicked me :( in chat [{}]", m.chat.id);
         let chat_info = UpdateGroups { active: false, ..settings.to_update() };
         DB.other.update_chat(m.chat.id.0, chat_info).await?;

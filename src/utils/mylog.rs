@@ -7,7 +7,7 @@ use teloxide::{
     error_handlers::ErrorHandler, requests::Requester, types::ChatId,
 };
 
-use crate::config::env::BOT_CONFIG;
+use crate::config::env::{BOT_CONFIG, bot_static};
 
 pub struct MyErrorHandler {
     text: String,
@@ -39,8 +39,7 @@ where
 }
 
 pub async fn log_error(text: String) {
-    let _ = BOT_CONFIG
-        .bot
+    let _ = bot_static()
         .send_message(ChatId(BOT_CONFIG.log_group_id), text)
         .await;
 }

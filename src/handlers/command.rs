@@ -27,6 +27,7 @@ use crate::keyboards;
 use crate::lang::{InnerLang, LocaleTag, get_tag_opt, lng, tag_one_two_or};
 use crate::services::achievements::{self, Ach};
 use crate::services::charts::{generate_charts, generate_my_chart};
+use crate::services::reset_vote;
 use crate::traits::{
     MaybeMessageSetter, MaybePhotoSetter, MaybeVoiceSetter,
     SimpleDisableWebPagePreview,
@@ -368,6 +369,17 @@ async fn command_grow(
     Ok(())
 }
 
+/// The coarsest non-zero unit wins.
+pub fn grow_cooldown_key(hours: i64, minutes: i64) -> &'static str {
+    if hours != 0 {
+        "GameNextFeedingToHoursMinutes"
+    } else if minutes != 0 {
+        "GameNextFeedingToMinutes"
+    } else {
+        "GameNextFeedingToSeconds"
+    }
+}
+
 async fn _game_already_feeded(
     bot: MyBot,
     m: &Message,
@@ -387,17 +399,17 @@ async fn _game_already_feeded(
     let hours_text = format!("{} {}", hours, lng(&h_lang, ltag));
     let minut_text = format!("{} {}", minutes, lng(&m_lang, ltag));
 
+    let key = grow_cooldown_key(hours, minutes);
+
     let next_feed = if hours != 0 {
-        lng("GameNextFeedingToHoursMinutes", ltag)
+        lng(key, ltag)
             .args(&[("to_hours", &hours_text), ("to_minutes", &minut_text)])
     } else if minutes != 0 {
-        lng("GameNextFeedingToMinutes", ltag)
-            .args(&[("to_minutes", &minut_text)])
+        lng(key, ltag).args(&[("to_minutes", &minut_text)])
     } else {
         let secnd_text = format!("{} {}", seconds, lng(&s_lang, ltag));
 
-        lng("GameNextFeedingToSeconds", ltag)
-            .args(&[("to_seconds", &secnd_text)])
+        lng(key, ltag).args(&[("to_seconds", &secnd_text)])
     };
 
     let text = lng("GameAlreadyFeeded", ltag)
@@ -511,7 +523,10 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
 
-    let logs = DB.chat_pig.get_grow_log_by_game_14days(pig.id).await?;
+    let logs = DB
+        .chat_pig
+        .get_grow_log_by_game_14days(pig.id, get_datetime())
+        .await?;
     let Some(chart) = generate_my_chart(pig, logs, ltag).await else {
         return Err(MyError::Unknown("Charts generation error".to_string()));
     };
@@ -564,7 +579,10 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let markup = keyboards::keyboard_top(ltag, 1, from.id, is_end);
 
     if with_chart {
-        let data = DB.chat_pig.get_top10_by_14days_growth(m.chat.id.0).await?;
+        let data = DB
+            .chat_pig
+            .get_top10_by_14days_growth(m.chat.id.0, get_datetime())
+            .await?;
 
         let Some(chart) = generate_charts(
             data,
@@ -955,7 +973,7 @@ async fn command_achievements(
     let mut not_done_list_text = String::with_capacity(512);
 
     for achievement in Ach::VARIANTS {
-        let code = achievement.clone() as i16;
+        let code = *achievement as i16;
         let is_in_this_chat = achievements_in_this_chat.contains(&code);
 
         let is_in_global = achievements_in_all_chats.contains(&code);
@@ -1092,15 +1110,13 @@ async fn command_reset_pigs(
     };
 
     let now = get_datetime();
-    if let Some(last_reset) = group.reset_at {
-        let days_passed = (now - last_reset).num_days();
-        if days_passed < 7 {
-            let days_left = 7 - days_passed;
-            let text = lng("ResetPigsCooldown", ltag)
-                .args(&[("days", &days_left.to_string())]);
-            bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
-            return Ok(());
-        }
+    if let Some(days_left) =
+        reset_vote::cooldown_days_left(group.reset_at, now)
+    {
+        let text = lng("ResetPigsCooldown", ltag)
+            .args(&[("days", &days_left.to_string())]);
+        bot.send_message(m.chat.id, text).maybe_thread_id(m).await?;
+        return Ok(());
     }
 
     // Collect pig owners and filter to those actually present in the chat
@@ -1133,7 +1149,7 @@ async fn command_reset_pigs(
         return Ok(());
     }
 
-    let quorum = total_players / 2 + 1;
+    let quorum = reset_vote::quorum_for(total_players);
 
     let new_state = ResetVoteState {
         initiator_id: from.id,
@@ -1174,4 +1190,41 @@ async fn command_reset_pigs(
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_cooldown_message_uses_the_coarsest_non_zero_unit() {
+        assert_eq!(grow_cooldown_key(5, 30), "GameNextFeedingToHoursMinutes");
+        assert_eq!(grow_cooldown_key(1, 0), "GameNextFeedingToHoursMinutes");
+        assert_eq!(grow_cooldown_key(0, 30), "GameNextFeedingToMinutes");
+        assert_eq!(grow_cooldown_key(0, 1), "GameNextFeedingToMinutes");
+        assert_eq!(grow_cooldown_key(0, 0), "GameNextFeedingToSeconds");
+    }
+
+    #[test]
+    fn the_cooldown_key_matches_the_countdown_all_day() {
+        use crate::test_support::datetime;
+
+        let mut now = datetime(2026, 7, 28, 0, 0);
+
+        for _ in 0..(24 * 60) {
+            let (hours, minutes, _) = get_timediff(now);
+            let key = grow_cooldown_key(hours, minutes);
+
+            // The chosen key must have a matching value to render.
+            if hours != 0 {
+                assert_eq!(key, "GameNextFeedingToHoursMinutes", "{now}");
+            } else if minutes != 0 {
+                assert_eq!(key, "GameNextFeedingToMinutes", "{now}");
+            } else {
+                assert_eq!(key, "GameNextFeedingToSeconds", "{now}");
+            }
+
+            now += chrono::Duration::minutes(1);
+        }
+    }
 }

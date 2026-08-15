@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::sync::OnceLock;
 use teloxide::types::User;
 use walkdir::WalkDir;
@@ -24,11 +25,19 @@ pub struct Locale {
 
 impl Locale {
     pub fn new(set_def_tag: &str) -> Self {
+        Self::load_from("locales/", set_def_tag)
+    }
+
+    /// Same as [`Locale::new`], but with an explicit directory.
+    ///
+    /// [`Locale::new`] resolves `locales/` relative to the current working
+    /// directory, which is fine for the bot but brittle for tests; they pass
+    /// a path anchored to `CARGO_MANIFEST_DIR` instead.
+    pub fn load_from(dir: impl AsRef<Path>, set_def_tag: &str) -> Self {
         let mut langs = vec![];
 
         // Load "tag".json from directory
-        for entry in WalkDir::new("locales/").into_iter().filter_map(|e| e.ok())
-        {
+        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
             if !entry.file_type().is_file() {
                 continue;
             }
@@ -209,4 +218,152 @@ pub fn get_langs() -> Vec<String> {
     let s = LANG.get().expect("No langs set currently!");
 
     s.langs.iter().map(|item| item.tag.clone()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_support::init_lang;
+
+
+    #[test]
+    fn args_substitutes_every_placeholder() {
+        let out = "Hi {name}, you weigh {weight} kg"
+            .to_owned()
+            .args(&[("name", "Pig"), ("weight", "42")]);
+
+        assert_eq!(out, "Hi Pig, you weigh 42 kg");
+    }
+
+    #[test]
+    fn args_replaces_a_repeated_placeholder_everywhere() {
+        let out = "{n} and {n}".to_owned().args(&[("n", 7)]);
+        assert_eq!(out, "7 and 7");
+    }
+
+    #[test]
+    fn a_missing_placeholder_leaves_the_template_untouched() {
+        let out = "no slots here".to_owned().args(&[("name", "Pig")]);
+        assert_eq!(out, "no slots here");
+    }
+
+    #[test]
+    fn an_unsupplied_placeholder_is_left_verbatim() {
+        let out = "Hi {name}, {missing}".to_owned().args(&[("name", "Pig")]);
+        assert_eq!(out, "Hi Pig, {missing}");
+    }
+
+    #[test]
+    fn substitution_is_sequential_so_a_value_can_be_rewritten() {
+        // Each key is applied in turn over the whole string, so a value
+        // containing a later key's placeholder gets substituted too.
+        let out = "{a}".to_owned().args(&[("a", "{b}"), ("b", "boom")]);
+        assert_eq!(out, "boom");
+
+        // The reverse order is safe.
+        let out = "{a}".to_owned().args(&[("b", "boom"), ("a", "{b}")]);
+        assert_eq!(out, "{b}");
+    }
+
+    #[test]
+    fn args_accepts_any_display_value() {
+        let out = "{a}/{b}/{c}".to_owned().args(&[("a", "x"), ("b", "y"), ("c", "z")]);
+        assert_eq!(out, "x/y/z");
+
+        let out = "{n}".to_owned().args(&[("n", -12i64)]);
+        assert_eq!(out, "-12");
+    }
+
+
+    #[test]
+    fn known_tags_resolve_and_unknown_ones_fall_back_to_the_default() {
+        init_lang();
+
+        for known in ["uk", "en", "ru", "az"] {
+            assert_eq!(
+                tag_opt(Some(known)).map(|t| get_langs()[t].clone()),
+                Some(known.to_owned())
+            );
+        }
+
+        assert_eq!(tag_opt(Some("zz")), None);
+        assert_eq!(tag_opt(None), None);
+
+        // `tag` swallows the miss and returns the default instead.
+        assert_eq!(tag("zz"), tag(DEFAULT_LANG_TAG));
+    }
+
+    #[test]
+    fn the_language_priority_chain_prefers_user_then_chat_then_client() {
+        init_lang();
+
+        let user = tag("en");
+        let chat = tag("ru");
+        let client = tag("az");
+
+        // User setting wins.
+        assert_eq!(tag_one_two_or(Some("en"), Some("ru"), "az"), user);
+        // No user setting: chat wins.
+        assert_eq!(tag_one_two_or(None, Some("ru"), "az"), chat);
+        // Neither: the Telegram client language.
+        assert_eq!(tag_one_two_or(None, None, "az"), client);
+        // Unknown client language: the default.
+        assert_eq!(tag_one_two_or(None, None, "zz"), tag(DEFAULT_LANG_TAG));
+    }
+
+    #[test]
+    fn an_unknown_user_or_chat_setting_falls_through_rather_than_defaulting() {
+        init_lang();
+
+        // "zz" is not a locale, so it is skipped and the chat setting applies.
+        assert_eq!(tag_one_two_or(Some("zz"), Some("ru"), "az"), tag("ru"));
+        assert_eq!(tag_one_or(Some("zz"), "az"), tag("az"));
+    }
+
+    #[test]
+    fn get_tag_uses_the_clients_language_code() {
+        let json = r#"{
+            "id": 1,
+            "is_bot": false,
+            "first_name": "T",
+            "language_code": "en"
+        }"#;
+        let user: User = serde_json::from_str(json).unwrap();
+        assert_eq!(get_tag(&user), "en");
+
+        let json = r#"{"id": 1, "is_bot": false, "first_name": "T"}"#;
+        let no_lang: User = serde_json::from_str(json).unwrap();
+        assert_eq!(get_tag(&no_lang), DEFAULT_LANG_TAG);
+
+        assert_eq!(get_tag_opt(None), DEFAULT_LANG_TAG);
+        assert_eq!(get_tag_opt(Some(&user)), "en");
+    }
+
+
+    #[test]
+    fn lng_returns_a_marker_string_for_a_missing_key() {
+        init_lang();
+
+        assert_eq!(
+            lng("DefinitelyNotAKey", tag(DEFAULT_LANG_TAG)),
+            "lang: key 'DefinitelyNotAKey' not found"
+        );
+    }
+
+    #[test]
+    fn lng_returns_a_marker_string_for_an_out_of_range_tag() {
+        init_lang();
+
+        let out = lng("HelpMessage", 9_999);
+        assert!(out.starts_with("lang: too big tag"), "{out}");
+    }
+
+    #[test]
+    fn the_default_locale_resolves_real_text() {
+        let ltag = init_lang();
+        let text = lng("HelpMessage", ltag);
+
+        assert!(!text.starts_with("lang:"), "{text}");
+        assert!(!text.is_empty());
+    }
 }

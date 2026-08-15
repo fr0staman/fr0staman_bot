@@ -12,7 +12,8 @@ use teloxide::{
     utils::html::{bold, italic},
 };
 
-enum Actions<'a> {
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+pub enum Actions<'a> {
     #[allow(dead_code)]
     Text(String),
     MaybeRText(String),
@@ -27,19 +28,32 @@ const STICKER: &str = "CAACAgIAAx0CWjbDqQACJqVhBXDPsHT3uscpSlWcQTQxhjgetgACdAEAA
 const GRUNT: &str =
     "AwACAgIAAxkBAAIfv2Eep89pMun_Qq3u-o_UdS997Bx9AAIsEgACErX4SBRdIvQwnUdhIAQ";
 
-pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
-    crate::metrics::MESSAGE_COUNTER.inc();
-    let text_lower = m.text().unwrap().to_lowercase();
-    let text_str = text_lower.as_str();
-
-    let maybe_action = match text_str {
-        "хорни" | "horny" => {
-            Actions::MaybeRText(italic("go to horny jail."))
-        },
+/// `text` is expected already lowercased.
+pub fn match_keyword(text: &str) -> Actions<'static> {
+    match text {
+        "хорни" | "horny" => Actions::MaybeRText(italic("go to horny jail.")),
         "пацєтко" => Actions::MaybeRText(bold("пацєтко сє вродило")),
         "@fr0staman_bot" => Actions::Photo(PHOTO),
         _ => Actions::None,
-    };
+    }
+}
+
+/// Keywords that only mean something as a reply.
+pub fn match_reply_keyword(text: &str) -> Actions<'static> {
+    match text {
+        "бдсм" | "bdsm" => Actions::RSticker(STICKER),
+        "хрюкни" | "grunt" => Actions::RVoice(GRUNT),
+        _ => Actions::None,
+    }
+}
+
+pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
+    crate::metrics::MESSAGE_COUNTER.inc();
+    // Safe: the dispatch tree only routes here when `text()` is `Some`.
+    let text_lower = m.text().unwrap_or_default().to_lowercase();
+    let text_str = text_lower.as_str();
+
+    let maybe_action = match_keyword(text_str);
 
     if let Actions::None = maybe_action {
     } else {
@@ -48,11 +62,7 @@ pub async fn handle_message(bot: MyBot, m: Message) -> MyResult<()> {
     }
 
     let probably_action = if m.reply_to_message().is_some() {
-        match text_str {
-            "бдсм" | "bdsm" => Actions::RSticker(STICKER),
-            "хрюкни" | "grunt" => Actions::RVoice(GRUNT),
-            _ => Actions::None,
-        }
+        match_reply_keyword(text_str)
     } else {
         Actions::None
     };
@@ -121,4 +131,53 @@ async fn _maybe_send_message(
     };
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn standalone_keywords_are_recognised() {
+        assert!(matches!(match_keyword("хорни"), Actions::MaybeRText(_)));
+        assert!(matches!(match_keyword("horny"), Actions::MaybeRText(_)));
+        assert!(matches!(match_keyword("пацєтко"), Actions::MaybeRText(_)));
+        assert_eq!(match_keyword("@fr0staman_bot"), Actions::Photo(PHOTO));
+    }
+
+    #[test]
+    fn reply_only_keywords_are_recognised() {
+        assert_eq!(match_reply_keyword("бдсм"), Actions::RSticker(STICKER));
+        assert_eq!(match_reply_keyword("bdsm"), Actions::RSticker(STICKER));
+        assert_eq!(match_reply_keyword("хрюкни"), Actions::RVoice(GRUNT));
+        assert_eq!(match_reply_keyword("grunt"), Actions::RVoice(GRUNT));
+    }
+
+    #[test]
+    fn the_two_keyword_sets_do_not_overlap() {
+        for word in ["хорни", "horny", "пацєтко", "@fr0staman_bot"] {
+            assert_eq!(match_reply_keyword(word), Actions::None, "{word}");
+        }
+        for word in ["бдсм", "bdsm", "хрюкни", "grunt"] {
+            assert_eq!(match_keyword(word), Actions::None, "{word}");
+        }
+    }
+
+    #[test]
+    fn anything_else_matches_nothing() {
+        for word in ["", "hello", "хорни ", " horny", "хорниии"] {
+            assert_eq!(match_keyword(word), Actions::None, "{word:?}");
+            assert_eq!(match_reply_keyword(word), Actions::None, "{word:?}");
+        }
+    }
+
+    #[test]
+    fn matching_is_case_sensitive_because_callers_lowercase_first() {
+        // `handle_message` lowercases before calling in.
+        assert_eq!(match_keyword("HORNY"), Actions::None);
+        assert!(matches!(
+            match_keyword(&"HORNY".to_lowercase()),
+            Actions::MaybeRText(_)
+        ));
+    }
 }

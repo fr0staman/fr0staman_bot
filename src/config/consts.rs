@@ -25,6 +25,10 @@ pub const LOUDER_DEFAULT_RATIO: f32 = 2.0;
 pub const INLINE_NAME_SET_LIMIT: usize = 20;
 pub const INLINE_VOICE_REWARD_KG: i32 = 250;
 pub const INLINE_GIF_REWARD_KG: i32 = 250;
+/// `inline_voices.status` / `inline_gifs.status` value the browse queries
+/// filter on. Rows are only ever written once the creator has approved them,
+/// so they are inserted already approved.
+pub const INLINE_CONTENT_APPROVED: i16 = 1;
 pub const HAND_PIG_ADDITION_ON_SUPPORTED: i32 = 500;
 pub const HAND_PIG_ADDITION_ON_SUBSCRIBED: i32 = 100;
 pub const CHARTS_PIXELS_WIDTH: u32 = 1280;

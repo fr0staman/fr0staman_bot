@@ -1,5 +1,6 @@
 mod config;
 mod db;
+mod dispatch;
 mod enums;
 mod handlers;
 mod keyboards;
@@ -11,24 +12,22 @@ mod traits;
 mod types;
 mod utils;
 
-pub use utils::mylog;
+#[cfg(test)]
+mod test_support;
+#[cfg(test)]
+mod tests;
 
-use teloxide::{dispatching::UpdateFilterExt, prelude::*, types::MessageKind};
+use teloxide::prelude::*;
 
 use std::sync::Arc;
 
 use crate::{
-    config::{consts::{BOT_PARSE_MODE, GameState}, env::BOT_CONFIG},
-    enums::{AdminCommands, EpycCommands, MyCommands},
-    handlers::{
-        admin, callback, command, epyc, feedback, inline, message, system,
-    },
-    utils::helpers::get_chat_kind,
+    config::{consts::BOT_PARSE_MODE, consts::GameState, env::BOT_CONFIG},
+    dispatch::build_handler,
+    utils::{helpers::get_chat_kind, mylog},
 };
 
-// ============================================================================
 // [@fr0staman_bot Run!]
-// ============================================================================
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
@@ -49,86 +48,7 @@ async fn run() {
     let listener =
         setup::setup_listener(&bot).await.expect("Couldn't setup webhook!");
 
-    let handler = dptree::entry()
-        .branch(
-            Update::filter_message()
-                .branch(
-                    dptree::entry()
-                        .filter_command::<MyCommands>()
-                        .endpoint(command::filter_commands),
-                )
-                .branch(
-                    dptree::entry()
-                        .filter_command::<EpycCommands>()
-                        .endpoint(epyc::filter_commands),
-                )
-                .branch(
-                    dptree::filter(|m: Message| {
-                             m.from.as_ref().is_some_and(|u| {
-                                u.id.0 == BOT_CONFIG.creator_id
-                            })
-                    })
-                    .filter_command::<AdminCommands>()
-                    .endpoint(admin::filter_admin_commands),
-                )
-                .branch(
-                    Message::filter_new_chat_members()
-                        .endpoint(system::handle_new_member),
-                )
-                .branch(
-                    Message::filter_left_chat_member()
-                        .endpoint(system::handle_left_member),
-                )
-                .branch(
-                    dptree::filter(|m: Message| {
-                        m.migrate_to_chat_id().is_some()
-                    })
-                    .endpoint(system::handle_chat_migration),
-                )
-                .branch(
-                    dptree::filter(|m: Message| {
-                        matches!(
-                            m.kind,
-                            MessageKind::VideoChatStarted(_)
-                                | MessageKind::VideoChatEnded(_)
-                        )
-                    })
-                    .endpoint(system::handle_video_chat),
-                )
-                .branch(
-                    dptree::filter(|m: Message| m.text().is_some())
-                        .endpoint(message::handle_message),
-                )
-                .branch(
-                    dptree::filter(|m: Message| {
-                        m.voice().is_some() && m.chat.is_private()
-                    })
-                    .endpoint(system::handle_voice_private),
-                )
-                .branch(
-                    dptree::filter(|m: Message| {
-                        m.animation().is_some() && m.chat.is_private()
-                    })
-                    .endpoint(system::handle_animation_private),
-                ),
-        )
-        .branch(
-            Update::filter_inline_query()
-                .endpoint(inline::filter_inline_commands),
-        )
-        .branch(
-            Update::filter_callback_query()
-                .endpoint(callback::filter_callback_commands),
-        )
-        .branch(
-            Update::filter_my_chat_member()
-                .filter(|u: Update| u.chat().is_some_and(|c| c.is_private()))
-                .endpoint(system::handle_ban_or_unban_in_private),
-        )
-        .branch(
-            Update::filter_chosen_inline_result()
-                .endpoint(feedback::filter_inline_feedback_commands),
-        );
+    let handler = build_handler(BOT_CONFIG.creator_id);
 
     let game_state = Arc::new(GameState::new());
 
@@ -142,7 +62,7 @@ async fn run() {
 }
 
 async fn default_log_handler(upd: std::sync::Arc<Update>) {
-    crate::metrics::UNHANDLED_COUNTER.inc();
+    metrics::UNHANDLED_COUNTER.inc();
 
     let update_id = upd.id.0;
     if let Some(user) = upd.from() {

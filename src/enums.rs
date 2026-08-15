@@ -126,7 +126,8 @@ pub enum InlineKeywords {
     Gif,
 }
 
-#[derive(IntoStaticStr, EnumString)]
+#[derive(Clone, Copy, IntoStaticStr, EnumString)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq, strum::VariantArray))]
 #[strum(const_into_str, serialize_all = "snake_case")]
 pub enum CbActions {
     GiveName,
@@ -195,7 +196,8 @@ pub enum Image {
     MoreInfo,
 }
 
-#[derive(IntoStaticStr, EnumString)]
+#[derive(Clone, Copy, IntoStaticStr, EnumString)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[strum(const_into_str, serialize_all = "snake_case")]
 pub enum PigGrowthStatus {
     Lost,
@@ -203,7 +205,8 @@ pub enum PigGrowthStatus {
     Gained,
 }
 
-#[derive(IntoStaticStr, EnumString)]
+#[derive(Clone, IntoStaticStr, EnumString)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[strum(const_into_str, serialize_all = "snake_case")]
 pub enum InlineResults {
     GetStartDuel,
@@ -266,7 +269,8 @@ impl InlineResults {
     }
 }
 
-#[derive(PartialEq, IntoStaticStr)]
+#[derive(PartialEq, Clone, Copy, IntoStaticStr)]
+#[cfg_attr(test, derive(Debug, Eq))]
 #[strum(const_into_str)]
 pub enum DuelResult {
     Draw,

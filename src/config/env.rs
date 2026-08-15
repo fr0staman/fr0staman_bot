@@ -9,9 +9,6 @@ use url::Url;
 use crate::types::MyBot;
 
 pub struct Config {
-    // For some situations with props with "me"
-    pub me: &'static Me,
-    pub bot: &'static MyBot,
     #[allow(unused)]
     pub teloxide_token: String,
     pub webhook_url: Url,
@@ -44,9 +41,9 @@ where
         .unwrap_or_else(|_| panic!("{} is not valid!", name))
 }
 
+/// Holds no `Me`/`Bot`: those only exist after a live `get_me()`, and folding
+/// them in made reading e.g. `database_url` require Telegram auth.
 pub static BOT_CONFIG: LazyLock<Config> = LazyLock::new(|| Config {
-    me: BOT_ME.get().expect("BOT_ME is not set!"),
-    bot: BOT_STATIC.get().expect("BOT_STATIC is not set!"),
     teloxide_token: _from_env("TELOXIDE_TOKEN"),
     webhook_url: _from_env("WEBHOOK_URL"),
     webhook_port: _from_env("WEBHOOK_PORT"),
@@ -65,3 +62,12 @@ pub static BOT_CONFIG: LazyLock<Config> = LazyLock::new(|| Config {
 
 pub static BOT_ME: OnceLock<Me> = OnceLock::new();
 pub static BOT_STATIC: OnceLock<MyBot> = OnceLock::new();
+
+pub fn bot_me() -> &'static Me {
+    BOT_ME.get().expect("BOT_ME is not set!")
+}
+
+/// For code with no `bot` parameter of its own.
+pub fn bot_static() -> &'static MyBot {
+    BOT_STATIC.get().expect("BOT_STATIC is not set!")
+}

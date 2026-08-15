@@ -48,3 +48,100 @@ pub fn get_datetime_from_message_date(
 ) -> NaiveDateTime {
     FIXED_OFFSET.from_local_datetime(&datetime.naive_utc()).unwrap().naive_utc()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dt(y: i32, m: u32, d: u32, h: u32, min: u32, s: u32) -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(y, m, d)
+            .unwrap()
+            .and_hms_opt(h, min, s)
+            .unwrap()
+    }
+
+    #[test]
+    fn the_fixed_offset_is_effectively_plus_three_hours() {
+        // Built from a negative constant but applied via
+        // `from_local_datetime(..).naive_utc()`, which inverts it to UTC+3.
+        let utc = dt(2026, 7, 28, 9, 0, 0);
+        let shifted = get_datetime_from_message_date(utc.and_utc());
+
+        assert_eq!(shifted, dt(2026, 7, 28, 12, 0, 0));
+    }
+
+    #[test]
+    fn the_offset_carries_across_a_date_boundary() {
+        let utc = dt(2026, 7, 28, 22, 30, 0);
+        let shifted = get_datetime_from_message_date(utc.and_utc());
+
+        assert_eq!(shifted, dt(2026, 7, 29, 1, 30, 0));
+    }
+
+
+    #[test]
+    fn fixed_timestamp_pins_hour_and_minute() {
+        let a = get_fixed_timestamp(dt(2026, 7, 28, 0, 0, 0));
+        let b = get_fixed_timestamp(dt(2026, 7, 28, 23, 59, 0));
+
+        assert_eq!(a, b);
+        assert_eq!(a, dt(2026, 7, 28, FIXED_HOUR, FIXED_MINUTE, 0)
+            .and_utc()
+            .timestamp());
+    }
+
+    #[test]
+    fn fixed_timestamp_keeps_the_seconds() {
+        // By design: only the hour and minute are pinned, so
+        // the seed feeding `calculate_hryak_size` keeps a slight wobble
+        // across the day rather than being perfectly constant.
+        let base = get_fixed_timestamp(dt(2026, 7, 28, 3, 3, 0));
+        let later = get_fixed_timestamp(dt(2026, 7, 28, 3, 3, 41));
+
+        assert_eq!(later - base, 41);
+    }
+
+    #[test]
+    fn fixed_timestamp_differs_between_days() {
+        let a = get_fixed_timestamp(dt(2026, 7, 28, 5, 0, 0));
+        let b = get_fixed_timestamp(dt(2026, 7, 29, 5, 0, 0));
+
+        assert_eq!(b - a, 86_400);
+    }
+
+
+    #[test]
+    fn timediff_counts_down_to_midnight() {
+        let cases = [
+            (dt(2026, 7, 28, 0, 0, 0), (24, 0, 0)),
+            (dt(2026, 7, 28, 23, 59, 59), (0, 0, 1)),
+            (dt(2026, 7, 28, 23, 0, 0), (1, 0, 0)),
+            (dt(2026, 7, 28, 12, 30, 30), (11, 29, 30)),
+            (dt(2026, 7, 28, 22, 15, 45), (1, 44, 15)),
+        ];
+
+        for (now, expected) in cases {
+            assert_eq!(get_timediff(now), expected, "now {now}");
+        }
+    }
+
+    #[test]
+    fn timediff_components_are_always_in_range() {
+        let mut now = dt(2026, 7, 28, 0, 0, 0);
+
+        for _ in 0..(24 * 60) {
+            let (h, m, s) = get_timediff(now);
+            assert!((0..=24).contains(&h), "{now} -> {h}");
+            assert!((0..60).contains(&m), "{now} -> {m}");
+            assert!((0..60).contains(&s), "{now} -> {s}");
+            now += Duration::minutes(1);
+        }
+    }
+
+    #[test]
+    fn timediff_crosses_a_month_boundary() {
+        assert_eq!(get_timediff(dt(2026, 7, 31, 23, 30, 0)), (0, 30, 0));
+        // A leap day, for good measure.
+        assert_eq!(get_timediff(dt(2024, 2, 28, 22, 0, 0)), (2, 0, 0));
+    }
+}

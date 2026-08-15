@@ -35,10 +35,36 @@ pub enum DayPigSelectResult {
     Escaped,
 }
 
-struct Candidate {
-    user: User,
-    iug: Option<InlineUsersGroup>,
-    game: Option<Game>,
+#[cfg_attr(test, derive(Debug))]
+pub struct Candidate {
+    pub user: User,
+    pub iug: Option<InlineUsersGroup>,
+    pub game: Option<Game>,
+}
+
+/// Hand pigs seen in this inline chat plus chat pigs in the linked group,
+/// keyed by user id so someone in both is drawn once.
+pub fn build_candidates(
+    hand_users: Vec<(InlineUsersGroup, User)>,
+    chat_users: Vec<(Game, User)>,
+) -> AHashMap<i32, Candidate> {
+    let mut candidates: AHashMap<i32, Candidate> = AHashMap::new();
+
+    for (iug, user) in hand_users {
+        candidates
+            .entry(user.id)
+            .or_insert_with(|| Candidate { user, iug: None, game: None })
+            .iug = Some(iug);
+    }
+
+    for (game, user) in chat_users {
+        let entry = candidates
+            .entry(user.id)
+            .or_insert_with(|| Candidate { user, iug: None, game: None });
+        entry.game = Some(game);
+    }
+
+    candidates
 }
 
 pub async fn select_and_record(
@@ -69,21 +95,7 @@ pub async fn select_and_record(
         .await?;
     let chat_users = DB.chat_pig.get_game_users_by_group(group_id).await?;
 
-    let mut candidates: AHashMap<i32, Candidate> = AHashMap::new();
-
-    for (iug, user) in hand_users {
-        candidates
-            .entry(user.id)
-            .or_insert_with(|| Candidate { user, iug: None, game: None })
-            .iug = Some(iug);
-    }
-
-    for (game, user) in chat_users {
-        let entry = candidates
-            .entry(user.id)
-            .or_insert_with(|| Candidate { user, iug: None, game: None });
-        entry.game = Some(game);
-    }
+    let mut candidates = build_candidates(hand_users, chat_users);
 
     if candidates.is_empty() {
         return Ok(None);
@@ -197,7 +209,7 @@ pub async fn notify_achievements(
 
     for ach in achievements {
         let achievement_name =
-            lng(&format!("Achievement_{}", ach.clone() as i16), ltag);
+            lng(&format!("Achievement_{}", *ach as i16), ltag);
         let text = lng("NewAchievementUnlocked", ltag).args(&[
             ("achievement_name", &achievement_name),
             ("chat_count", &chat_count),
@@ -209,4 +221,78 @@ pub async fn notify_achievements(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::models::InlineUsersGroup;
+    use crate::test_support::{game, user};
+
+    fn iug(id: i32, iu_id: i32) -> InlineUsersGroup {
+        InlineUsersGroup { id, iu_id, ig_id: 1 }
+    }
+
+    #[test]
+    fn hand_pig_only_users_become_candidates() {
+        let candidates =
+            build_candidates(vec![(iug(1, 1), user(10, 1000))], vec![]);
+
+        assert_eq!(candidates.len(), 1);
+        let entry = &candidates[&10];
+        assert!(entry.iug.is_some());
+        assert!(entry.game.is_none());
+    }
+
+    #[test]
+    fn chat_pig_only_users_become_candidates() {
+        let candidates = build_candidates(vec![], vec![(game(50), user(11, 1001))]);
+
+        assert_eq!(candidates.len(), 1);
+        let entry = &candidates[&11];
+        assert!(entry.iug.is_none());
+        assert_eq!(entry.game.as_ref().unwrap().mass, 50);
+    }
+
+    #[test]
+    fn a_user_in_both_pools_is_drawn_only_once() {
+        let candidates = build_candidates(
+            vec![(iug(1, 1), user(10, 1000))],
+            vec![(game(50), user(10, 1000))],
+        );
+
+        assert_eq!(candidates.len(), 1, "the same user must not be duplicated");
+        let entry = &candidates[&10];
+        assert!(entry.iug.is_some());
+        assert!(entry.game.is_some());
+    }
+
+    #[test]
+    fn the_pools_are_merged_by_internal_id() {
+        let candidates = build_candidates(
+            vec![(iug(1, 1), user(10, 1000)), (iug(2, 2), user(20, 2000))],
+            vec![(game(50), user(20, 2000)), (game(60), user(30, 3000))],
+        );
+
+        assert_eq!(candidates.len(), 3);
+        assert!(candidates[&10].game.is_none());
+        assert!(candidates[&20].iug.is_some() && candidates[&20].game.is_some());
+        assert!(candidates[&30].iug.is_none());
+    }
+
+    #[test]
+    fn empty_pools_produce_no_candidates() {
+        assert!(build_candidates(vec![], vec![]).is_empty());
+    }
+
+    #[test]
+    fn a_repeated_row_does_not_duplicate_a_candidate() {
+        let candidates = build_candidates(
+            vec![(iug(1, 1), user(10, 1000)), (iug(2, 1), user(10, 1000))],
+            vec![],
+        );
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[&10].iug.as_ref().unwrap().id, 2);
+    }
 }

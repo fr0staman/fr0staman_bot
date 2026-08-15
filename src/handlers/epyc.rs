@@ -60,6 +60,42 @@ pub async fn filter_commands(
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+pub enum EpycSetting {
+    Greetings,
+    Top,
+    Lang,
+}
+
+/// `None` for an unrecognised sub-command — the caller answers "function not
+/// found".
+pub fn parse_epyc_arg(arg: &str) -> (Option<EpycSetting>, Option<&str>) {
+    let mut splitted = arg.split_whitespace();
+    let Some(option) = splitted.next() else { return (None, None) };
+    let setting = splitted.next();
+
+    let parsed = match option {
+        "привітання" | "приветствие" | "greetings" => {
+            Some(EpycSetting::Greetings)
+        },
+        "топ" | "top" => Some(EpycSetting::Top),
+        "мова" | "язык" | "lang" => Some(EpycSetting::Lang),
+        _ => None,
+    };
+
+    (parsed, setting)
+}
+
+/// The `groups.settings` value and the locale key confirming it.
+pub fn parse_greetings_setting(setting: &str) -> Option<(i16, &'static str)> {
+    match setting {
+        "-" => Some((1, "GreetingsDisabled")),
+        "+" => Some((0, "GreetingsEnabled")),
+        _ => None,
+    }
+}
+
 // Command center
 async fn command_epyc(
     bot: MyBot,
@@ -83,19 +119,24 @@ async fn command_epyc(
         return Ok(());
     }
 
-    let mut splitted = arg.split_whitespace();
-    let Some(option) = splitted.next() else { return Ok(()) };
-    let setting = splitted.next();
+    // Whitespace-only argument: stay silent, as before.
+    if arg.split_whitespace().next().is_none() {
+        return Ok(());
+    }
+
+    let (option, setting) = parse_epyc_arg(arg);
 
     let function = match option {
-        "привітання" | "приветствие" | "greetings" => {
+        Some(EpycSetting::Greetings) => {
             _epyc_greetings_setting(bot, m, ltag, setting).boxed()
         },
-        "топ" | "top" => _epyc_top_setting(bot, m, ltag, setting).boxed(),
-        "мова" | "язык" | "lang" => {
+        Some(EpycSetting::Top) => {
+            _epyc_top_setting(bot, m, ltag, setting).boxed()
+        },
+        Some(EpycSetting::Lang) => {
             _epyc_chat_lang_setting(bot, m, ltag, setting).boxed()
         },
-        _ => _epyc_function_not_exist(bot, m, ltag).boxed(),
+        None => _epyc_function_not_exist(bot, m, ltag).boxed(),
     };
 
     function.await?;
@@ -165,13 +206,9 @@ async fn _epyc_greetings_setting(
         return Ok(());
     };
 
-    let key = match setting {
-        "-" => (1, "GreetingsDisabled"),
-        "+" => (0, "GreetingsEnabled"),
-        _ => {
-            _epyc_invalid_arg(bot, m, ltag, "greeting").await?;
-            return Ok(());
-        },
+    let Some(key) = parse_greetings_setting(setting) else {
+        _epyc_invalid_arg(bot, m, ltag, "greeting").await?;
+        return Ok(());
     };
 
     DB.other.set_chat_settings(m.chat.id.0, key.0).await?;
@@ -216,4 +253,79 @@ async fn _epyc_chat_lang_setting(
     bot.send_message(m.chat.id, text).maybe_thread_id(&m).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_sub_command_is_recognised_in_every_language() {
+        let cases = [
+            ("привітання", EpycSetting::Greetings),
+            ("приветствие", EpycSetting::Greetings),
+            ("greetings", EpycSetting::Greetings),
+            ("топ", EpycSetting::Top),
+            ("top", EpycSetting::Top),
+            ("мова", EpycSetting::Lang),
+            ("язык", EpycSetting::Lang),
+            ("lang", EpycSetting::Lang),
+        ];
+
+        for (word, expected) in cases {
+            assert_eq!(parse_epyc_arg(word).0, Some(expected), "{word}");
+        }
+    }
+
+    #[test]
+    fn the_parameter_is_the_second_token() {
+        assert_eq!(
+            parse_epyc_arg("greetings +"),
+            (Some(EpycSetting::Greetings), Some("+"))
+        );
+        assert_eq!(parse_epyc_arg("top 10"), (Some(EpycSetting::Top), Some("10")));
+        assert_eq!(parse_epyc_arg("lang uk"), (Some(EpycSetting::Lang), Some("uk")));
+    }
+
+    #[test]
+    fn extra_whitespace_is_ignored() {
+        assert_eq!(
+            parse_epyc_arg("   top    10   "),
+            (Some(EpycSetting::Top), Some("10"))
+        );
+    }
+
+    #[test]
+    fn trailing_tokens_beyond_the_parameter_are_dropped() {
+        assert_eq!(
+            parse_epyc_arg("top 10 20 30"),
+            (Some(EpycSetting::Top), Some("10"))
+        );
+    }
+
+    #[test]
+    fn a_missing_parameter_is_reported_as_none() {
+        assert_eq!(parse_epyc_arg("top"), (Some(EpycSetting::Top), None));
+    }
+
+    #[test]
+    fn an_unknown_sub_command_is_rejected() {
+        for word in ["nope", "TOP", "Топ", "прив", ""] {
+            assert_eq!(parse_epyc_arg(word).0, None, "{word:?}");
+        }
+    }
+
+    #[test]
+    fn greetings_maps_plus_and_minus_to_the_settings_column() {
+        // `groups.settings`: 0 = greetings on, 1 = off.
+        assert_eq!(parse_greetings_setting("+"), Some((0, "GreetingsEnabled")));
+        assert_eq!(parse_greetings_setting("-"), Some((1, "GreetingsDisabled")));
+    }
+
+    #[test]
+    fn an_invalid_greetings_parameter_is_rejected() {
+        for bad in ["", "on", "off", "1", "0", "++"] {
+            assert_eq!(parse_greetings_setting(bad), None, "{bad:?}");
+        }
+    }
 }

@@ -1,6 +1,5 @@
 use futures::{FutureExt, future::BoxFuture};
-use rand::RngExt;
-use std::{cmp::Ordering, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 use teloxide::{
     prelude::*,
     requests::Requester,
@@ -19,7 +18,7 @@ use crate::{
             INLINE_GIF_REWARD_KG, INLINE_VOICE_REWARD_KG,
             SUBSCRIBE_GIFT, TOP_LIMIT, TOP_LIMIT_WITH_CHARTS,
         },
-        env::BOT_CONFIG,
+        env::{BOT_CONFIG, bot_me},
     },
     db::{
         DB,
@@ -29,6 +28,7 @@ use crate::{
     enums::{CbActions, DuelResult, Top10Variant},
     keyboards,
     lang::{InnerLang, LocaleTag, get_tag, lng, tag, tag_one_or},
+    services::{duel, reset_vote},
     traits::{MaybeMessageSetter, SimpleDisableWebPagePreview},
     types::{MyBot, MyError, MyResult, ParsedCallbackData},
     utils::{
@@ -708,42 +708,16 @@ fn _duel_get_status<'a>(
     first: &'a Hrundel,
     second: &'a Hrundel,
 ) -> ((&'a Hrundel, &'a Hrundel), i32, DuelResult) {
-    let mut first_chance = first.0.weight;
-    let mut second_chance = second.0.weight;
+    let outcome = duel::resolve_duel(
+        &mut rand::rng(),
+        first.0.weight,
+        second.0.weight,
+    );
 
-    if first_chance / second_chance > 5 {
-        second_chance = first_chance / 5;
-    } else if second_chance / first_chance > 5 {
-        first_chance = second_chance / 5;
-    }
+    let (winner, looser) =
+        if outcome.first_wins { (first, second) } else { (second, first) };
 
-    let first_random = rand::rng().random_range(0..first_chance);
-    let second_random = rand::rng().random_range(0..second_chance);
-
-    let duel_win_variant = |random, weight| match random {
-        r if r >= (weight * 99) / 100 => DuelResult::Knockout,
-        r if r >= (weight * 90) / 100 => DuelResult::Critical,
-        _ => DuelResult::Win,
-    };
-
-    let (status, winner, looser) = match first_random.cmp(&second_random) {
-        Ordering::Greater => {
-            (duel_win_variant(first_random, first.0.weight), first, second)
-        },
-        Ordering::Less => {
-            (duel_win_variant(second_random, second.0.weight), second, first)
-        },
-        Ordering::Equal => (DuelResult::Draw, first, second),
-    };
-
-    let damage = match status {
-        DuelResult::Win => looser.0.weight / 8,
-        DuelResult::Critical => looser.0.weight / 3,
-        DuelResult::Knockout => (looser.0.weight as f32 / 1.5) as i32,
-        DuelResult::Draw => looser.0.weight.max(winner.0.weight) / 8,
-    };
-
-    ((winner, looser), damage, status)
+    ((winner, looser), outcome.damage, outcome.status)
 }
 
 async fn _start_duel_get_2_hrundels(
@@ -1063,7 +1037,7 @@ async fn _cb_allow_gif(
         .caption(format!("ID: {}", number))
         .await?;
 
-    let gif_link = res.url().unwrap_or_else(|| BOT_CONFIG.me.url());
+    let gif_link = res.url().unwrap_or_else(|| bot_me().url());
 
     let text = lng("GifAcceptedCongrats", ltag).args(&[
         ("number", number.to_string()),
@@ -1397,16 +1371,15 @@ async fn callback_reset_vote(
         let _ = bot_c.answer_callback_query(q_id).await;
     });
 
-    if current_votes * 2 > total {
+    if reset_vote::vote_passed(current_votes, total) {
         // Mark completed under the mutex before releasing it so any concurrent
         // voter that already cloned the Arc will bail out on the completed check.
         state.completed = true;
         drop(state);
 
         // Quorum reached — execute soft reset
-        DB.chat_pig.soft_reset_pigs(group.id).await?;
-
         let now = get_datetime();
+        DB.chat_pig.soft_reset_pigs(group.id, now.date()).await?;
         DB.other.set_group_reset_at(group.id, now).await?;
 
         game_state.reset_votes.write().await.remove(&chat_id_raw);

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{NaiveDate, NaiveDateTime};
 use diesel::{
     dsl::case_when,
@@ -10,16 +12,17 @@ use crate::{
         HryakDay, InlineGroup, InlineUser, InlineUsersGroup, NewInlineUser,
         UpdateInlineUser, User,
     },
-    types::{DbPool, MyResult},
+    types::{DbPool, MyError, MyResult},
+    utils::helpers::parse_chat_instance,
 };
 
 #[derive(Clone)]
 pub struct HandPig {
-    pool: &'static DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl HandPig {
-    pub fn new(pool: &'static DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 
@@ -192,7 +195,9 @@ impl HandPig {
         use crate::db::schema::inline_users_groups;
         use crate::db::schema::users;
 
-        let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
+        let Some(parsed_instance) = parse_chat_instance(chat_instance) else {
+            return Ok(None);
+        };
         let results = hryak_day::table
             .filter(hryak_day::date.eq(the_date))
             .filter(inline_groups::chat_instance.eq(parsed_instance))
@@ -220,7 +225,9 @@ impl HandPig {
     ) -> MyResult<Option<InlineGroup>> {
         use crate::db::schema::inline_groups::dsl::*;
 
-        let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
+        let Some(parsed_instance) = parse_chat_instance(instance_chat) else {
+            return Ok(None);
+        };
         let results = inline_groups
             .filter(chat_instance.eq(parsed_instance))
             .select(InlineGroup::as_select())
@@ -254,9 +261,15 @@ impl HandPig {
     ) -> MyResult<()> {
         use crate::db::schema::inline_groups::dsl::*;
 
+        let Some(parsed_instance) = parse_chat_instance(instance_chat) else {
+            return Err(MyError::Unknown(format!(
+                "cannot create an inline group for chat_instance [{instance_chat}]"
+            )));
+        };
+
         diesel::insert_into(inline_groups)
             .values((
-                chat_instance.eq(instance_chat.parse::<i64>().unwrap_or(1)),
+                chat_instance.eq(parsed_instance),
                 invited_at.eq(cur_datetime),
             ))
             .execute(&mut self.pool.get().await?)
@@ -275,7 +288,9 @@ impl HandPig {
         use crate::db::schema::inline_users_groups;
         use crate::db::schema::users;
 
-        let parsed_instance = instance_chat.parse::<i64>().unwrap_or(1);
+        let Some(parsed_instance) = parse_chat_instance(instance_chat) else {
+            return Ok(None);
+        };
         let results = inline_users_groups::table
             .inner_join(inline_groups::table)
             .inner_join(inline_users::table)
@@ -322,7 +337,9 @@ impl HandPig {
         use crate::db::schema::inline_users_groups;
         use crate::db::schema::users;
 
-        let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
+        let Some(parsed_instance) = parse_chat_instance(chat_instance) else {
+            return Ok(vec![]);
+        };
         let results = inline_users_groups::table
             .inner_join(inline_groups::table)
             .inner_join(inline_users::table.inner_join(users::table))
@@ -419,7 +436,9 @@ impl HandPig {
         use crate::db::schema::inline_users;
         use crate::db::schema::inline_users_groups;
 
-        let parsed_instance = chat_instance.parse::<i64>().unwrap_or(1);
+        let Some(parsed_instance) = parse_chat_instance(chat_instance) else {
+            return Ok(None);
+        };
 
         let results = inline_users::table
             .filter(inline_users::date.eq(cur_date))

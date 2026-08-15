@@ -1,4 +1,4 @@
-mod api;
+pub mod api;
 pub mod init;
 pub mod models;
 pub mod schema;

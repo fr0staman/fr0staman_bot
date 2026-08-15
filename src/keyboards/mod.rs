@@ -1,7 +1,7 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, UserId};
 
 use crate::{
-    config::env::BOT_CONFIG,
+    config::env::{BOT_CONFIG, bot_me},
     enums::{CbActions, Top10Variant},
     lang::{LocaleTag, lng},
     utils::helpers::encode_callback_data,
@@ -281,7 +281,7 @@ pub fn keyboard_link_to_chat(ltag: LocaleTag) -> InlineKeyboardMarkup {
 }
 
 fn _button_startgroup(ltag: LocaleTag) -> InlineKeyboardButton {
-    let url = BOT_CONFIG.me.tme_url();
+    let url = bot_me().tme_url();
     let url = url.join("?startgroup=inline").unwrap();
     let text = lng("BotAddToGroup", ltag);
     InlineKeyboardButton::url(text, url)

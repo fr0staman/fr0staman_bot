@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS inline_users_groups_iu_id_ig_id_key;

@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
+    config::consts::INLINE_CONTENT_APPROVED,
     db::models::{
         AchievementUser, AchievementUserAdd, Groups, InlineGif, InlineVoice,
         NewGroup, NewUser, UpdateGroups, UpdateUser, User, UserStatus,
@@ -12,11 +15,11 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Other {
-    pool: &'static DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl Other {
-    pub fn new(pool: &'static DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 
@@ -219,6 +222,8 @@ impl Other {
         Ok(())
     }
 
+    /// `status` and `caption` are NOT NULL with no default, so both must be
+    /// set. Nothing reads `caption`; the browser builds it from the locale.
     pub async fn add_voice(
         &self,
         iv_uid: i32,
@@ -227,13 +232,20 @@ impl Other {
         use crate::db::schema::inline_voices::dsl::*;
 
         diesel::insert_into(inline_voices)
-            .values((url.eq(new_url), uid.eq(iv_uid)))
+            .values((
+                url.eq(new_url),
+                uid.eq(iv_uid),
+                status.eq(INLINE_CONTENT_APPROVED),
+                caption.eq(""),
+            ))
             .execute(&mut self.pool.get().await?)
             .await?;
 
         Ok(())
     }
 
+    /// Oldest first — `callback_allow_voice` announces the assigned number
+    /// with `.last()`, so the order is load-bearing.
     pub async fn get_voices_by_user(
         &self,
         iv_uid: i32,
@@ -242,6 +254,7 @@ impl Other {
 
         let results = inline_voices
             .filter(uid.eq(iv_uid))
+            .order_by(id.asc())
             .select(InlineVoice::as_select())
             .load(&mut self.pool.get().await?)
             .await?;
@@ -249,6 +262,7 @@ impl Other {
         Ok(results)
     }
 
+    /// See [`Other::add_voice`] on `status`.
     pub async fn add_gif(
         &self,
         iv_uid: i32,
@@ -262,6 +276,7 @@ impl Other {
                 file_id.eq(new_file_id),
                 file_unique_id.eq(new_file_unique_id),
                 uid.eq(iv_uid),
+                status.eq(INLINE_CONTENT_APPROVED),
             ))
             .execute(&mut self.pool.get().await?)
             .await?;
@@ -269,6 +284,7 @@ impl Other {
         Ok(())
     }
 
+    /// Oldest first; see [`Other::get_voices_by_user`].
     pub async fn get_gifs_by_user(
         &self,
         iv_uid: i32,
@@ -277,6 +293,7 @@ impl Other {
 
         let results = inline_gifs
             .filter(uid.eq(iv_uid))
+            .order_by(id.asc())
             .select(InlineGif::as_select())
             .load(&mut self.pool.get().await?)
             .await?;

@@ -5,6 +5,10 @@ edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "fr0staman_bot"
+path = "src/main.rs"
+
 [dependencies]
 ahash = "0.8.12"
 axum = "0.8.9"
@@ -32,6 +36,8 @@ pretty_env_logger = "0.5"
 prometheus-client = "0.25.0"
 rand = { version = "0.10.2", default-features = false, features = [
     "thread_rng",
+    # Seedable RNG, so growth rolls and duels can be tested deterministically.
+    "std_rng",
 ] }
 rayon = "1.12.0"
 resvg = { version = "0.47.0", default-features = false, features = ["text"] }
