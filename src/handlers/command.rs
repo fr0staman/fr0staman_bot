@@ -1,6 +1,6 @@
 use ahash::AHashSet;
 use chrono::NaiveDateTime;
-use futures::FutureExt;
+use futures::{FutureExt, StreamExt};
 use std::sync::Arc;
 use strum::{EnumCount, VariantArray};
 use teloxide::RequestError;
@@ -494,7 +494,10 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     };
 
-    let achievements = DB.other.get_achievements_by_game_id(pig.id).await?;
+    let (achievements, logs) = tokio::try_join!(
+        DB.other.get_achievements_by_game_id(pig.id),
+        DB.chat_pig.get_grow_log_by_game_14days(pig.id, get_datetime()),
+    )?;
 
     // Chance to get achievements without weight change
     if achievements.is_empty() {
@@ -523,10 +526,6 @@ async fn command_my(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
     let text = lng("GamePigStats", ltag)
         .args(&[("name", &pig.name), ("current", &pig.mass.to_string())]);
 
-    let logs = DB
-        .chat_pig
-        .get_grow_log_by_game_14days(pig.id, get_datetime())
-        .await?;
     let Some(chart) = generate_my_chart(pig, logs, ltag).await else {
         return Err(MyError::Unknown("Charts generation error".to_string()));
     };
@@ -547,13 +546,14 @@ async fn command_top(bot: MyBot, m: &Message, ltag: LocaleTag) -> MyResult<()> {
         return Ok(());
     }
 
-    let Some(chat_settings) =
-        shortcuts::maybe_get_or_insert_chat(&m.chat).await?
-    else {
+    let (chat_settings, user) = tokio::try_join!(
+        shortcuts::maybe_get_or_insert_chat(&m.chat),
+        DB.other.get_user(from.id.0 as i64),
+    )?;
+
+    let Some(chat_settings) = chat_settings else {
         return Ok(());
     };
-
-    let user = DB.other.get_user(from.id.0 as i64).await?;
 
     let limit = chat_settings.top10_setting;
 
@@ -1127,21 +1127,31 @@ async fn command_reset_pigs(
         return Ok(());
     }
 
-    let mut total_players: i64 = 0;
-    for raw_uid in &pig_user_ids {
-        let member_result = loop {
-            match bot.get_chat_member(m.chat.id, UserId(*raw_uid as u64)).await {
-                Ok(member) => break Some(member),
-                Err(RequestError::RetryAfter(sec)) => {
-                    tokio::time::sleep(sec.duration()).await;
+    // One `get_chat_member` per owner, a few at a time. Serially this was a
+    // round trip per pig before the vote could even open — several seconds in
+    // a large chat. The cap keeps the burst well inside Telegram's limits.
+    const MEMBER_CHECK_CONCURRENCY: usize = 8;
+
+    let bot_ref = &bot;
+    let total_players = futures::stream::iter(pig_user_ids.iter().copied())
+        .map(|raw_uid| async move {
+            loop {
+                let member =
+                    bot_ref.get_chat_member(m.chat.id, UserId(raw_uid as u64));
+
+                match member.await {
+                    Ok(member) => break member.is_present(),
+                    Err(RequestError::RetryAfter(sec)) => {
+                        tokio::time::sleep(sec.duration()).await;
+                    },
+                    Err(_) => break false,
                 }
-                Err(_) => break None,
             }
-        };
-        if member_result.is_some_and(|m| m.is_present()) {
-            total_players += 1;
-        }
-    }
+        })
+        .buffer_unordered(MEMBER_CHECK_CONCURRENCY)
+        .filter(|present| std::future::ready(*present))
+        .count()
+        .await as i64;
 
     if total_players == 0 {
         let text = lng("ResetPigsNoPigs", ltag);

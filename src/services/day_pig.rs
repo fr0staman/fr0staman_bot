@@ -89,11 +89,10 @@ pub async fn select_and_record(
         return Ok(None);
     }
 
-    let hand_users = DB
-        .hand_pig
-        .get_inline_users_with_user_by_chat(&chat_instance)
-        .await?;
-    let chat_users = DB.chat_pig.get_game_users_by_group(group_id).await?;
+    let (hand_users, chat_users) = tokio::try_join!(
+        DB.hand_pig.get_inline_users_with_user_by_chat(&chat_instance),
+        DB.chat_pig.get_game_users_by_group(group_id),
+    )?;
 
     let mut candidates = build_candidates(hand_users, chat_users);
 

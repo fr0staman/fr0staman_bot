@@ -48,7 +48,16 @@ teloxide = { git = "https://github.com/teloxide/teloxide.git", rev = "0ca6f7d224
     "webhooks-axum",
 ] }
 thiserror = "2.0.20"
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros"] }
+# `time`, `sync` and `net` are used directly (sleep, Mutex/RwLock/oneshot,
+# TcpListener). They were only reaching us transitively through teloxide and
+# axum, so a bump there could have broken the build.
+tokio = { version = "1.53.1", features = [
+    "rt-multi-thread",
+    "macros",
+    "time",
+    "sync",
+    "net",
+] }
 unicode-width = "0.2.2"
 url = "2.5.8"
 walkdir = "2.5.0"

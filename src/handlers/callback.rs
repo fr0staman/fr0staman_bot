@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use futures::{FutureExt, future::BoxFuture};
 use std::{str::FromStr, sync::Arc};
 use teloxide::{
@@ -48,15 +49,16 @@ pub async fn filter_callback_commands(
 ) -> MyResult<()> {
     crate::metrics::CALLBACK_COUNTER.inc();
 
-    // Temporary groups -> inline_groups "collector"
-    let res = _try_join_groups_with_inline(&q).await;
-    if let Err(err) = res {
+    let (collected, user) = tokio::join!(
+        _try_join_groups_with_inline(&q),
+        shortcuts::maybe_get_or_insert_user(&q.from, false),
+    );
+
+    if let Err(err) = collected {
         _on_error_join_groups_with_inline(&q, err);
     }
 
-    let Some(user) =
-        shortcuts::maybe_get_or_insert_user(&q.from, false).await?
-    else {
+    let Some(user) = user? else {
         crate::myerr!("User not exist after inserting!");
         return Ok(());
     };
@@ -663,10 +665,15 @@ async fn callback_change_top(
     let offset = data.2.parse::<i64>().unwrap();
     let is_with_chart = msg.photo().is_some();
 
-    let top_pigs = DB
-        .chat_pig
-        .get_top_chat_pigs(m.chat().id.0, limit, offset - 1, is_with_chart)
-        .await?;
+    let (top_pigs, pig_count) = tokio::try_join!(
+        DB.chat_pig.get_top_chat_pigs(
+            m.chat().id.0,
+            limit,
+            offset - 1,
+            is_with_chart
+        ),
+        DB.chat_pig.count_chat_pig(m.chat().id.0, limit),
+    )?;
 
     if top_pigs.is_empty() {
         let text = lng("GameNoChatPigs", ltag);
@@ -676,8 +683,6 @@ async fn callback_change_top(
         bot.send_message(m.chat().id, text).maybe_thread_id(msg).await?;
         return Ok(());
     }
-
-    let pig_count = DB.chat_pig.count_chat_pig(m.chat().id.0, limit).await?;
 
     let text =
         generate_chat_top_text(ltag, top_pigs, offset - 1, is_with_chart);
@@ -722,40 +727,66 @@ fn _duel_get_status<'a>(
 
 async fn _start_duel_get_2_hrundels(
     ids: (UserId, UserId),
-) -> MyResult<Option<[(InlineUser, User); 2]>> {
-    let Some(first) = DB.hand_pig.get_hrundel(ids.0.0 as i64).await? else {
-        return Ok(None);
-    };
+) -> MyResult<Option<[Hrundel; 2]>> {
+    let (first, second) = tokio::try_join!(
+        DB.hand_pig.get_hrundel(ids.0.0 as i64),
+        DB.hand_pig.get_hrundel(ids.1.0 as i64),
+    )?;
 
-    let Some(second) = DB.hand_pig.get_hrundel(ids.1.0 as i64).await? else {
+    let (Some(first), Some(second)) = (first, second) else {
         return Ok(None);
     };
 
     let today = get_date();
-
     let mut hrundels = [first, second];
 
-    for hrundel in hrundels.iter_mut() {
-        if hrundel.0.date != today {
-            let user_id = hrundel.1.user_id;
-            let size = formulas::calculate_hryak_size(user_id);
-            let biggest = _get_biggest_chat_pig_mass(user_id).await?;
-            let add =
-                size + biggest + helpers::mass_addition_on_status(&hrundel.1);
+    let refreshed = tokio::try_join!(
+        _refreshed_weight(&hrundels[0], today),
+        _refreshed_weight(&hrundels[1], today),
+    )?;
 
-            DB.hand_pig
-                .update_hrundel_date_and_size(user_id, add, today)
-                .await?;
+    let user_ids = (hrundels[0].1.user_id, hrundels[1].1.user_id);
 
-            let Some(exist) = DB.hand_pig.get_hrundel(user_id).await? else {
-                return Ok(None);
-            };
+    tokio::try_join!(
+        _store_refreshed_weight(user_ids.0, refreshed.0, today),
+        _store_refreshed_weight(user_ids.1, refreshed.1, today),
+    )?;
 
-            *hrundel = exist;
+    for (hrundel, weight) in
+        hrundels.iter_mut().zip([refreshed.0, refreshed.1])
+    {
+        if let Some(weight) = weight {
+            hrundel.0.weight = weight;
+            hrundel.0.date = today;
         }
     }
 
     Ok(Some(hrundels))
+}
+
+async fn _refreshed_weight(
+    hrundel: &Hrundel,
+    today: NaiveDate,
+) -> MyResult<Option<i32>> {
+    if hrundel.0.date == today {
+        return Ok(None);
+    }
+
+    let user_id = hrundel.1.user_id;
+    let size = formulas::calculate_hryak_size(user_id);
+    let biggest = _get_biggest_chat_pig_mass(user_id).await?;
+
+    Ok(Some(size + biggest + helpers::mass_addition_on_status(&hrundel.1)))
+}
+
+async fn _store_refreshed_weight(
+    user_id: i64,
+    weight: Option<i32>,
+    today: NaiveDate,
+) -> MyResult<()> {
+    let Some(weight) = weight else { return Ok(()) };
+
+    DB.hand_pig.update_hrundel_date_and_size(user_id, weight, today).await
 }
 
 async fn callback_access_denied(

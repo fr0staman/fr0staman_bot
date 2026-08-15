@@ -128,50 +128,61 @@ async fn _get_hryak(
     let hrundel_info = DB.hand_pig.get_hrundel(q.from.id.0 as i64).await?;
     let cur_date = get_date();
 
-    let Some(info) = hrundel_info else {
-        let Some(user) =
-            shortcuts::maybe_get_or_insert_user(&q.from, false).await?
-        else {
-            return Ok(vec![iq_results::handle_error_info(ltag)]);
-        };
+    let info = match hrundel_info {
+        None => {
+            let Some(user) =
+                shortcuts::maybe_get_or_insert_user(&q.from, false).await?
+            else {
+                return Ok(vec![iq_results::handle_error_info(ltag)]);
+            };
 
-        let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
+            let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
 
-        let weight =
-            formulas::calculate_hryak_size(q.from.id.0 as i64) + biggest_mass;
-        let escaped_f_name = escape(&q.from.first_name);
-        let f_name = truncate(&escaped_f_name, 64).0;
+            let weight = formulas::calculate_hryak_size(q.from.id.0 as i64)
+                + biggest_mass;
+            let escaped_f_name = escape(&q.from.first_name);
+            let f_name = truncate(&escaped_f_name, 64).0;
 
-        let hrundel = NewInlineUser {
-            uid: user.id,
-            weight,
-            name: f_name,
-            date: cur_date,
-            flag: q.from.language_code.as_deref().unwrap_or(DEFAULT_LANG_TAG),
-            gifted: false,
-            rout: 0,
-            win: 0,
-        };
-        DB.hand_pig.add_hrundel(hrundel).await?;
-        return Box::pin(_get_hryak(q, ltag)).await;
-    };
+            let hrundel = NewInlineUser {
+                uid: user.id,
+                weight,
+                name: f_name,
+                date: cur_date,
+                flag: q
+                    .from
+                    .language_code
+                    .as_deref()
+                    .unwrap_or(DEFAULT_LANG_TAG),
+                gifted: false,
+                rout: 0,
+                win: 0,
+            };
 
-    if info.0.date != cur_date {
+            (DB.hand_pig.add_hrundel(hrundel).await?, user)
+        },
         // Pig exist, but not "today", just recreate that!
-        let weight = formulas::calculate_hryak_size(q.from.id.0 as i64);
-        let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
-        let add = biggest_mass + helpers::mass_addition_on_status(&info.1);
+        Some((mut hand_pig, user)) if hand_pig.date != cur_date => {
+            let weight = formulas::calculate_hryak_size(q.from.id.0 as i64);
+            let biggest_mass = _get_biggest_chat_pig_mass(q.from.id).await?;
+            let add = biggest_mass + helpers::mass_addition_on_status(&user);
 
-        let update_data = UpdateInlineUser {
-            id: info.0.id,
-            weight: weight + add,
-            date: cur_date,
-            gifted: false,
-        };
+            let update_data = UpdateInlineUser {
+                id: hand_pig.id,
+                weight: weight + add,
+                date: cur_date,
+                gifted: false,
+            };
 
-        DB.hand_pig.update_hrundel(update_data).await?;
-        return Box::pin(_get_hryak(q, ltag)).await;
-    }
+            DB.hand_pig.update_hrundel(update_data).await?;
+
+            hand_pig.weight = weight + add;
+            hand_pig.date = cur_date;
+            hand_pig.gifted = false;
+
+            (hand_pig, user)
+        },
+        Some(info) => info,
+    };
 
     let (chat_type, remove_markup, to) =
         get_accesibility_by_chattype(q.chat_type);
