@@ -106,7 +106,7 @@
   "HandPigNameNowIs": "🐷 Donuzunuz indi belə adlanır:\n <i>{new_name}</i>",
   "HandPigNoInBarn": "😭 Tövlənizdə ələ öyrədilmiş çoşqa yoxdur!",
   "HandPigWeightMessage": "Çoşqanızın çəki <b>{weight}</b> kilodur {emoji}{append}",
-  "HelpLink": "https://telegra.ph/Help--fr0staman-bot-az-09-13",
+  "HelpLink": "https://fr0staman.dev/en/projects/fr0staman_bot/docs/az/",
   "HelpMessage": "Botla əlaqədar kömək:\n{link}",
   "I18nTestMessage": "İt şıçar, qaz osdurar <b>{user}</b>",
   "IncorrectParamNeedNumber": "Siz yanlış arqumenti daxil etdiniz\nYalnız nömrəni yazmaq olar.",

@@ -14,9 +14,10 @@
 
 ## User manual:
 
-- [🇺🇦 Ukrainian](https://telegra.ph/Help--fr0staman-bot-uk-08-05)
-- [English](https://telegra.ph/Help--fr0staman-bot-en-08-05)
-- [russian](https://telegra.ph/Help--fr0staman-bot-ru-08-05)
+- [🇺🇦 Ukrainian](https://fr0staman.dev/uk/projects/fr0staman_bot/docs/)
+- [English](https://fr0staman.dev/en/projects/fr0staman_bot/docs/)
+- [Azərbaycan](https://fr0staman.dev/en/projects/fr0staman_bot/docs/az/)
+- [russian](https://fr0staman.dev/en/projects/fr0staman_bot/docs/ru/)
 
 ## Overview
 ❗️ This repository is rather not an example for beginners, as it combines several technologies, which can complicate the initial learning path.
